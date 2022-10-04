@@ -1,7 +1,8 @@
 <script setup>
   import NavComponent from './components/NavComponent.vue';
   import HomeComponent from './components/HomeComponent.vue';
-  import Vue from 'vue';
+  import FooterComponent from './components/FooterComponent.vue';
+ 
 </script>
 
 <template >
@@ -16,12 +17,14 @@
         <router-link to="/login">Router Link 1</router-link> -->
       </main>
     </section>
+    <FooterComponent/>
   </section>
 </template>
 
 <style scoped>
     #app {
       background-color: rgb(57, 56, 56);
+      height: auto;
     }
 
     main {
