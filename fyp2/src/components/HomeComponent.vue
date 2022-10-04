@@ -50,7 +50,7 @@
         display: grid;
         grid-template-columns: 50% 50%;
         column-gap: 2%;
-        font-size: 20px;
+        font-size: 18px;
         font-weight: 300;
         padding: 10px;
         color: white;

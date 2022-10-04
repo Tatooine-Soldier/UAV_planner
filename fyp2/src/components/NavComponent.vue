@@ -15,8 +15,10 @@
             </section>
             <section class="nav-sections">
                 <section class="nav-buttons">
-                    <button>Sign Up</button>
-                    <button>Log In</button>
+                    <ul>
+                        <li><img src="../assets/login-icon.jpg" id="login-icon"/></li>
+                        <li><button>Log In</button></li>
+                    </ul>
                 </section>
             </section>
         </section>
@@ -55,6 +57,11 @@
         margin-right: 9%;
     }
 
+    #login-icon {
+        height: 30px;
+        width: 30px;
+    }
+
     .links {
         margin-left: 10px;
         margin-right: 20px;
@@ -84,6 +91,14 @@
 
     .nav-buttons {
         display: inline;
+        justify-content: center;
+    }
+
+    .nav-buttons li {
+        list-style: none;
+        display: inline;
+        justify-content: center;
+        align-items: center;
     }
 
     .nav-buttons button {

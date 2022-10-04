@@ -1,8 +1,12 @@
 <script setup>
   import NavComponent from './components/NavComponent.vue';
   import HomeComponent from './components/HomeComponent.vue';
+  import LoginComponent from './components/LoginComponent.vue';
   import FooterComponent from './components/FooterComponent.vue';
+  import { Vue } from "vue";
+  import { VueRouter } from 'vue-router';
  
+  Vue.use(VueRouter);
 </script>
 
 <template >
@@ -11,10 +15,10 @@
 
     <section class="main-container">
       <main>
-        <HomeComponent />
-        
-        <!-- <router-view/>
-        <router-link to="/login">Router Link 1</router-link> -->
+        <!-- <HomeComponent /> -->
+        <LoginComponent/>
+        <router-link to="/">Go Home</router-link>
+        <router-view></router-view>
       </main>
     </section>
     <FooterComponent/>
@@ -37,5 +41,13 @@
 <script type="text/javascript">
   // export default {
   //     name: 'App',
-  //  }
+  //  }#
+  const routes = [
+   {
+      path: '/',
+      name: 'home',
+      component: HomeComponent
+   }];
+
+  const router = new VueRouter
 </script>
