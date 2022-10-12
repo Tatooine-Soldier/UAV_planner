@@ -131,45 +131,23 @@ func (q *Queue) insert(w *QueueItem) {
 	if w != nil {
 		q.queue = append(q.queue, w)
 	}
-	fmt.Printf("%v", q.queue[len(q.queue)-1].node.value)
+	q.sort(0, len(q.queue)-1)
 }
 
-func (q *Queue) sort(qu []*QueueItem, low int, high int) *Queue {
-	if low < high {
-		index := split(q.queue, low, high)
-		q.sort(q.queue, low, index-1)
-		q.sort(q.queue, index+1, high)
-	}
-	return q
-}
-
-func split(queue []*QueueItem, low int, high int) int {
-	pivot := queue[int(high)]
-	i := int(low - 1)
-	for index, j := range queue {
-		if j.cost <= pivot.cost {
-			temp := index
-			i = i + 1
-			queue[index] = queue[i]
-			queue[i] = queue[temp]
+func (q *Queue) sort(low int, high int) {
+	for j := range q.queue {
+		for i := 1; i < len(q.queue)-j-1; i++ {
+			if q.queue[i-1].cost > q.queue[i].cost {
+				// fmt.Printf("\n%v is smaller than %v\n", q.queue[i].cost, q.queue[i-1].cost)
+				temp := q.queue[i]
+				q.queue[i] = q.queue[i-1]
+				q.queue[i-1] = temp
+			}
 		}
 	}
-
-	//(queue[i + 1], array[high]) = (array[high], array[i + 1])
-	temp := queue.findElement(queue[i+1])
-	queue[i+1] = queue[high]
-	queue[high] = queue[temp]
-	return i + 1
-
-}
-
-func (q []*QueueItem) findElement(item *QueueItem) int { //i need to finish the sorting for APQ
-	for index, val := range q { //Next need to finish Dijkstra
-		if val == item {
-			return index
-		}
+	for _, val := range q.queue {
+		fmt.Printf("%v", val.cost)
 	}
-	return -1
 }
 
 func (q *Queue) pop() *myNode {
@@ -195,14 +173,21 @@ func (q *Queue) editCost(n *myNode, newcost int) {
 //======================================================
 //##Dijkstra
 
-func (g *myGraph) Dijkstra(source *myNode, destination *myNode) {
+func (g *myGraph) Dijkstra(source *myNode, destination *myNode, d *myNode, e *myNode) {
 
-	distances := make(map[*myNode]float32)  // distances between nodes
-	visitedVertex := make(map[*myNode]bool) // marks the vertexes as visited
-	q := Queue{queue: []*QueueItem{}}       // priority queue
+	// distances := make(map[*myNode]float32)  // distances between nodes
+	// visitedVertex := make(map[*myNode]bool) // marks the vertexes as visited
+	q := Queue{queue: []*QueueItem{}} // priority queue
 
-	wrappedSource := &QueueItem{node: source, cost: 0.0}
+	wrappedSource := &QueueItem{node: source, cost: 4.0}         //a
+	wrappedSourceTwo := &QueueItem{node: destination, cost: 3.0} //c
+	wrappedSourceThree := &QueueItem{node: d, cost: 0.0}         //d
+	wrappedSourceFour := &QueueItem{node: e, cost: 5.0}          //d
 	q.insert(wrappedSource)
+	q.insert(wrappedSourceTwo)
+	q.insert(wrappedSourceThree)
+	q.insert(wrappedSourceFour)
+
 	// var open = Queue{queue: []*QueueItem{}}
 	// locs := make(map[*myNode]*myNode)
 	// closed := make(map[*myNode]*closedTuple)
@@ -271,7 +256,7 @@ func main() {
 	fmt.Println(&graph)
 
 	graph.DFS(a, b)
-	graph.Dijkstra(a, c)
+	graph.Dijkstra(a, c, d, e)
 
 	// graph.createSubGraph(a, d)
 
