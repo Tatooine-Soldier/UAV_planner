@@ -8,8 +8,8 @@ import (
 type myNode struct {
 	value    string
 	edges    map[string]*myNode
-	priority int
-	cost     int
+	priority float32
+	cost     float32
 }
 
 //parent graph struct
@@ -134,6 +134,7 @@ func (q *Queue) insert(w *QueueItem) {
 	q.sort(0, len(q.queue)-1)
 }
 
+// !!!!!Implement to HEAP sort is faster!!!!!!
 func (q *Queue) sort(low int, high int) {
 	for j := range q.queue {
 		for i := 1; i < len(q.queue)-j-1; i++ {
@@ -145,24 +146,18 @@ func (q *Queue) sort(low int, high int) {
 			}
 		}
 	}
-	for _, val := range q.queue {
-		fmt.Printf("%v", val.cost)
-	}
 }
 
 func (q *Queue) pop() *myNode {
-	max := 0
-	for index, val := range q.queue {
-		if val.cost < q.queue[max].cost {
-			max = index
-		}
+	if len(q.queue) > 0 {
+		minNode := q.queue[0].node
+		fmt.Printf("%v", minNode.value)
+		return minNode
 	}
-	item := q.queue[max]
-	q.queue = q.queue[1:len(q.queue)] //Maybe don't do this if you want to keep it in the apq
-	return item.node
+	return nil
 }
 
-func (q *Queue) editCost(n *myNode, newcost int) {
+func (q *Queue) editCost(n *myNode, newcost float32) {
 	for _, val := range q.queue {
 		if val.node.value == n.value {
 			val.node.cost = newcost
@@ -175,19 +170,20 @@ func (q *Queue) editCost(n *myNode, newcost int) {
 
 func (g *myGraph) Dijkstra(source *myNode, destination *myNode, d *myNode, e *myNode) {
 
-	// distances := make(map[*myNode]float32)  // distances between nodes
-	// visitedVertex := make(map[*myNode]bool) // marks the vertexes as visited
-	q := Queue{queue: []*QueueItem{}} // priority queue
+	distances := make(map[*myNode]float32)  // distances to record distance between source node and all others
+	visitedVertex := make(map[*myNode]bool) // marks the vertexes as visited
+	q := Queue{queue: []*QueueItem{}}       // priority queue
 
-	wrappedSource := &QueueItem{node: source, cost: 4.0}         //a
-	wrappedSourceTwo := &QueueItem{node: destination, cost: 3.0} //c
-	wrappedSourceThree := &QueueItem{node: d, cost: 0.0}         //d
-	wrappedSourceFour := &QueueItem{node: e, cost: 5.0}          //d
-	q.insert(wrappedSource)
-	q.insert(wrappedSourceTwo)
-	q.insert(wrappedSourceThree)
-	q.insert(wrappedSourceFour)
-
+	wrappedSource := &QueueItem{node: source, cost: 0.0} //a
+	q.insert(wrappedSource)                              // enqueue
+	current := q.pop()                                   // dequeue the node from the pq
+	visitedVertex[current] = true                        // mark the current vertex as visited
+	for _, nodeToVisit := range current.edges {
+		if visitedVertex[nodeToVisit] == false { // check here to see that nodeToVisit isn't already visited / different syna#tax needed?????
+			newcost := nodeToVisit.cost + current.cost
+			distances[nodeToVisit] = newcost //update the cost to get to this new node
+		}
+	}
 	// var open = Queue{queue: []*QueueItem{}}
 	// locs := make(map[*myNode]*myNode)
 	// closed := make(map[*myNode]*closedTuple)
