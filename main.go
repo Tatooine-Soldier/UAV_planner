@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"text/template"
 
 	"crypto/sha256"
@@ -170,7 +171,14 @@ func totalRequest(w http.ResponseWriter, r *http.Request) {
 
 	user := bson.D{{"latitude", latitude}, {"longitude", longitude}, {"date", date}, {"hour", hour}, {"minute", minute}}
 	insertDB(context.TODO(), client, user, "total")
-	http.Redirect(w, r, "/planReview", http.StatusSeeOther)
+	// http.Redirect(w, r, "/planReview", http.StatusSeeOther)
+
+	lat := latitude[0]
+	long := longitude[0]
+	floatLat, _ := strconv.ParseFloat(lat, 32)
+	floatLong, _ := strconv.ParseFloat(long, 32)
+
+	calculateDistance(floatLat, floatLong)
 }
 
 func renderTmpl(w http.ResponseWriter, r *http.Request) {
@@ -179,12 +187,42 @@ func renderTmpl(w http.ResponseWriter, r *http.Request) {
 	// r.HTML(w, http.StatusOK, "example", nil)
 }
 
+func calculateDistance(lat float64, long float64) {
+
+}
+
+func signupRequest(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		panic("GET method not permitted")
+	} else {
+		r.ParseForm()
+		fmt.Printf("BEFORE HASH AND STORAGE--> %v %v", r.Form["username"], r.Form["password"])
+	}
+	username := r.Form["username"]
+	password := r.Form["password"]
+	email := r.Form["email"]
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		panic(err)
+	}
+
+	itemByted := encodeToByte(password)
+
+	hashedVal := sha256.New()
+	hashedVal.Write([]byte(itemByted))
+
+	user := bson.D{{"fullName", username}, {"email", email}, {"password", hashedVal.Sum(nil)}}
+	// checkDB(context.TODO(), client, user)
+	insertDB(context.TODO(), client, user, "users")
+}
+
 func main() {
 	// http.HandleFunc("/", getRoot)
 	http.HandleFunc("/hello", getHello)
 	fs := http.FileServer(http.Dir("../../../dist"))
 	http.Handle("/", fs)
 	http.HandleFunc("/login", loginRequest)
+	http.HandleFunc("/signup", signupRequest)
 	http.HandleFunc("/location", locationRequest)
 	http.HandleFunc("/speed", speedRequest)
 	http.HandleFunc("/detailsSubmit", totalRequest)
