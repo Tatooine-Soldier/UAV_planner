@@ -12,6 +12,7 @@ import (
 
 	"crypto/sha256"
 
+	"github.com/EpicStep/go-simple-geo/geo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -69,6 +70,42 @@ func insertDB(ctx context.Context, client *mongo.Client, user primitive.D, colle
 	fmt.Printf("%v", result)
 }
 
+func checkDBSignup(ctx context.Context, client *mongo.Client, user string, collection string) (init bool) {
+	fmt.Printf("\nCHECKING %v\n", user)
+	usersCollection := client.Database("fyp_test").Collection(collection)
+	usercheck := bson.D{{"fullName", user}}
+	cursor, err := usersCollection.Find(context.TODO(), usercheck)
+
+	var results []bson.D
+	if err = cursor.All(context.TODO(), &results); err != nil {
+		panic(err)
+	}
+
+	if len(results) != 0 {
+		return true
+	}
+	return false
+}
+
+func checkDBLogin(ctx context.Context, client *mongo.Client, data primitive.D, collection string) (init bool) {
+	fmt.Printf("\nCHECKING %v %v\n", data[0], data[1])
+	usersCollection := client.Database("fyp_test").Collection(collection)
+
+	cursor, err := usersCollection.Find(context.TODO(), data)
+
+	var results []bson.D
+	if err = cursor.All(context.TODO(), &results); err != nil {
+		panic(err)
+	}
+
+	if len(results) != 0 {
+		fmt.Println("user exists")
+		return true
+	}
+
+	return false
+}
+
 func loginRequest(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		panic("GET method not permitted")
@@ -89,8 +126,11 @@ func loginRequest(w http.ResponseWriter, r *http.Request) {
 	hashedVal.Write([]byte(itemByted))
 
 	user := bson.D{{"fullName", username}, {"password", hashedVal.Sum(nil)}}
-	// checkDB(context.TODO(), client, user)
-	insertDB(context.TODO(), client, user, "users")
+	if userExists := checkDBLogin(context.TODO(), client, user, "users"); userExists {
+		fmt.Printf("User exists %v", userExists)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	}
+
 }
 
 // encode the string array into byte array
@@ -104,9 +144,6 @@ func encodeToByte(pw []string) []byte {
 	}
 	return bytedPw
 }
-
-// func checkDB(ctx context.Context, client *mongo.Client, user primitive.D) {
-// }
 
 func locationRequest(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
@@ -187,10 +224,6 @@ func renderTmpl(w http.ResponseWriter, r *http.Request) {
 	// r.HTML(w, http.StatusOK, "example", nil)
 }
 
-func calculateDistance(lat float64, long float64) {
-
-}
-
 func signupRequest(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		panic("GET method not permitted")
@@ -206,14 +239,31 @@ func signupRequest(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
+	alreadySignedUp := checkDBSignup(context.TODO(), client, username[0], "users")
+	if alreadySignedUp {
+		fmt.Println("User already exists")
+		http.Redirect(w, r, "/signup", http.StatusSeeOther)
+		return
+	}
+
 	itemByted := encodeToByte(password)
 
 	hashedVal := sha256.New()
 	hashedVal.Write([]byte(itemByted))
 
 	user := bson.D{{"fullName", username}, {"email", email}, {"password", hashedVal.Sum(nil)}}
-	// checkDB(context.TODO(), client, user)
+	fmt.Printf("\nINSERTING THIS HASH-->%v\n ", hashedVal.Sum(nil))
 	insertDB(context.TODO(), client, user, "users")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func calculateDistance(long float64, lat float64) {
+	start := geo.Degree(long)
+	dest := geo.Degree(lat)
+	start := geo.NewCoordinatesFromDegrees(69.999, 32.2221)
+	dest := geo.NewCoordinatesFromDegrees(59.9386, 30.3141)
+
+	fmt.Printf("%v", start.Distance(dest))
 }
 
 func main() {
