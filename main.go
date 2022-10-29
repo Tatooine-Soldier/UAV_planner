@@ -187,37 +187,6 @@ func speedRequest(w http.ResponseWriter, r *http.Request) {
 	insertDB(context.TODO(), client, user, "speeds")
 }
 
-func totalRequest(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
-		panic("GET method not permitted")
-	} else {
-		r.ParseForm()
-		fmt.Printf("BEFORE HASH AND STORAGE-->%v %v %v %v %v %v %v", r.Form["latitude"], r.Form["longitude"], r.Form["lowspeed"], r.Form["highspeed"], r.Form["date"], r.Form["hour"], r.Form["minute"])
-	}
-
-	latitude := r.Form["latitude"]
-	longitude := r.Form["longitude"]
-	date := r.Form["date"]
-	hour := r.Form["hour"]
-	minute := r.Form["minute"]
-
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
-	if err != nil {
-		panic(err)
-	}
-
-	user := bson.D{{"latitude", latitude}, {"longitude", longitude}, {"date", date}, {"hour", hour}, {"minute", minute}}
-	insertDB(context.TODO(), client, user, "total")
-	// http.Redirect(w, r, "/planReview", http.StatusSeeOther)
-
-	lat := latitude[0]
-	long := longitude[0]
-	floatLat, _ := strconv.ParseFloat(lat, 32)
-	floatLong, _ := strconv.ParseFloat(long, 32)
-
-	calculateDistance(floatLat, floatLong)
-}
-
 func renderTmpl(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("rendering")
 	// render := render.New()
@@ -257,13 +226,61 @@ func signupRequest(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-func calculateDistance(long float64, lat float64) {
-	start := geo.Degree(long)
-	dest := geo.Degree(lat)
-	start := geo.NewCoordinatesFromDegrees(69.999, 32.2221)
-	dest := geo.NewCoordinatesFromDegrees(59.9386, 30.3141)
+func totalRequest(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		panic("GET method not permitted")
+	} else {
+		r.ParseForm()
+		fmt.Printf("BEFORE HASH AND STORAGE-->%v %v %v %v %v %v %v", r.Form["latitude"], r.Form["longitude"], r.Form["lowspeed"], r.Form["highspeed"], r.Form["date"], r.Form["hour"], r.Form["minute"])
+	}
 
-	fmt.Printf("%v", start.Distance(dest))
+	latitude := r.Form["latitude"]
+	longitude := r.Form["longitude"]
+	date := r.Form["date"]
+	hour := r.Form["hour"]
+	minute := r.Form["minute"]
+
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		panic(err)
+	}
+
+	user := bson.D{{"latitude", latitude}, {"longitude", longitude}, {"date", date}, {"hour", hour}, {"minute", minute}}
+	insertDB(context.TODO(), client, user, "total")
+	// http.Redirect(w, r, "/planReview", http.StatusSeeOther)
+
+	lat := latitude[0]
+	long := longitude[0]
+	floatLat, _ := strconv.ParseFloat(lat, 32)
+	floatLong, _ := strconv.ParseFloat(long, 32)
+
+	distance := calculateDistance(floatLat, floatLong)
+	flightDetailsResp(distance)
+}
+
+func calculateDistance(long float64, lat float64) float64 {
+	c1 := geo.NewCoordinatesFromDegrees(32, 52.22)
+	c2 := geo.NewCoordinatesFromDegrees(32, 52.999)
+	distance := c1.Distance(c2).ToKilometers()
+	fmt.Printf("%v", distance)
+	return distance
+}
+
+func flightDetailsResp(distance float64) {
+	url := "http://localhost:3333/#/reviewFlight"
+	distanceStr := fmt.Sprintf("{\"distance\":\"%v\"}", distance)
+	var jsonStr = []byte(distanceStr)
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req.Header.Set("X-Custom-Header", "myvalue")
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
 }
 
 func main() {
@@ -276,8 +293,8 @@ func main() {
 	http.HandleFunc("/location", locationRequest)
 	http.HandleFunc("/speed", speedRequest)
 	http.HandleFunc("/detailsSubmit", totalRequest)
-	http.HandleFunc("/planReview", renderTmpl)
 
+	// dist := calculateDistance(3.44, 3.44)
 	listenerErr := http.ListenAndServe(":3333", nil)
 	fmt.Printf("%v", listenerErr)
 }
