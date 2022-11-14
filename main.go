@@ -1,9 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,6 +12,7 @@ import (
 	"crypto/sha256"
 
 	"github.com/EpicStep/go-simple-geo/geo"
+	"github.com/gorilla/sessions"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -59,7 +59,7 @@ func connectDB() {
 }
 
 //InsertDB(context.TODO(), client)
-func insertDB(ctx context.Context, client *mongo.Client, user primitive.D, collection string) {
+func insertDB(ctx context.Context, client *mongo.Client, user primitive.D, collection string) (err error) {
 	fmt.Printf("\nINSERTING %v\n", user)
 	usersCollection := client.Database("fyp_test").Collection(collection)
 	result, err := usersCollection.InsertOne(ctx, user)
@@ -68,6 +68,7 @@ func insertDB(ctx context.Context, client *mongo.Client, user primitive.D, colle
 		panic(err)
 	}
 	fmt.Printf("%v", result)
+	return err
 }
 
 func checkDBSignup(ctx context.Context, client *mongo.Client, user string, collection string) (init bool) {
@@ -128,22 +129,25 @@ func loginRequest(w http.ResponseWriter, r *http.Request) {
 	user := bson.D{{"fullName", username}, {"password", hashedVal.Sum(nil)}}
 	if userExists := checkDBLogin(context.TODO(), client, user, "users"); userExists {
 		fmt.Printf("User exists %v", userExists)
+		session, _ := store.Get(r, "session")
+		session.Values["username"] = username
+		session.Save(r, w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 
 }
 
 // encode the string array into byte array
-func encodeToByte(pw []string) []byte {
-	buf := &bytes.Buffer{}
-	bytedPw := buf.Bytes()
-	if len(pw) != 0 {
-		gob.NewEncoder(buf).Encode(pw)
-		bytedPw = buf.Bytes()
-		return bytedPw
-	}
-	return bytedPw
-}
+// func encodeToByte(pw []string) []byte {
+// 	buf := &bytes.Buffer{}
+// 	bytedPw := buf.Bytes()
+// 	if len(pw) != 0 {
+// 		gob.NewEncoder(buf).Encode(pw)
+// 		bytedPw = buf.Bytes()
+// 		return bytedPw
+// 	}
+// 	return bytedPw
+// }
 
 func locationRequest(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
@@ -227,6 +231,12 @@ func signupRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func totalRequest(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "session")
+	_, ok := session.Values["username"]
+	if !ok {
+		http.Redirect(w, r, "/", http.StatusFound)
+	}
+
 	if r.Method == "GET" {
 		panic("GET method not permitted")
 	} else {
@@ -255,7 +265,20 @@ func totalRequest(w http.ResponseWriter, r *http.Request) {
 	floatLong, _ := strconv.ParseFloat(long, 32)
 
 	distance := calculateDistance(floatLat, floatLong)
-	flightDetailsResp(distance)
+	fmt.Printf("%v", distance)
+	getData(w, r, distance)
+	// http.ServeFile(w, r, fmt.Sprintf("../../../src/views/PlanFlightComponent.vue"))
+	// handle(w, r, "planner")
+	http.Redirect(w, r, "/#/plannernjrgklnjkl", 307)
+}
+
+type ResponseData struct {
+	Message string `json:"message"`
+}
+
+func getData(w http.ResponseWriter, r *http.Request, d float64) {
+	s := fmt.Sprintf("%f", d) // s == "123.456000"
+	json.NewEncoder(w).Encode(ResponseData{Message: s})
 }
 
 func calculateDistance(long float64, lat float64) float64 {
@@ -266,24 +289,10 @@ func calculateDistance(long float64, lat float64) float64 {
 	return distance
 }
 
-func flightDetailsResp(distance float64) {
-	url := "http://localhost:3333/#/reviewFlight"
-	distanceStr := fmt.Sprintf("{\"distance\":\"%v\"}", distance)
-	var jsonStr = []byte(distanceStr)
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
-	req.Header.Set("X-Custom-Header", "myvalue")
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		panic(err)
-	}
-	defer resp.Body.Close()
-}
+var store = sessions.NewCookieStore([]byte("super-secret"))
 
 func main() {
+	//AIzaSyCIuCS2q9yO9Pj_X-xFB7tSI187n5ivS_A
 	// http.HandleFunc("/", getRoot)
 	http.HandleFunc("/hello", getHello)
 	fs := http.FileServer(http.Dir("../../../dist"))
@@ -292,9 +301,15 @@ func main() {
 	http.HandleFunc("/signup", signupRequest)
 	http.HandleFunc("/location", locationRequest)
 	http.HandleFunc("/speed", speedRequest)
-	http.HandleFunc("/detailsSubmit", totalRequest)
+	http.HandleFunc("/planner", totalRequest)
 
 	// dist := calculateDistance(3.44, 3.44)
 	listenerErr := http.ListenAndServe(":3333", nil)
 	fmt.Printf("%v", listenerErr)
+}
+
+func handle(w http.ResponseWriter, r *http.Request, name string) {
+	fs := http.FileServer(http.Dir("../../../dist"))
+	url := fmt.Sprintf("/#/%v", name)
+	http.Handle(url, fs)
 }
