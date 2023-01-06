@@ -1,5 +1,8 @@
 <script setup>
-  import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
+  import FinalGoogleMapComponent from "@/components/FinalGoogleMapComponent.vue";
+import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
+//import FinalGoogleMapComponentVue from "@/components/FinalGoogleMapComponent.vue";
+//   const props = defineProps(['title'])
 </script>
 
 <template>
@@ -7,18 +10,18 @@
         <!-- <form action="/planner" method="post"> -->
         <form @submit.prevent="handleSubmit()">
             <section class="flight-details-container" id="flight-details-container">
-                <section class="flight-details">
+                <section class="flight-details" id="flight-details">
                     <section class="flight-details-content">
                         <h1>Confirm Flight Details</h1>
                         <section class="flight-details-content-grid">
                             <div>Date: {{ date.day }}</div>
                             <div>Time: {{ date.hour }}:{{ date.minute }}</div>
-                            <div>Speed: {{ speed }} </div>
+                            <div>Speed: {{ speed.description }} </div>
                             <div>Calculated distance: {{ distance }} KM</div>
                         </section>
                         <section class="flight-details-buttons">
                             <input id="cancel-but" name="but" type="button" value="Cancel" v-on:click="disappear()"/>
-                            <button id="confirm-but">Confirm</button>
+                            <button id="confirm-but" v-on:click="showFinalMap()">Confirm</button>
                         </section>
                     </section>
                 </section>
@@ -26,6 +29,10 @@
             <section id="details-map-container">
                 <MyGoogleMapComponent></MyGoogleMapComponent>
             </section>
+            <section id="final-map-container">
+                <FinalGoogleMapComponent :propcoords="coords"></FinalGoogleMapComponent>
+            </section>
+            <div><img src="../assets/ex-sign.png" id="ex-sign" v-on:click="disappearEx()"/></div>
         <section class="flight-planner-columns" id="flight-planner-columns">
             <section class="fp-info-container">
                         <h1 id="fp-headers">When</h1>
@@ -81,13 +88,21 @@
                                 
                                 <!-- <form action="/location" method="post"> -->
                                 <section class="coords">
-                                    <section class="coords-inputs">
-                                        <label for="latitude">Latitude: </label>
-                                        <input type="text" name="latitude" size="16" ref="mylat"/>
+                                    <section class="coords-source">
+                                        <section class="coords-inputs">
+                                            <label for="latitude">Latitude: </label>
+                                            <input type="text" name="sourcelatitude" size="16" ref="mysourcelat"/>
+                                            <label for="longitude">Longitude: </label>
+                                            <input type="text" name="sourcelongitude" size="16" ref="mysourcelong"/>
+                                        </section>
                                     </section>
-                                    <section class="coords-inputs">
-                                        <label for="longitude">Longitude: </label>
-                                        <input type="text" name="longitude" size="16" ref="mylong">
+                                    <section class="coords-destination">
+                                        <section class="coords-inputs">
+                                            <label for="latitude">Latitude: </label>
+                                            <input type="text" name="destlatitude" size="16" ref="mydestlat"/>
+                                            <label for="longitude">Longitude: </label>
+                                            <input type="text" name="destlongitude" size="16" ref="mydestlong">
+                                        </section>
                                     </section>
                                 </section>
                                 <!-- <input id="submit" name="submit" type="submit" value="Add"/> -->
@@ -106,18 +121,24 @@
                                 <!-- <form action="/speed" method="post"> -->
                                 <section class="speed-container">
                                     <small><i>* Please check the max speed of your UAV before selecting speed *</i></small>
+                                    <p>The speed of the UAV will determine which flight corridor it will be assigned to for the flight</p>
                                     <section class="speeds-option">
-                                        <section class="speeds-inputs">
-                                            <label for="lowspeed">Low: </label>
-                                            <input type="radio" name="speed" value="lowspeed"  ref="speed" />
-                                        </section>
-                                        <section class="speeds-inputs">
-                                            <label for="midspeed">Mid: </label>
-                                            <input type="radio" name="speed" value="midspeed"  ref="speed" />
-                                        </section>
-                                        <section class="speeds-inputs">
-                                            <label for="highspeed">High: </label>
-                                            <input type="radio" name="speed" value="highspeed" ref="speed" />
+                                        <section class="speed-containers">
+                                            <div class="speed-selectors">
+                                                <label for="latitude">Low speed: </label>
+                                                <label for="latitude">Mid speed: </label>
+                                                <label for="latitude">High speed: </label>
+                                            </div>
+                                            <div class="speed-selectors">
+                                                <input type="radio" name="description" id="low-radio" value="low-speed corridor"/>
+                                                <input type="radio" name="description" id="mid-radio" value="mid-speed corridor"/>
+                                                <input type="radio" name="description" id="high-radio" value="high-speed corridor"/>
+                                            </div>
+                                            <div class="speed-selectors">
+                                                <img src="../assets/iicon.png" alt="info"/>
+                                                <img src="../assets/iicon.png" alt="info"/>
+                                                <img src="../assets/iicon.png" alt="info"/>
+                                            </div>
                                         </section>
                                     </section>
                                     
@@ -279,6 +300,14 @@
         margin-right: 5px;
     }
 
+    .coords-source {
+        padding: 10px;
+    }
+
+    .coords-destination {
+        padding: 10px;
+    }
+
     #details-map-container {
         position: absolute;
         display: none;
@@ -289,13 +318,51 @@
         border: solid 1px grey;
 
     }
+
+    #ex-sign {
+        position: absolute;
+        right: 10.5%;
+        margin-top: .3%;
+        z-index: 1;
+        display: none;
+    }
+
+    #final-map-container {
+        position: absolute;
+        display: none;
+        z-index: 1;
+        left: 10%;
+        right: 10%;
+        background-color: grey;
+        border: solid 1px grey;
+    }
+
+    .speed-containers {
+        display: grid;
+        grid-template-columns: 40% 40% 20%;
+        padding: 10px;
+    }
+
+    .speed-selectors {
+        display: grid;
+        grid-template-rows: 33% 33% 33%;
+    }
+
+    .speed-selectors label {
+        padding: 5px;
+        font-size: .9em;
+    }
+
+    .speed-selectors input {
+        margin: 5px;
+    }
   
 
 </style>
 
 <!-- <script defer src="<https://maps.googleapis.com/maps/api/js?key=AIzaSyDTNOMjJP2zMMEHcGy2wMNae1JnHkGVvn0&callback=initMap>"> -->
 <script>
-  import * as geolib from 'geolib';
+ // import * as geolib from 'geolib';
 
 export default {
     data() {
@@ -306,42 +373,63 @@ export default {
           day: ''
         },
         coords: {
-            longitude: '',
-            latitude: ''
+            sourcelongitude: '',
+            sourcelatitude: '',
+            destlongitude: '',
+            destlatitude: ''
         },
-        speed: null,
+        speed: {
+            description: ''  //corridor
+        },
         info: null,
         distance: null
       }
     },
-  
+    components: {
+        MyGoogleMapComponent,
+        FinalGoogleMapComponent
+    },
     methods: {
       handleSubmit() {
         // Send data to the server or update your stores and such.
-        this.coords.latitude = this.$refs.mylat.value;
-        this.coords.longitude = this.$refs.mylong.value;
-        console.log(this.coords)
-        var long = parseInt(this.coords.longitude)
-        var lat = parseInt(this.coords.latitude)
-        this.distance = geolib.getDistance({latitude: 0, longitude:0}, {
-                    latitude: lat,
-                    longitude: long,
-                })
-        this.distance = geolib.convertDistance(this.distance, 'km');
-        console.log(
-            'DISTANCE-->',
-             this.distance,
-            '<--DISTANCE'
-        )
+        // this.coords.latitude = this.$refs.mylat.value;
+        // this.coords.longitude = this.$refs.mylong.value;
+        this.coords.sourcelatitude = this.$refs.mysourcelat.value;
+        this.coords.sourcelongitude = this.$refs.mysourcelong.value;
+        this.coords.destlatitude = this.$refs.mydestlat.value;
+        this.coords.destlongitude = this.$refs.mydestlong.value;
+        if (document.getElementById('low-radio').checked) {
+            this.speed.description = document.getElementById('low-radio').value;
+        } else if (document.getElementById('mid-radio').checked) {
+            this.speed.description = document.getElementById('mid-radio').value;
+        } else if (document.getElementById('high-radio').checked) {
+            this.speed.description = document.getElementById('high-radio').value;
+        } else {
+            this.speed.description = "** Please select speed **"
+        }
+        console.log(document.getElementById('mid-radio').checked)
+        console.log("COOORDS--->",this.coords)
+        // var long = parseInt(this.coords.longitude)
+        // var lat = parseInt(this.coords.latitude)
+        // this.distance = geolib.getDistance({latitude: 0, longitude:0}, {
+        //             latitude: lat,
+        //             longitude: long,
+        //         })
+        // this.distance = geolib.convertDistance(this.distance, 'km');
+        // console.log(
+        //     'DISTANCE-->',
+        //      this.distance,
+        //     '<--DISTANCE'
+        // )
         var details = document.getElementById('flight-details-container');
         details.style.display = 'block';
 
-        this.speed = this.$refs.speed.value;
+        
     
 
-        var grey = document.getElementById('flight-planner-columns');
-        grey.style.opacity = 0.2;
-        grey.style.pointerEvents = "none";
+        // var grey = document.getElementById('flight-planner-columns');
+        // grey.style.opacity = 0.2;
+        // grey.style.pointerEvents = "none";
 
         
       },
@@ -360,8 +448,27 @@ export default {
       showMap(event) {
             var map = document.getElementById("details-map-container")
             map.style.display = "block"
+            var con = document.getElementById("ex-sign")
+            con.style.display = "block"
             console.log(event);
+      }, 
+      disappearEx() {
+        var map = document.getElementById("details-map-container")
+        map.style.display = "none"
+        var fmap = document.getElementById("final-map-container")
+        fmap.style.display = "none"
+        var ex = document.getElementById("ex-sign")
+        ex.style.display = "none"
       },
+      showFinalMap() {
+        var map = document.getElementById("final-map-container")
+        map.style.display = "block"
+        var con = document.getElementById("ex-sign")
+        con.style.display = "block"
+        var details = document.getElementById('flight-details');
+        details.style.display = 'None';
+        
+      }
     //   initMap() {
     //     var options = {     
     //         zoom: 10,
