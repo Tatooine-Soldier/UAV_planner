@@ -497,8 +497,6 @@ export default {
     methods: {
       handleSubmit() {
         // Send data to the server or update your stores and such.
-        // this.coords.latitude = this.$refs.mylat.value;
-        // this.coords.longitude = this.$refs.mylong.value;
         this.coords.sourcelatitude = this.$refs.mysourcelat.value;
         this.coords.sourcelongitude = this.$refs.mysourcelong.value;
         this.coords.destlatitude = this.$refs.mydestlat.value;
@@ -515,29 +513,14 @@ export default {
         } else {
             this.speed.description = "** Please select speed **"
         }
-        console.log(document.getElementById('mid-radio').checked)
         console.log("COOORDS--->",this.coords)
-        // var long = parseInt(this.coords.longitude)
-        // var lat = parseInt(this.coords.latitude)
-        // this.distance = geolib.getDistance({latitude: 0, longitude:0}, {
-        //             latitude: lat,
-        //             longitude: long,
-        //         })
-        // this.distance = geolib.convertDistance(this.distance, 'km');
-        // console.log(
-        //     'DISTANCE-->',
-        //      this.distance,
-        //     '<--DISTANCE'
-        // )
+
         var details = document.getElementById('flight-details-container');
         details.style.display = 'block';
 
-        
-    
-
-        // var grey = document.getElementById('flight-planner-columns');
-        // grey.style.opacity = 0.2;
-        // grey.style.pointerEvents = "none";
+        var grey = document.getElementById('flight-planner-columns');
+        grey.style.opacity = 0.2;
+        grey.style.pointerEvents = "none";
 
         
       },
@@ -597,12 +580,18 @@ export default {
             i ++;
         }
       }, 
-      logme({c, d}) {
+      logme({c, d, distance}) {
         console.log("RECEIVED IN PARENT",c.lat, c.lng, d.lat, d.lng);
-        this.coords.sourcelatitude = c.lat;
-        this.coords.sourcelongitude = c.lng;
-        this.coords.destlatitude = d.lat;
-        this.coords.destlongitude = d.lng;
+        this.$refs.mysourcelat.value = c.lat.toString();
+        this.$refs.mysourcelong.value = c.lng.toString();
+        this.$refs.mydestlat.value = d.lat.toString();
+        this.$refs.mydestlong.value = d.lng.toString();
+        this.distance = distance;
+
+        var map = document.getElementById("details-map-container")
+        map.style.display = "none"
+        var con = document.getElementById("ex-sign")
+        con.style.display = "none"
       },
       setWaypoint() {
         var w = document.getElementById("waypoint-container")
