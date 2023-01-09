@@ -27,10 +27,16 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
                 </section>
             </section>
             <section id="details-map-container">
-                <MyGoogleMapComponent></MyGoogleMapComponent>
+                <MyGoogleMapComponent @someEvent="logme"></MyGoogleMapComponent>
             </section>
             <section id="final-map-container">
-                <FinalGoogleMapComponent :propcoords="coords"></FinalGoogleMapComponent>
+                <FinalGoogleMapComponent :propcoords="coords" :propspeed="speed"></FinalGoogleMapComponent>
+            </section>
+            <section class="waypoint-submit-container" id="waypoint-container">
+                Enter desired waypoints:
+                <section>
+                    <input type="text" name="sourcelatitude" size="16"/>
+                </section>
             </section>
             <div><img src="../assets/ex-sign.png" id="ex-sign" v-on:click="disappearEx()"/></div>
         <section class="flight-planner-columns" id="flight-planner-columns">
@@ -89,6 +95,7 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
                                 <!-- <form action="/location" method="post"> -->
                                 <section class="coords">
                                     <section class="coords-source">
+                                        <div class="coords-labels"><b>Source:</b></div>
                                         <section class="coords-inputs">
                                             <label for="latitude">Latitude: </label>
                                             <input type="text" name="sourcelatitude" size="16" ref="mysourcelat"/>
@@ -97,12 +104,34 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
                                         </section>
                                     </section>
                                     <section class="coords-destination">
+                                        <div class="coords-labels"><b>Destination:</b></div>
                                         <section class="coords-inputs">
                                             <label for="latitude">Latitude: </label>
                                             <input type="text" name="destlatitude" size="16" ref="mydestlat"/>
                                             <label for="longitude">Longitude: </label>
                                             <input type="text" name="destlongitude" size="16" ref="mydestlong">
                                         </section>
+                                    </section>
+                                    <section class="waypoints-container">
+                                        <div class="waypoints-select">
+                                            <label for="waypoints">How many Waypoints to visit?</label>
+                                            <div>
+                                                <select id="waypoints" name="waypoints" v-model="waypoints">
+                                                    <option value="0" v-on:click="setWaypoint()">0</option>
+                                                    <option value="1" v-on:click="setWaypoint()">1</option>
+                                                    <option value="2" v-on:click="setWaypoint()">2</option>
+                                                    <option value="3" v-on:click="setWaypoint()">3</option>
+                                                    <option value="4" v-on:click="setWaypoint()">4</option>
+                                                    <option value="5" v-on:click="setWaypoint()">5</option>
+                                                    <option value="6" v-on:click="setWaypoint()">6</option>
+                                                    <option value="7" v-on:click="setWaypoint()">7</option>
+                                                    <option value="8" v-on:click="setWaypoint()">8</option>
+                                                    <option value="9" v-on:click="setWaypoint()">9</option>
+                                                    <option value="10" v-on:click="setWaypoint()">10</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
                                     </section>
                                 </section>
                                 <!-- <input id="submit" name="submit" type="submit" value="Add"/> -->
@@ -135,13 +164,21 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
                                                 <input type="radio" name="description" id="high-radio" value="high-speed corridor"/>
                                             </div>
                                             <div class="speed-selectors">
-                                                <img src="../assets/iicon.png" alt="info"/>
-                                                <img src="../assets/iicon.png" alt="info"/>
-                                                <img src="../assets/iicon.png" alt="info"/>
+                                                <img src="../assets/iicon.png" alt="info" v-on:mouseover="lowInfo()" v-on:mouseout="hideInfo()"/>
+                                                <img src="../assets/iicon.png" alt="info" v-on:mouseover="midInfo()" v-on:mouseout="hideInfo()"/>
+                                                <img src="../assets/iicon.png" alt="info" v-on:mouseover="highInfo()" v-on:mouseout="hideInfo()"/>
                                             </div>
                                         </section>
                                     </section>
-                                    
+                                    <div class="info-container" id="lowc">
+                                        Low speeds are between <b>5km-20kmh</b>
+                                    </div>
+                                    <div class="info-container" id="midc">
+                                        Mid speeds are between <b>20kmh-45kmh</b>
+                                    </div>
+                                    <div class="info-container" id="highc">
+                                        High speeds are between <b>45-80kmh</b>
+                                    </div>
                                 </section>
                                 <!-- <input id="submit" name="submit" type="submit" value="Add"/> -->
                                 <!-- </form> -->
@@ -162,6 +199,53 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
 </template>
 
 <style>
+    .info-container {
+        display: none;
+    }
+
+    #lowc {
+        position: absolute;
+        top: 54%;
+        right: 17%;
+        width: 10%;
+        background-color: grey;
+        border: solid 2px rgb(184, 255, 36);
+        border-radius: 15px;
+        z-index: 1;
+        padding: 5px;
+        font-size: .8em;
+    }
+
+    #or {
+        font-size: 18px;
+    }
+
+    #midc {
+        position: absolute;
+        top: 58%;
+        right: 17%;
+        width: 10%;
+        background-color: grey;
+        border: solid 2px rgb(184, 255, 36);
+        border-radius: 15px;
+        z-index: 1;
+        padding: 5px;
+        font-size: .8em;
+    }
+
+    #highc {
+        position: absolute;
+        top: 62%;
+        right: 17%;
+        width: 10%;
+        background-color: grey;
+        border: solid 2px rgb(184, 255, 36);
+        border-radius: 15px;
+        z-index: 1;
+        padding: 5px;
+        font-size: .8em;
+    }
+
     .flight-planner-columns {
         display: grid;
         grid-template-columns: 25% 25% 25% 25%;
@@ -241,7 +325,18 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
 
     .coords {
         display: grid;
+        grid-template-rows: 40% 40% 20%;
+    }
+
+    .coords-labels {
+        padding: 5px;
+        text-align: left;
+    }
+
+    .waypoints-select {
+        display: grid;
         grid-template-rows: 50% 50%;
+        row-gap: 4px;
     }
 
     .speeds-option {
@@ -327,6 +422,10 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
         display: none;
     }
 
+    #ex-sign:hover {
+        cursor: grab;
+    }
+
     #final-map-container {
         position: absolute;
         display: none;
@@ -356,6 +455,10 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
     .speed-selectors input {
         margin: 5px;
     }
+    
+    .waypoint-submit-container {
+        display: none;
+    }
   
 
 </style>
@@ -379,10 +482,12 @@ export default {
             destlatitude: ''
         },
         speed: {
-            description: ''  //corridor
+            description: '',  //corridor
+            velocity: ''
         },
         info: null,
-        distance: null
+        distance: null,
+        waypoints: null,
       }
     },
     components: {
@@ -400,10 +505,13 @@ export default {
         this.coords.destlongitude = this.$refs.mydestlong.value;
         if (document.getElementById('low-radio').checked) {
             this.speed.description = document.getElementById('low-radio').value;
+            this.speed.velocity = 20;
         } else if (document.getElementById('mid-radio').checked) {
             this.speed.description = document.getElementById('mid-radio').value;
+            this.speed.velocity = 45;
         } else if (document.getElementById('high-radio').checked) {
             this.speed.description = document.getElementById('high-radio').value;
+            this.speed.velocity = 65;
         } else {
             this.speed.description = "** Please select speed **"
         }
@@ -468,6 +576,37 @@ export default {
         var details = document.getElementById('flight-details');
         details.style.display = 'None';
         
+      },
+      lowInfo() {
+        var c = document.getElementById('lowc');
+        c.style.display = 'block';
+      },
+      midInfo() {
+        var c = document.getElementById('midc');
+        c.style.display = 'block';
+      },
+      highInfo() {
+        var c = document.getElementById('highc');
+        c.style.display = 'block';
+      },
+      hideInfo() {
+        const infos = document.getElementsByClassName('info-container');
+        var i = 0;
+        while (i < 3) {
+            infos[i].style.display = 'none';
+            i ++;
+        }
+      }, 
+      logme({c, d}) {
+        console.log("RECEIVED IN PARENT",c.lat, c.lng, d.lat, d.lng);
+        this.coords.sourcelatitude = c.lat;
+        this.coords.sourcelongitude = c.lng;
+        this.coords.destlatitude = d.lat;
+        this.coords.destlongitude = d.lng;
+      },
+      setWaypoint() {
+        var w = document.getElementById("waypoint-container")
+        w.style.display = "block";
       }
     //   initMap() {
     //     var options = {     

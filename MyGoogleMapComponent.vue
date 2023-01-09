@@ -33,6 +33,7 @@ import { Loader } from '@googlemaps/js-api-loader'
         onMounted(async () => {
           await loader.load()
           currPos.value = {lat: initial.value.lat, lng: initial.value.lng}
+          console.log(currPos.value)
           map.value = new google.maps.Map(mapDivHere.value, {
             center: currPos.value,
             zoom: 9
@@ -174,7 +175,7 @@ import { Loader } from '@googlemaps/js-api-loader'
         </div>
       </div>
       <div class="source-coords">
-        <div>
+        <div class="source-coords-title">
           STARTING POINT:
         </div>
         <div>
@@ -185,7 +186,7 @@ import { Loader } from '@googlemaps/js-api-loader'
         </div>
       </div>
       <div class="dest-coords">
-        <div>
+        <div class="source-coords-title">
           DESTINATION POINT
         </div>
         <div>
@@ -196,6 +197,7 @@ import { Loader } from '@googlemaps/js-api-loader'
         </div>
       </div>
     </div>
+    <button id="coords-confirm-button" @click="$emit('someEvent', {c:currPos, d:otherLoc} )">Confirm</button>
     <div ref="mapDivHere" style="width:100%; height:80vh;"/>
   </div>
 
@@ -227,5 +229,16 @@ import { Loader } from '@googlemaps/js-api-loader'
   .coords-display {
     font-size: 12px;
     width: 60%;
+    padding: 2px;
+  }
+
+  .source-coords-title {
+    padding-bottom:20px;
+  }
+
+  #coords-confirm-button {
+    position: static;
+    padding: 2px;
+    width: 100%;
   }
 </style>
