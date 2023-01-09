@@ -47,6 +47,7 @@ import { Loader } from '@googlemaps/js-api-loader'
                 draggable: true,
                 map: map.value
               }),
+
               destDragListener = destMarker.value.addListener(
                 'drag',
                 function(event) {
@@ -60,7 +61,7 @@ import { Loader } from '@googlemaps/js-api-loader'
               )
             )
           )
-          
+        
 
           sourceMarker.value = new google.maps.Marker({
             position: currPos.value,
@@ -101,6 +102,7 @@ import { Loader } from '@googlemaps/js-api-loader'
               path: [currPos.value, otherLoc.value],
               map: map.value
             })
+          
         })
 
       //   const flightPathCoordinates = [
@@ -197,7 +199,8 @@ import { Loader } from '@googlemaps/js-api-loader'
         </div>
       </div>
     </div>
-    <button id="coords-confirm-button" @click="$emit('someEvent', {c:currPos, d:otherLoc} )">Confirm</button>
+    <!-- <button id="coords-confirm-button" @click="$emit('someEvent', {c:currPos, d:otherLoc} )">Confirm</button> -->
+    <div class="submit-div" @click="$emit('someEvent', {c:currPos, d:otherLoc, distance:distance} )">CONFIRM</div>
     <div ref="mapDivHere" style="width:100%; height:80vh;"/>
   </div>
 
@@ -240,5 +243,18 @@ import { Loader } from '@googlemaps/js-api-loader'
     position: static;
     padding: 2px;
     width: 100%;
+  }
+
+  .submit-div {
+    background-color: white;
+    border: solid 1px grey;
+    text-align: center;
+    padding: 3px;
+    transition: 0.4s;
+  }
+
+  .submit-div:hover {
+    background-color: rgb(101, 100, 100);
+    color: white;
   }
 </style>
