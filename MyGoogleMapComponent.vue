@@ -9,21 +9,30 @@ import { Loader } from '@googlemaps/js-api-loader'
       name: 'App',
       setup() {
         const { coords } = useGeolocation()
-        const currPos = computed(() => ({
+        const initial = computed(() => ({
           lat: coords.value.latitude,
           lng: coords.value.longitude
         }))
+        
+        const currPos = ref(null)
         const otherLoc = ref(null)
         let clickListener = null;
+        let dragListener = null;
+        let destDragListener = null;
+        let cursor = {lat: 0.0, lng: 0.0}
+        
 
         const loader = new Loader({ apiKey: GOOGLE_MAPS_API_KEY})
         const mapDivHere = ref(null);
       
         let sourceMarker = ref(null)
         let destMarker = ref(null)
+  
         let map = ref(null)
+        
         onMounted(async () => {
           await loader.load()
+          currPos.value = {lat: initial.value.lat, lng: initial.value.lng}
           map.value = new google.maps.Map(mapDivHere.value, {
             center: currPos.value,
             zoom: 9
@@ -36,17 +45,52 @@ import { Loader } from '@googlemaps/js-api-loader'
                 position: otherLoc.value,
                 draggable: true,
                 map: map.value
-              })
+              }),
+              destDragListener = destMarker.value.addListener(
+                'drag',
+                function(event) {
+                  otherLoc.value = {lat: event.latLng.lat(), lng: event.latLng.lng()}
+                  console.log("OTHER-->",otherLoc.value.lat)
+                  var d = document.getElementById('destCursorLat')
+                  d.innerHTML = otherLoc.value.lat;
+                  var c = document.getElementById('destCursorLng')
+                  c.innerHTML = otherLoc.value.lng;
+                }
+              )
             )
           )
+          
+
           sourceMarker.value = new google.maps.Marker({
             position: currPos.value,
             draggable: true,
             map: map.value
           })
+          var d = document.getElementById('cursorLat')
+          d.innerHTML = currPos.value.lat;
+          var c = document.getElementById('cursorLng')
+          c.innerHTML = currPos.value.lng;
+          dragListener = sourceMarker.value.addListener(
+            'drag',
+            function(event) {
+              currPos.value = {lat: event.latLng.lat(), lng: event.latLng.lng()}
+              console.log("CURRPOS.LAT",currPos.value.lat)
+              cursor.lat = event.latLng.lat(),
+              cursor.lng = event.latLng.lng()
+              var d = document.getElementById('cursorLat')
+              d.innerHTML = cursor.lat;
+              var c = document.getElementById('cursorLng')
+              c.innerHTML = cursor.lng;
+              // this.$emit('changeLocation',cursor);
+            }
+          )
+          
         })
         onUnmounted(async () => {
             if (clickListener) clickListener.remove()
+            if (dragListener) dragListener.remove()
+            if (destDragListener) destDragListener.remove()
+        
         })
         let line = null
         watch([map, currPos, otherLoc], () => {
@@ -57,6 +101,13 @@ import { Loader } from '@googlemaps/js-api-loader'
               map: map.value
             })
         })
+
+      //   const flightPathCoordinates = [
+      //   { lat: currPos.value.lat+2, lng: currPos.value.lng-1 },
+      //   { lat: currPos.value.lat+5, lng: currPos.value.lng-1.7 },
+      //   { lat: currPos.value.lat+10, lng: currPos.value.lng-2.3 }
+      // ];        
+
         const haversineDistance = (pos1, pos2) => {
         const R = 3958.8 // Radius of the Earth in miles
         const rlat1 = pos1.lat * (Math.PI / 180) // Convert degrees to radians
@@ -103,20 +154,50 @@ import { Loader } from '@googlemaps/js-api-loader'
           ? 0
           : t(distance.value, 30)
         )
-        return { currPos, otherLoc, distance, mapDivHere, calculatedTime }
-      }
+        return { currPos, otherLoc, distance, mapDivHere, calculatedTime}
+      },
+    
     }
   
 
 </script>
 
 <template>
-
-  <div class="distance-caption-container">
-    <div>Distance of path(km): {{ distance }}</div>
-    <div>Estimated arrival: {{ calculatedTime }}</div>
+  <div id="big-container">
+    <div class="distance-caption-container">
+      <div class="distance-and-time">
+        <div>
+          Distance of path(km): {{ distance }}
+        </div>
+        <div>
+          Estimated arrival: {{ calculatedTime }}
+        </div>
+      </div>
+      <div class="source-coords">
+        <div>
+          STARTING POINT:
+        </div>
+        <div>
+          Lat: <span class="coords-display" id="cursorLat"></span>
+        </div>
+        <div>
+          Lng: <span class="coords-display" id="cursorLng"></span>
+        </div>
+      </div>
+      <div class="dest-coords">
+        <div>
+          DESTINATION POINT
+        </div>
+        <div>
+          Lat: <span class="coords-display" id="destCursorLat"></span>
+        </div>
+        <div>
+          Lng: <span class="coords-display" id="destCursorLng"></span>
+        </div>
+      </div>
+    </div>
+    <div ref="mapDivHere" style="width:100%; height:80vh;"/>
   </div>
-  <div ref="mapDivHere" style="width:100%; height:80vh;"/>
 
 </template>
 
@@ -125,6 +206,26 @@ import { Loader } from '@googlemaps/js-api-loader'
     background-color: white;
     padding: 5px;
     display: grid;
-    grid-template-columns: 50% 50%;
+    grid-template-columns: 35% 35% 30%;
+  }
+
+  .distance-and-time {
+    display: grid;
+    grid-template-rows: 50% 50%;
+  }
+
+  .source-coords {
+    display: grid;
+    grid-template-rows: 20% 40% 40%;
+  }
+
+  .dest-coords {
+    display: grid;
+    grid-template-rows: 20% 40% 40%;
+  }
+
+  .coords-display {
+    font-size: 12px;
+    width: 60%;
   }
 </style>
