@@ -30,7 +30,7 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
                 <MyGoogleMapComponent @someEvent="logme"></MyGoogleMapComponent>
             </section>
             <section id="final-map-container">
-                <FinalGoogleMapComponent :propcoords="coords" :propspeed="speed"></FinalGoogleMapComponent>
+                <FinalGoogleMapComponent :propcoords="coords" :propspeed="speed" :key="componentKey"></FinalGoogleMapComponent>
             </section>
             <section class="waypoint-submit-container" id="waypoint-container">
                 Enter desired waypoints:
@@ -80,6 +80,7 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
                                         </div>
                                     </section>
                                     <section>
+                                        <div class="check-time-db" @click="getDates()">Check availablility</div>
                                         <!-- <button>Add</button> -->
                                     </section>
                                 <!-- </form> -->
@@ -459,6 +460,21 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
     .waypoint-submit-container {
         display: none;
     }
+
+    .check-time-db {
+        background-color: white;
+        border: solid 1px grey;
+        text-align: center;
+        padding: 3px;
+        transition: 0.4s;
+        color: black;
+        margin-top: 10%;
+      }
+    
+      .check-time-db:hover {
+        background-color: rgb(101, 100, 100);
+        color: white;
+      }
   
 
 </style>
@@ -488,6 +504,7 @@ export default {
         info: null,
         distance: null,
         waypoints: null,
+        componentKey: 0
       }
     },
     components: {
@@ -558,7 +575,7 @@ export default {
         con.style.display = "block"
         var details = document.getElementById('flight-details');
         details.style.display = 'None';
-        
+        this.forceRenderer();
       },
       lowInfo() {
         var c = document.getElementById('lowc');
@@ -596,6 +613,16 @@ export default {
       setWaypoint() {
         var w = document.getElementById("waypoint-container")
         w.style.display = "block";
+      },
+      forceRenderer() {
+        this.componentKey += 1
+      },
+
+
+    //   getDates() {
+    //     $.ajax({
+    //         url
+    //      })
       }
     //   initMap() {
     //     var options = {     
@@ -619,7 +646,6 @@ export default {
     // .then(res => res.json())
     // .then(data => this.info = data.message, console.log(this.info))
     // .catch(err => console.log(err.message))
-}
 
 
 </script>
