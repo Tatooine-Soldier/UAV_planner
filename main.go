@@ -32,6 +32,22 @@ type HTML struct {
 	// contains filtered or unexported fields
 }
 
+type Flight struct {
+	date        string
+	startCoords int64
+	destCorrds  int64
+	speed       string
+	corridor    string
+	userID      int64
+	flightTime  int64
+	altitude    int64
+	uavID       int64
+}
+
+type ResponseData struct {
+	Message string `json:"message"`
+}
+
 func getRoot(w http.ResponseWriter, r *http.Request) {
 	_, err := fmt.Fprintf(w, "Welcome to the homepage")
 	checkErr(err)
@@ -129,12 +145,14 @@ func loginRequest(w http.ResponseWriter, r *http.Request) {
 	user := bson.D{{"fullName", username}, {"password", hashedVal.Sum(nil)}}
 	if userExists := checkDBLogin(context.TODO(), client, user, "users"); userExists {
 		fmt.Printf("User exists %v", userExists)
-		session, _ := store.Get(r, "session")
-		session.Values["username"] = username
-		session.Save(r, w)
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+	} else {
+		http.Redirect(w, r, "/login", http.StatusFound)
 	}
 
+	if err != nil {
+		return
+	}
+	//http.Redirect(w, r, "/planner", http.StatusSeeOther) //this goes to profile page
 }
 
 // encode the string array into byte array
@@ -231,10 +249,10 @@ func signupRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func totalRequest(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, "session")
-	_, ok := session.Values["username"]
-	if !ok {
-		http.Redirect(w, r, "/", http.StatusFound)
+	cookie := verifyCookie(w, r)
+	fmt.Printf("COOKIE-->%v", cookie)
+	if !cookie {
+		http.Redirect(w, r, "/login", http.StatusFound)
 	}
 
 	if r.Method == "GET" {
@@ -272,10 +290,6 @@ func totalRequest(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/#/plannernjrgklnjkl", 307)
 }
 
-type ResponseData struct {
-	Message string `json:"message"`
-}
-
 func getData(w http.ResponseWriter, r *http.Request, d float64) {
 	s := fmt.Sprintf("%f", d) // s == "123.456000"
 	json.NewEncoder(w).Encode(ResponseData{Message: s})
@@ -289,6 +303,14 @@ func calculateDistance(long float64, lat float64) float64 {
 	return distance
 }
 
+func loginSubmitted(w http.ResponseWriter, r *http.Request) {
+	username := r.FormValue("username")
+	session, _ := store.Get(r, "session")
+	session.Values["username"] = username
+	session.Save(r, w)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
 var store = sessions.NewCookieStore([]byte("super-secret"))
 
 func main() {
@@ -296,12 +318,15 @@ func main() {
 	// http.HandleFunc("/", getRoot)
 	http.HandleFunc("/hello", getHello)
 	fs := http.FileServer(http.Dir("../../../dist"))
+	//http.Handle("/", http.StripPrefix("/", fs))
 	http.Handle("/", fs)
 	http.HandleFunc("/login", loginRequest)
 	http.HandleFunc("/signup", signupRequest)
 	http.HandleFunc("/location", locationRequest)
 	http.HandleFunc("/speed", speedRequest)
 	http.HandleFunc("/planner", totalRequest)
+	http.HandleFunc("/loginSubmitted", loginSubmitted)
+	http.HandleFunc("/getAllTimes", getAllTimes)
 
 	// dist := calculateDistance(3.44, 3.44)
 	listenerErr := http.ListenAndServe(":3333", nil)
@@ -310,6 +335,51 @@ func main() {
 
 func handle(w http.ResponseWriter, r *http.Request, name string) {
 	fs := http.FileServer(http.Dir("../../../dist"))
-	url := fmt.Sprintf("/#/%v", name)
+	url := fmt.Sprintf("//%v", name)
 	http.Handle(url, fs)
+}
+
+func getAllTimes(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		panic(err)
+	}
+
+	ctx := context.TODO()
+
+	usersCollection := client.Database("fyp_test").Collection("flights")
+	filter := bson.M{}
+
+	result, err := usersCollection.Find(ctx, filter)
+	var results []bson.M
+	if err = result.All(context.TODO(), &results); err != nil {
+		panic(err)
+	}
+
+	var times []interface{}
+	for _, doc := range results {
+		// fmt.Fprintf(w, "Bonjour", doc["date"])
+		times = append(times, doc["date"])
+	}
+
+	//convert times (type interface) to type string
+	var timesStr []string
+	for _, v := range times {
+		valStr := fmt.Sprint(v)
+		timesStr = append(timesStr, valStr)
+		json.NewEncoder(w).Encode(ResponseData{Message: valStr}) // move this outside and edit the reponse data struct to contain []string not string
+	}
+	// JAVASCRIPT
+	// 	fetch('http://localhost:3001')
+	//   .then(res => res.json())
+	//   .then(data => this.key = data.message)
+	//   .catch(err => console.log(err.message))
+
+	fmt.Printf("RESULTS:----->%v", results)
+	fmt.Print("RECEIVED REQUEST FROM FRONTEND")
+	fmt.Fprintf(w, "Hola")
+
 }
