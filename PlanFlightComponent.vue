@@ -38,6 +38,11 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
                     <input type="text" name="sourcelatitude" size="16"/>
                 </section>
             </section>
+            <section class="date-flights-container">
+                <li v-for="item in bookedDates" :key="item">
+                    {{ item }}
+                </li>
+            </section>
             <div><img src="../assets/ex-sign.png" id="ex-sign" v-on:click="disappearEx()"/></div>
         <section class="flight-planner-columns" id="flight-planner-columns">
             <section class="fp-info-container">
@@ -475,6 +480,11 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
         background-color: rgb(101, 100, 100);
         color: white;
       }
+
+    .date-flights-container {
+        display: none;
+        color: red;
+    }
   
 
 </style>
