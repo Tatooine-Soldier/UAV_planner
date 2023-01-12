@@ -48,6 +48,10 @@ type ResponseData struct {
 	Message string `json:"message"`
 }
 
+type ResponseDataDate struct {
+	Message []string `json:"message"`
+}
+
 func getRoot(w http.ResponseWriter, r *http.Request) {
 	_, err := fmt.Fprintf(w, "Welcome to the homepage")
 	checkErr(err)
@@ -370,16 +374,12 @@ func getAllTimes(w http.ResponseWriter, r *http.Request) {
 	for _, v := range times {
 		valStr := fmt.Sprint(v)
 		timesStr = append(timesStr, valStr)
-		json.NewEncoder(w).Encode(ResponseData{Message: valStr}) // move this outside and edit the reponse data struct to contain []string not string
+		// json.NewEncoder(w).Encode(ResponseData{Message: valStr}) // move this outside and edit the reponse data struct to contain []string not string
+		fmt.Fprintf(w, valStr+",")
 	}
-	// JAVASCRIPT
-	// 	fetch('http://localhost:3001')
-	//   .then(res => res.json())
-	//   .then(data => this.key = data.message)
-	//   .catch(err => console.log(err.message))
 
 	fmt.Printf("RESULTS:----->%v", results)
 	fmt.Print("RECEIVED REQUEST FROM FRONTEND")
-	fmt.Fprintf(w, "Hola")
+	// fmt.Fprintf(w, "Hola")
 
 }

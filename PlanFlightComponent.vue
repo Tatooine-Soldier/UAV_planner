@@ -1,5 +1,5 @@
 <script setup>
-  import FinalGoogleMapComponent from "@/components/FinalGoogleMapComponent.vue";
+  import FinalGoogleMapComponent from "@/components/FinalGoogleMapComponent.vue"
 import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
 //import FinalGoogleMapComponentVue from "@/components/FinalGoogleMapComponent.vue";
 //   const props = defineProps(['title'])
@@ -482,6 +482,7 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
 <!-- <script defer src="<https://maps.googleapis.com/maps/api/js?key=AIzaSyDTNOMjJP2zMMEHcGy2wMNae1JnHkGVvn0&callback=initMap>"> -->
 <script>
  // import * as geolib from 'geolib';
+import axios from 'axios';
 
 export default {
     data() {
@@ -504,7 +505,8 @@ export default {
         info: null,
         distance: null,
         waypoints: null,
-        componentKey: 0
+        componentKey: 0,
+        bookedDates: null,
       }
     },
     components: {
@@ -617,13 +619,30 @@ export default {
       forceRenderer() {
         this.componentKey += 1
       },
+      getDates() {
+        axios
+        .post("/getAllTimes")
+        .then((response) => {
+          const data = response.data;
+          console.log("33-->",data,"<--33");
+          const myArray = data.split(",");
+          this.bookedDates = myArray;
+        //   const dateData = JSON.parse(data);
+        //   console.log(dateData.message)
+        })
+        .catch (function (error) {
+            console.log("ERROR:", error);    
+        })
+      },
+
+      // JAVASCRIPT
+	// 	fetch('http://localhost:3001')
+	//   .then(res => res.json())
+	//   .then(data => this.key = data.message)
+	//   .catch(err => console.log(err.message))
 
 
-    //   getDates() {
-    //     $.ajax({
-    //         url
-    //      })
-      }
+    }
     //   initMap() {
     //     var options = {     
     //         zoom: 10,
