@@ -15,7 +15,7 @@
                 </div>
                 <div class="date" :class="{ active: n === currentDate.date}"
                 v-for="(n, index) in currentMonthDays" 
-                :key="'day'+index" @click="currentDate.date = n"> {{ n }} </div>
+                :key="'day'+index" @click="currentDate.date = n ;getBookings()" id="datecell"> {{ n }} </div>
                 <div class="day-hidden" v-for="(n, index) in (43 - (currentMonthDays + firstMonthDay))" :key="'next'+index">
                     {{ n }}
                   </div>
@@ -85,7 +85,7 @@
 </style>
 
 <script>
-import {watch} from 'vue'
+    import axios from 'axios';
     export default {
       data: function() {
         return {
@@ -131,6 +131,46 @@ import {watch} from 'vue'
           else {
             this.currentDate.month -= 1;
           } 
+        }, 
+        getBookings() {
+          // let date = document.getElementById("datecell");
+          // var d = date.innerHTML
+          // if (d.length != 2) {
+          //   d = "0"+d
+          // }
+
+          let date = this.currentDate.date
+          String(date)
+          if (['1', '2', '3', '4', '5', '6', '7', '8', '9'].indexOf(date) >= 0) {
+            date = "0"+date;
+          }
+
+          let month =  this.currentDate.month 
+          month = month+1
+          String(month)
+          if (month.length != 2) {
+            month = "0"+month
+          }
+
+          let year = this.currentDate.year
+
+          let fullDate = year+"-"+month+"-"+date
+          const queryDate = {
+            date: fullDate,
+          }
+          console.log(queryDate)
+
+
+        axios
+          .post("/getDateFlight", queryDate)
+          .then((response) => {
+            const data = response.data;
+            console.log("FETCHED FLIGHTS FOR THIS DATE: ",data);
+          })
+          .catch (function (error) {
+              console.log("ERROR:", error);    
+          })
+
         }
       },
       
@@ -156,14 +196,23 @@ import {watch} from 'vue'
         this.getCurrentDate();
         // this.bookedDates = props.propdates;
       },
-      setup(props) {
-        watch(() => props.propdates, () => {
-          console.log("***PROPS***", props.propdates)
-          var date;
-          for (date in props.propdates) {
-            console.log(props.propdates[date])
-          }
-        })
-      }
+      // setup(props) {
+      //   watch(() => props.propdates, () => {
+      //     console.log("***PROPS***", props.propdates)
+      //     var arrHours = ref([]);
+      //     var arrDates = ref([]);  
+      //     var date;
+      //     for (date in props.propdates) {
+      //       console.log(props.propdates[date])  //need to link these to the calendar. check console. maybe give each cell in the calendar a value and then match?
+      //       var arrMy =  props.propdates[date].split(" ");
+      //       arrDates.value.push(arrMy[1])
+      //       arrHours.value.push(arrMy[0])
+      //     }
+      //     console.log("arrDates:", arrDates.value.length, arrHours.value.length)
+      //     return {
+      //       arrDates, arrHours
+      //     }
+      //   })
+      // }
     }
 </script>

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -33,15 +34,23 @@ type HTML struct {
 }
 
 type Flight struct {
-	date        string
-	startCoords int64
-	destCorrds  int64
-	speed       string
-	corridor    string
-	userID      int64
-	flightTime  int64
-	altitude    int64
-	uavID       int64
+	Date    string `json:"date"`
+	Hour    string `json:"hour"`
+	Minute  string `json:"minute"`
+	Srclat  string `json:"srclat"`
+	Srclng  string `json:"srclng"`
+	Destlat string `json:"destlat"`
+	Destlng string `json:"destlng"`
+	Speed   string `json:"speed"`
+	// Corridor   string `json:"corridor"`
+	// UserID     int64 `json:"userID"`
+	// FlightTime int64 `json:"flightTime"`
+	// Altitude   int64 `json:"altitude"`
+	// UavID      int64 `json:"uavID"`
+}
+
+type QueryDate struct {
+	Date string `json:"date"`
 }
 
 type ResponseData struct {
@@ -331,6 +340,8 @@ func main() {
 	http.HandleFunc("/planner", totalRequest)
 	http.HandleFunc("/loginSubmitted", loginSubmitted)
 	http.HandleFunc("/getAllTimes", getAllTimes)
+	http.HandleFunc("/storeFlight", storeFlight)
+	http.HandleFunc("/getDateFlight", getDateFlight)
 
 	// dist := calculateDistance(3.44, 3.44)
 	listenerErr := http.ListenAndServe(":3333", nil)
@@ -341,6 +352,84 @@ func handle(w http.ResponseWriter, r *http.Request, name string) {
 	fs := http.FileServer(http.Dir("../../../dist"))
 	url := fmt.Sprintf("//%v", name)
 	http.Handle(url, fs)
+}
+
+func getDateFlight(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		panic("GET method not permitted")
+	} else {
+		r.ParseForm()
+	}
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+	log.Println("BODY:", string(body))
+
+	// connect to client
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		panic(err)
+	}
+
+	var queryDate QueryDate
+	err = json.Unmarshal(body, &queryDate)
+	fmt.Printf("UNMARSHAL--->%v", queryDate)
+
+	ctx := context.TODO()
+	usersCollection := client.Database("fyp_test").Collection("flights")
+	filter := bson.D{{"date", bson.D{{"$eq", queryDate.Date}}}}
+
+	result, err := usersCollection.Find(ctx, filter)
+	var results []bson.M
+	if err = result.All(context.TODO(), &results); err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("%v", len(results))
+
+	for _, d := range results {
+		fmt.Printf("MATCHING DOC: %v\n", d)
+	}
+
+	//NEED TO SEND THE HOUR TIMES IN THESE DOCS BACK TO FRONTEND TO DISPLAY
+
+	fmt.Fprint(w, "recieved at backend")
+}
+
+func storeFlight(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		panic("GET method not permitted")
+	} else {
+		r.ParseForm()
+	}
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+	log.Println("BODY:", string(body))
+
+	// connect to client
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		panic(err)
+	}
+
+	// unmarshal the json into a Flight struct
+	var flight Flight
+	err = json.Unmarshal(body, &flight)
+	fmt.Printf("UNMARSHAL--->%v", flight)
+
+	ftime := flight.Hour + ":" + flight.Minute
+	startCoord := bson.D{{"lat", flight.Srclat}, {"lng", flight.Srclng}}
+	destCoord := bson.D{{"lat", flight.Destlat}, {"lng", flight.Destlng}}
+	flightDoc := bson.D{{"date", flight.Date}, {"time", ftime}, {"startCoord", startCoord}, {"destCoord", destCoord}, {"corridor", flight.Speed}}
+
+	err = insertDB(context.TODO(), client, flightDoc, "flights")
+	fmt.Printf("\nERROR-->\n", err)
+
+	//fmt.Printf("\nhour: %v\n, minute: %v\n, day: %v\n, srclat: %v\n, srclng: %v\n, destlat: %v\n, destlng: %v\n, speed: %v\n", hour, minute, date, srclat, srclng, destlat, destlng, speed)
+	fmt.Fprint(w, "stored")
 }
 
 func getAllTimes(w http.ResponseWriter, r *http.Request) {
@@ -363,10 +452,11 @@ func getAllTimes(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	var times []interface{}
+	var times []interface{} // for the dates
+	var time []interface{}  //for the actual hours and minutes
 	for _, doc := range results {
-		// fmt.Fprintf(w, "Bonjour", doc["date"])
 		times = append(times, doc["date"])
+		time = append(time, doc["time"])
 	}
 
 	//convert times (type interface) to type string
@@ -374,8 +464,23 @@ func getAllTimes(w http.ResponseWriter, r *http.Request) {
 	for _, v := range times {
 		valStr := fmt.Sprint(v)
 		timesStr = append(timesStr, valStr)
-		// json.NewEncoder(w).Encode(ResponseData{Message: valStr}) // move this outside and edit the reponse data struct to contain []string not string
-		fmt.Fprintf(w, valStr+",")
+		// fmt.Fprintf(w, valStr+",")
+	}
+
+	var timeStr []string
+	for _, x := range time {
+		valStr := fmt.Sprint(x)
+		timeStr = append(timeStr, valStr)
+		// fmt.Fprintf(w, valStr+",")
+	}
+
+	var pairs []string
+	for i, _ := range timeStr {
+		timeval := timeStr[i]
+		timesval := timesStr[i]
+		timeval = timeval + " " + timesval
+		pairs = append(pairs, timeval)
+		fmt.Fprintf(w, timeval+",")
 	}
 
 	fmt.Printf("RESULTS:----->%v", results)
