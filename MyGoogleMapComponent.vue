@@ -1,6 +1,7 @@
 <script>
 import { Loader } from '@googlemaps/js-api-loader'
     /* eslint-disable no-undef*/
+    /* eslint-disable no-unused-vars*/
     import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
     import { useGeolocation } from '../useGeolocation'
     // import haversineDistance from './calculateDistance'
@@ -86,7 +87,35 @@ import { Loader } from '@googlemaps/js-api-loader'
               // this.$emit('changeLocation',cursor);
             }
           )
-          
+
+          const airports = {
+            dub: {
+              center: { lat: 53.4264, lng: -6.2499 }
+            },
+            sha: {
+              center: { lat: 52.6996575, lng: -8.9806044 }
+            },
+            crk: {
+              center: { lat: 51.8490624, lng: -8.4920732 }
+            },
+          };
+
+          for (const airport in airports) {
+              const cityCircle = new google.maps.Circle({
+              strokeColor: "#FF0000",
+              strokeOpacity: 0.8,
+              strokeWeight: 2,
+              fillColor: "#FF0000",
+              fillOpacity: 0.35,
+              map: map.value,
+              center: airports[airport].center,
+              radius: 5000
+            });
+          }
+          //do smaller airports next, 10 nautical mile radius, the 3 larger airports hav an extended area outside area already given so add it in
+          //add onclick listener to the circle
+
+        
         })
         onUnmounted(async () => {
             if (clickListener) clickListener.remove()
@@ -153,9 +182,9 @@ import { Loader } from '@googlemaps/js-api-loader'
           return time
         }
         const calculatedTime = computed(() =>
-        distance.value === null 
-          ? 0
-          : t(distance.value, 30)
+          distance.value === null 
+            ? 0
+            : t(distance.value, 30)
         )
         return { currPos, otherLoc, distance, mapDivHere, calculatedTime}
       },
