@@ -4,8 +4,9 @@ import { Loader } from '@googlemaps/js-api-loader'
     /* eslint-disable no-unused-vars*/
     import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
     import { useGeolocation } from '../useGeolocation'
-    import { airports } from '../airports'
+    import { airports, getAirports } from '../airports'
     import { LinkedList, Node } from '../linkedList'
+    import { checkD } from '@/withinAirspace';
     // import haversineDistance from './calculateDistance'
     const GOOGLE_MAPS_API_KEY = 'AIzaSyDTNOMjJP2zMMEHcGy2wMNae1JnHkGVvn0'
     export default {
@@ -40,14 +41,43 @@ import { Loader } from '@googlemaps/js-api-loader'
         var waypointList = new LinkedList(sourceMarker, destMarker);
         let wl = [];
         var flightPlanCoordinates = [];
+        var isInCircle;
+        const RED_ZONE = "DO NOT ENTER RED ZONE AIRSPACE";
 
         let map = ref(null)
+        var circle;
+        var mycircle;
+        var circleRef =  ref(null);
+
+        
         
         onMounted(async () => {
           await loader.load()
           currPos.value = {lat: initial.value.lat, lng: initial.value.lng}
           console.log(currPos.value)
           var circleList = [];
+          function displayWarning() { //why can't the parameter be accessed??? like seriously this is stupid 
+              console.log("\n Circle-->\n", circleRef.value)
+              console.log("\n Circle-->\n", circleRef.value.result)
+              console.log("\n Circle-->\n", circleRef.value.name)
+              
+              if (circleRef.value.result) {
+                var doc = document.getElementById("locationWarning");
+                doc.style.display = "block"; 
+                var colorDiv = document.getElementById("colorAirspace");
+                colorDiv.style.color = circleRef.value.color;
+                var msgDiv = document.getElementById("airspaceMessage");
+                msgDiv.style.color = circleRef.value.color;
+                if (circleRef.value.color === "#FF8833") {
+                  colorDiv.innerHTML = "AMBER";
+                  msgDiv.innerHTML = "Please contact "+circleRef.value.name + "before beginning your flight";
+                } else if (circleRef.value.color === "#FF0000") {
+                  colorDiv.innerHTML = "RED";
+                  msgDiv.innerHTML = RED_ZONE;
+                }
+              }
+            }
+
           map.value = new google.maps.Map(mapDivHere.value, {
             center: currPos.value,
             zoom: 9
@@ -56,16 +86,42 @@ import { Loader } from '@googlemaps/js-api-loader'
             'click',
             ({latLng: {lat, lng}}) => 
               (otherLoc.value = {lat: lat(), lng: lng()},
+              getAirports(), 
               destMarker.value = new google.maps.Marker({
                 position: otherLoc.value,
                 draggable: true,
                 map: map.value
               }),
-
               destDragListener = destMarker.value.addListener(
                 'drag',
                 function(event) {
-                  otherLoc.value = {lat: event.latLng.lat(), lng: event.latLng.lng()}
+                  otherLoc.value = {lat: event.latLng.lat(), lng: event.latLng.lng()},
+                  
+                  circle = function() {
+                    var airportsList =  getAirports();
+                    for (var airspace=0; airspace<airportsList.length; airspace++) { //for circle on map
+                        console.log("marker lat", otherLoc.value)
+                        var distnace = haversineDistance(airportsList[airspace].center, otherLoc.value)
+                        distnace = distnace*1000;     //convert to metres
+                        if (distnace < (airportsList[airspace].rad)) {  // the radius was not accurately represented on the map so I multiplied by .6 to be more accuarte?????
+                            console.log("*WITHIN RADIUS*:\n", "distance: ", distnace, "airport name and rad:", airportsList[airspace].name, airportsList[airspace].rad);
+                            const ret = {
+                                result: true, 
+                                name: airportsList[airspace].name, 
+                                color: airportsList[airspace].color
+                            }
+                            circleRef.value =  ret
+                            displayWarning()
+                            // var ret = [];
+                            // ret = [true, airportsList[airspace].name, airportsList[airspace].color]
+                           
+                        } 
+                        else {
+                          console.log("*OUTSIDE RADIUS*:\n", "distance: ", distnace, "airport name and rad:", airportsList[airspace].name, airportsList[airspace].rad);
+                        }
+                    }
+                  },
+                  circle.call(),
                   console.log("OTHER-->",otherLoc.value.lat)
                   var d = document.getElementById('destCursorLat')
                   d.innerHTML = otherLoc.value.lat;
@@ -77,6 +133,7 @@ import { Loader } from '@googlemaps/js-api-loader'
                waypointList = new LinkedList(sourceMarker.value, destMarker.value)
             )
           )
+
 
           waypointDiv = document.getElementById("addWaypoint");
           waypointListener = waypointDiv.addEventListener("click", function(){
@@ -96,10 +153,10 @@ import { Loader } from '@googlemaps/js-api-loader'
               'drag',
               function(e) {
                 waypointLoc.value = {lat: e.latLng.lat(), lng: e.latLng.lng()}
-                console.log("dragging waypoint", waypointLoc.value)
-                updatePath( )
+                flightPlanCoordinates[flightPlanCoordinates.length - 1] = waypointLoc.value
+                console.log("PATH", flightPlanCoordinates)
                 //flightPlanCoordinates.push(waypointLoc.value)
-                
+                updatePath()
               },
               
               console.log("After dragging", flightPlanCoordinates)
@@ -119,7 +176,15 @@ import { Loader } from '@googlemaps/js-api-loader'
               }
             
             function updatePath() {
-
+              const flightPath = new google.maps.Polyline({
+                path: flightPlanCoordinates,
+                geodesic: true,
+                strokeColor: "#FF0000",
+                strokeOpacity: 0.5,
+                strokeWeight: 3,
+                });
+                flightPath.setMap(map.value) 
+                return flightPath
             }
 
      
@@ -187,7 +252,7 @@ import { Loader } from '@googlemaps/js-api-loader'
               a.innerHTML = airports[airport].name
               setTimeout(function() {
                 a.style.display="none"; //fade out would be nice here
-              },3200)
+              },1300)
             })
             circleList.push(cityCircle);
           }
@@ -253,6 +318,8 @@ import { Loader } from '@googlemaps/js-api-loader'
             })
         }) 
 
+     
+
        
 
         
@@ -300,13 +367,7 @@ import { Loader } from '@googlemaps/js-api-loader'
         //   } 
         //   return markerList
         // }
-
-        
-        // const flightPathCoordinates = [
-        //   { lat: currPos.value.lat+2, lng: currPos.value.lng-1 },
-        //   { lat: currPos.value.lat+5, lng: currPos.value.lng-1.7 },
-        //   { lat: currPos.value.lat+10, lng: currPos.value.lng-2.3 }
-        // ];        
+     
 
         const haversineDistance = (pos1, pos2) => {
         const R = 3958.8 // Radius of the Earth in miles
@@ -354,6 +415,7 @@ import { Loader } from '@googlemaps/js-api-loader'
             ? 0
             : t(distance.value, 30)
         )
+        
         return { currPos, otherLoc, distance, mapDivHere, calculatedTime}
       },
       methods: {
@@ -407,11 +469,23 @@ import { Loader } from '@googlemaps/js-api-loader'
     <div ref="mapDivHere" style="width:100%; height:80vh;"/>
     <div id="airportClicked"></div>
     <div id="addWaypoint">Add Waypoint</div>
+    <div id="locationWarning">You are entering a <div id="colorAirspace"></div> area. <br><div id="airspaceMessage"></div></div>
   </div>
 
 </template>
 
 <style>
+  #locationWarning {
+    display: none;
+    color: white;
+    background-color: rgb(101, 100, 100);
+    border: solid 1px rgb(65, 64, 64);
+    position: absolute;
+    top: 40%;
+    margin-left: 1.2%;
+    width: 19%;
+  }
+
   .distance-caption-container {
     background-color: white;
     padding: 5px;
