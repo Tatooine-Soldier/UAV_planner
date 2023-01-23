@@ -47,6 +47,7 @@ import { Loader } from '@googlemaps/js-api-loader'
         var circle;
         var mycircle;
         var circleRef =  ref(null);
+        var destinfowindow;
 
         
         
@@ -64,9 +65,11 @@ import { Loader } from '@googlemaps/js-api-loader'
                 colorDiv.style.color = circleRef.value.color;
                 var msgDiv = document.getElementById("airspaceMessage");
                 msgDiv.style.color = "#FFFFFF";
+                var markerDiv = document.getElementById("markerName");
                 if (circleRef.value.color === "#FF8833") {
                   colorDiv.innerHTML = "AMBER";
-                  msgDiv.innerHTML = "Please contact <span id='airName'>"+ circleRef.value.name + "</span> before beginning your flight";
+                  markerDiv.innerHTML =  circleRef.value.marker;
+                  msgDiv.innerHTML = "Please contact <span id='airName'>"+ circleRef.value.name + "</span> UAS zone authority before beginning your flight"; //Unmanned Aerial System
                   var nameDiv = document.getElementById("airName");
                   nameDiv.style.color =  "#FF8833";
                 } else if (circleRef.value.color === "#FF0000") {
@@ -90,6 +93,16 @@ import { Loader } from '@googlemaps/js-api-loader'
                 draggable: true,
                 map: map.value
               }),
+              destinfowindow = new google.maps.InfoWindow({
+                content: "Destination Point",
+                ariaLabel: "Destination",
+              }),
+              destMarker.value.addListener("click", () => {
+                destinfowindow.open({
+                    anchor: destMarker.value,
+                    map,
+                });
+              }),
               destDragListener = destMarker.value.addListener(
                 'drag',
                 function(event) {
@@ -106,17 +119,12 @@ import { Loader } from '@googlemaps/js-api-loader'
                             const ret = {
                                 result: true, 
                                 name: airportsList[airspace].name, 
-                                color: airportsList[airspace].color
+                                color: airportsList[airspace].color,
+                                marker: "Destination marker"
                             }
                             circleRef.value =  ret
                             displayWarning()
-                            // var ret = [];
-                            // ret = [true, airportsList[airspace].name, airportsList[airspace].color]
-                           
                         } 
-                        else {
-                          console.log("*OUTSIDE RADIUS*:\n", "distance: ", distnace, "airport name and rad:", airportsList[airspace].name, airportsList[airspace].rad);
-                        }
                     }
                   },
                   circle.call(),
@@ -201,6 +209,17 @@ import { Loader } from '@googlemaps/js-api-loader'
             draggable: true,
             map: map.value
           })
+          //add in info window that appears when clicked  
+          const sourceinfowindow = new google.maps.InfoWindow({
+            content: "Starting Point",
+            ariaLabel: "Start",
+          });
+          sourceMarker.value.addListener("click", () => {
+            sourceinfowindow.open({
+                anchor: sourceMarker.value,
+                map,
+            });
+          });
           var d = document.getElementById('cursorLat')
           d.innerHTML = currPos.value.lat;
           var c = document.getElementById('cursorLng')
@@ -216,18 +235,27 @@ import { Loader } from '@googlemaps/js-api-loader'
               d.innerHTML = cursor.lat;
               var c = document.getElementById('cursorLng')
               c.innerHTML = cursor.lng;
-              var circle;
-              // if (circleList.length !== 0) {
-              //   for (circle in circleList) {
-              //     var t = check(cursor, circleList[circle], circleList[circle].radius)
-              //     console.log(t)
-              //     if (t) {
-              //       alert("IN")
-              //       return 
-              //     }
-              //   }
-              // }
-              // this.$emit('changeLocation',cursor);
+              circle = function() {
+                  var airportsList =  getAirports();
+                  for (var airspace=0; airspace<airportsList.length; airspace++) { //for circle on map
+                        console.log("marker lat", currPos.value)
+                        var distnace = haversineDistance(airportsList[airspace].center, currPos.value)
+                        distnace = distnace*1000;     //convert to metres
+                        if (distnace < (airportsList[airspace].rad)) {  // the radius was not accurately represented on the map so I multiplied by .6 to be more accuarte?????
+                            console.log("*WITHIN RADIUS*:\n", "distance: ", distnace, "airport name and rad:", airportsList[airspace].name, airportsList[airspace].rad);
+                            const ret = {
+                                result: true, 
+                                name: airportsList[airspace].name, 
+                                color: airportsList[airspace].color,
+                                marker: "Starting point"
+                            }
+                            circleRef.value =  ret
+                            displayWarning()
+                        } 
+                       
+                    }
+                  },
+                circle.call()
             }
           )
 
@@ -467,7 +495,7 @@ import { Loader } from '@googlemaps/js-api-loader'
     <div ref="mapDivHere" style="width:100%; height:80vh;"/>
     <div id="airportClicked"></div>
     <div id="addWaypoint">Add Waypoint</div>
-    <div id="locationWarning">You are entering a <span id="colorAirspace"></span> area. <br><div id="airspaceMessage"></div></div>
+    <div id="locationWarning"><span id="markerName"></span> is within a <span id="colorAirspace"></span> area.<br><br><div id="airspaceMessage"></div></div>
   </div>
 
 </template>
@@ -477,11 +505,13 @@ import { Loader } from '@googlemaps/js-api-loader'
     display: none;
     color: white;
     background-color: rgb(101, 100, 100);
-    border: solid 1px rgb(65, 64, 64);
+    border: solid 1px rgb(101, 100, 100);
+    border-radius: 5px;
+    box-shadow: 0px 1px 3px #576481;
     position: absolute;
-    top: 40%;
+    top: 42%;
     margin-left: 1.2%;
-    width: 19%;
+    width: 18.5%;
     padding: 7px;
   }
   
