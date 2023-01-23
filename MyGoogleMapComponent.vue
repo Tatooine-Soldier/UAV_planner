@@ -41,8 +41,7 @@ import { Loader } from '@googlemaps/js-api-loader'
         var waypointList = new LinkedList(sourceMarker, destMarker);
         let wl = [];
         var flightPlanCoordinates = [];
-        var isInCircle;
-        const RED_ZONE = "DO NOT ENTER RED ZONE AIRSPACE";
+        const RED_ZONE = "Entering Red Zone airspace is prohibited by law";
 
         let map = ref(null)
         var circle;
@@ -56,10 +55,7 @@ import { Loader } from '@googlemaps/js-api-loader'
           currPos.value = {lat: initial.value.lat, lng: initial.value.lng}
           console.log(currPos.value)
           var circleList = [];
-          function displayWarning() { //why can't the parameter be accessed??? like seriously this is stupid 
-              console.log("\n Circle-->\n", circleRef.value)
-              console.log("\n Circle-->\n", circleRef.value.result)
-              console.log("\n Circle-->\n", circleRef.value.name)
+          function displayWarning() { 
               
               if (circleRef.value.result) {
                 var doc = document.getElementById("locationWarning");
@@ -67,10 +63,12 @@ import { Loader } from '@googlemaps/js-api-loader'
                 var colorDiv = document.getElementById("colorAirspace");
                 colorDiv.style.color = circleRef.value.color;
                 var msgDiv = document.getElementById("airspaceMessage");
-                msgDiv.style.color = circleRef.value.color;
+                msgDiv.style.color = "#FFFFFF";
                 if (circleRef.value.color === "#FF8833") {
                   colorDiv.innerHTML = "AMBER";
-                  msgDiv.innerHTML = "Please contact "+circleRef.value.name + "before beginning your flight";
+                  msgDiv.innerHTML = "Please contact <span id='airName'>"+ circleRef.value.name + "</span> before beginning your flight";
+                  var nameDiv = document.getElementById("airName");
+                  nameDiv.style.color =  "#FF8833";
                 } else if (circleRef.value.color === "#FF0000") {
                   colorDiv.innerHTML = "RED";
                   msgDiv.innerHTML = RED_ZONE;
@@ -469,7 +467,7 @@ import { Loader } from '@googlemaps/js-api-loader'
     <div ref="mapDivHere" style="width:100%; height:80vh;"/>
     <div id="airportClicked"></div>
     <div id="addWaypoint">Add Waypoint</div>
-    <div id="locationWarning">You are entering a <div id="colorAirspace"></div> area. <br><div id="airspaceMessage"></div></div>
+    <div id="locationWarning">You are entering a <span id="colorAirspace"></span> area. <br><div id="airspaceMessage"></div></div>
   </div>
 
 </template>
@@ -484,7 +482,9 @@ import { Loader } from '@googlemaps/js-api-loader'
     top: 40%;
     margin-left: 1.2%;
     width: 19%;
+    padding: 7px;
   }
+  
 
   .distance-caption-container {
     background-color: white;
