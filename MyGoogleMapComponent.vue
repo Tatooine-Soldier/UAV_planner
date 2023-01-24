@@ -34,7 +34,7 @@ import { Loader } from '@googlemaps/js-api-loader'
       
         let sourceMarker = ref(null)
         let destMarker = ref(null)
-        let waypoint = ref(null)
+        let waypoint = ref(false)
         let oldMarker = ref(null)
         let waypointMarker = ref(null)
         var waypointDiv;
@@ -152,6 +152,7 @@ import { Loader } from '@googlemaps/js-api-loader'
           waypointListener = waypointDiv.addEventListener("click", function(){
             waypointLoc.value = {lat: map.value.center.lat(), lng: map.value.center.lng()}
             flightPlanCoordinates.push(waypointLoc.value)
+            waypoint.value = true
             drawPath()
             console.log("flightPlanCoordinates::::",flightPlanCoordinates)
             waypointMarker.value = new google.maps.Marker({
@@ -400,7 +401,25 @@ import { Loader } from '@googlemaps/js-api-loader'
         //   } 
         //   return markerList
         // }
-     
+        
+        function waypointsLength() {
+          var result = 0;
+          var total = 0;
+          if (flightPlanCoordinates.length > 1) {
+            for (var i = 0; i < flightPlanCoordinates.length-1; i++) {
+              result = parseFloat(haversineDistance(flightPlanCoordinates[i], flightPlanCoordinates[i+1]))
+              total = result;
+            }
+          } else {
+            total = parseFloat(haversineDistance(currPos.value, waypointLoc.value))
+            result = parseFloat(haversineDistance(waypointLoc.value, otherLoc.value))
+            total += result
+          }
+          total = total.toFixed(2);
+          var dis = document.getElementById("distanceKM");
+          dis.innerHTML = "Distance of path(km): "+total;
+          return total;
+        }
 
         const haversineDistance = (pos1, pos2) => {
         const R = 3958.8 // Radius of the Earth in miles
@@ -422,11 +441,19 @@ import { Loader } from '@googlemaps/js-api-loader'
           )*1.609344  //convert to kilometres
           return d.toFixed(2)
         }
+
         const distance = computed(() =>
-        otherLoc.value === null
+        otherLoc.value === null && waypoint.value === false
           ? 0
           : haversineDistance(currPos.value, otherLoc.value)
         )
+
+        const waypointsDistance = computed(() => 
+        waypointLoc.value === null
+          ? 0
+          : waypointsLength()
+        )
+
         const t = (distance, speed) => {
           const tme = distance/speed
           const remainder = tme%1
@@ -449,7 +476,7 @@ import { Loader } from '@googlemaps/js-api-loader'
             : t(distance.value, 30)
         )
         console.log("WAYPOINTLOC map component", waypointLoc)
-        return { currPos, otherLoc, distance, mapDivHere, calculatedTime, waypointLoc}
+        return { currPos, otherLoc, distance, mapDivHere, calculatedTime, waypointsDistance,  waypointLoc}
       },
       methods: {
         addWaypoint() {
@@ -467,7 +494,7 @@ import { Loader } from '@googlemaps/js-api-loader'
   <div id="big-container">
     <div class="distance-caption-container">
       <div class="distance-and-time">
-        <div>
+        <div id="distanceKM">
           Distance of path(km): {{ distance }}
         </div>
         <div>
@@ -502,6 +529,7 @@ import { Loader } from '@googlemaps/js-api-loader'
     <div ref="mapDivHere" style="width:100%; height:80vh;"/>
     <div id="airportClicked"></div>
     <div id="addWaypoint">Add Waypoint</div>
+    <div>{{ waypointsDistance }}</div>
     <div id="locationWarning">
       <span id="markerName"></span> is within a <span id="colorAirspace"></span> area.
       <br><br>
