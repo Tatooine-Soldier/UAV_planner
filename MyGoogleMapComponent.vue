@@ -64,12 +64,18 @@ import { Loader } from '@googlemaps/js-api-loader'
                 var colorDiv = document.getElementById("colorAirspace");
                 colorDiv.style.color = circleRef.value.color;
                 var msgDiv = document.getElementById("airspaceMessage");
+                var contactDiv = document.getElementById("contactMessage");
                 msgDiv.style.color = "#FFFFFF";
                 var markerDiv = document.getElementById("markerName");
                 if (circleRef.value.color === "#FF8833") {
                   colorDiv.innerHTML = "AMBER";
                   markerDiv.innerHTML =  circleRef.value.marker;
-                  msgDiv.innerHTML = "Please contact <span id='airName'>"+ circleRef.value.name + "</span> UAS zone authority before beginning your flight"; //Unmanned Aerial System
+                  msgDiv.innerHTML = "Please contact <span id='airName'>"+ circleRef.value.name + "</span> UAS zone authority before beginning your flight."; //Unmanned Aerial System
+                  contactDiv.style.color = "#FFFFFF"
+                  contactDiv.innerHTML = "Email: <span><i><a id='emailAirport' href = 'mailto: "+circleRef.value.contact+"'>"+ circleRef.value.contact +"</a></i></span>"; 
+                  var email = document.getElementById("emailAirport");
+                  email.style.color = "#FFFFFF"
+                  email.style.fontSize = "12px";
                   var nameDiv = document.getElementById("airName");
                   nameDiv.style.color =  "#FF8833";
                 } else if (circleRef.value.color === "#FF0000") {
@@ -120,7 +126,8 @@ import { Loader } from '@googlemaps/js-api-loader'
                                 result: true, 
                                 name: airportsList[airspace].name, 
                                 color: airportsList[airspace].color,
-                                marker: "Destination marker"
+                                marker: "Destination marker",
+                                contact: airportsList[airspace].contact
                             }
                             circleRef.value =  ret
                             displayWarning()
@@ -247,7 +254,8 @@ import { Loader } from '@googlemaps/js-api-loader'
                                 result: true, 
                                 name: airportsList[airspace].name, 
                                 color: airportsList[airspace].color,
-                                marker: "Starting point"
+                                marker: "Starting point",
+                                contact: airportsList[airspace].contact
                             }
                             circleRef.value =  ret
                             displayWarning()
@@ -495,7 +503,13 @@ import { Loader } from '@googlemaps/js-api-loader'
     <div ref="mapDivHere" style="width:100%; height:80vh;"/>
     <div id="airportClicked"></div>
     <div id="addWaypoint">Add Waypoint</div>
-    <div id="locationWarning"><span id="markerName"></span> is within a <span id="colorAirspace"></span> area.<br><br><div id="airspaceMessage"></div></div>
+    <div id="locationWarning">
+      <span id="markerName"></span> is within a <span id="colorAirspace"></span> area.
+      <br><br>
+      <div id="airspaceMessage"></div>
+      <br><br>
+      <div id="contactMessage"></div>
+    </div>
   </div>
 
 </template>
