@@ -2,12 +2,13 @@
 import { Loader } from '@googlemaps/js-api-loader'
     /* eslint-disable no-undef*/
     import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+    import { Graph, Node } from '../graph'
     //import { useGeolocation } from '../useGeolocation'
     // import haversineDistance from './calculateDistance'
     const GOOGLE_MAPS_API_KEY = 'AIzaSyDTNOMjJP2zMMEHcGy2wMNae1JnHkGVvn0'
     export default {
       name: 'App',
-      props: ['propcoords'],
+      props: ['propcoords', 'propspeed', 'propdate', 'propway'],
       data: function() {
         var myData = {
             myProp: this.propcoords
@@ -15,15 +16,12 @@ import { Loader } from '@googlemaps/js-api-loader'
         return myData
       },
       setup(props) {
-        //const { coords } = useGeolocation()
-        const currPos = computed(() => ({
-          lat: parseFloat(props.propcoords.sourcelatitude),
-          lng: parseFloat(props.propcoords.sourcelongitude)
-        }))
-        const otherLoc = computed(() => ({
-          lat: parseFloat(props.propcoords.destlatitude),
-          lng: parseFloat(props.propcoords.destlongitude)
-        }))
+        watch(() => props.propcoords, () => {
+          console.log("***PROPS***",props.propcoords)
+        })
+        const currPos = ref(null)
+        const otherLoc = ref(null)
+        const waypointLoc =  ref(null)
         let clickListener = null;
 
         const loader = new Loader({ apiKey: GOOGLE_MAPS_API_KEY})
@@ -32,12 +30,36 @@ import { Loader } from '@googlemaps/js-api-loader'
         let sourceMarker = ref(null)
         let destMarker = ref(null)
         let map = ref(null)
+
+        //let waypointMarker =  ref(null)
+        var graph; 
+        var destNode;
+        var sourceNode;
+
         onMounted(async () => {
-          await loader.load()
-          console.log("currPos CENTER--->", currPos.value)
+          await loader.load() 
+          console.log("PROPS props.propcoords--->", props.propcoords)
+
+          graph =  new Graph()
+          destNode =  new Node()
+          sourceNode = new Node()
+          
+
+          currPos.value = {lat: parseFloat(props.propcoords.sourcelatitude) ,lng: parseFloat(props.propcoords.sourcelongitude)} 
+          otherLoc.value = {lat: parseFloat(props.propcoords.destlatitude), lng: parseFloat(props.propcoords.destlongitude)}
+          sourceNode.value = currPos.value
+          destNode.value =  otherLoc.value
+          graph.add(sourceNode)
+          graph.add(destNode)
+
+          console.log("Propway", props.propway)
+
+          waypointLoc.value =  {lat: parseFloat(props.propway.lat), lng: parseFloat(props.propway.lng)}
+
+
           map.value = new google.maps.Map(mapDivHere.value, {
                 center: currPos.value,
-                zoom: 8
+                zoom: 9 
             })
           sourceMarker.value = new google.maps.Marker({
             position: currPos.value,
@@ -47,6 +69,10 @@ import { Loader } from '@googlemaps/js-api-loader'
             position: otherLoc.value,
             map: map.value
           })
+          // waypointMarker.value = new google.maps.Marker({
+          //   position: waypointLoc.value,
+          //   map: map.value
+          // })
           const sourceinfowindow = new google.maps.InfoWindow({
             content: "Starting Point",
             ariaLabel: "Source",
@@ -66,27 +92,41 @@ import { Loader } from '@googlemaps/js-api-loader'
             destinfowindow.open({
                 anchor: destMarker.value,
                 map,
-                });
             });
-        //     window.initMap = () => {
-        //     map.value = new google.maps.Map(mapDivHere.value, {
-        //         center: currPos.value,
-        //         zoom: 8
-        //     })
-        //   };
+          });
         })
         onUnmounted(async () => {
             if (clickListener) clickListener.remove()
         })
-        let line = null
-        watch([map, currPos, otherLoc], () => {
-          if (line) line.setMap(null)
-          if (map.value && otherLoc.value != null)
-            line = new google.maps.Polyline({
-              path: [currPos.value, otherLoc.value],
+        //let line = null
+        // watch([map, currPos, otherLoc], () => {
+        //   if (line) line.setMap(null)
+        //   if (map.value && otherLoc.value != null)
+        //     line = new google.maps.Polyline({
+        //       path: [currPos.value, otherLoc.value],
+        //       map: map.value
+        //     })
+        // })
+        let sourceToWay =  null; //line
+        watch([map, currPos, waypointLoc], () => {
+          if (sourceToWay) sourceToWay.setMap(null)
+          if (map.value && waypointLoc.value != null)
+            sourceToWay = new google.maps.Polyline({
+              path: [currPos.value, waypointLoc.value],
               map: map.value
             })
         })
+
+        let wayToDest = null; //line
+        watch([map, waypointLoc, otherLoc], () => {
+          if (wayToDest) wayToDest.setMap(null)
+          if (map.value && waypointLoc.value != null)
+            wayToDest = new google.maps.Polyline({
+              path: [waypointLoc.value, otherLoc.value],
+              map: map.value
+            })
+        })
+
         const haversineDistance = (pos1, pos2) => {
         const R = 3958.8 // Radius of the Earth in miles
         const rlat1 = pos1.lat * (Math.PI / 180) // Convert degrees to radians
@@ -131,19 +171,22 @@ import { Loader } from '@googlemaps/js-api-loader'
         const calculatedTime = computed(() =>
         distance.value === null 
           ? 0
-          : t(distance.value, 30)
+          : t(distance.value, parseFloat(props.propspeed.velocity))
         )
         return { currPos, otherLoc, distance, mapDivHere, calculatedTime }
       }
     }
+
 
 </script>
 
 <template>
   <div id="big-container">
     <div class="final-distance-caption-container">
-      <div>Distance of path(km): {{ distance }}<br> Estimated arrival: {{ calculatedTime }}</div>
-      <div></div>
+      <div>Distance of path(km): {{ distance }}
+        <br>Flight date and time: {{ propdate.day }} at {{ propdate.hour }}:{{ propdate.minute }}
+        <br> Estimated arrival: {{ calculatedTime }}</div>
+      <div>{{ propspeed.description }}</div>
       <div class="detailz">
             Source Latitude:  <i id="plat">{{ propcoords.sourcelatitude }}</i><br>Source Longitude:  <i id="plng">{{ propcoords.sourcelongitude }}<br></i>
             Destination Latitude:  <i id="plat">{{ propcoords.destlatitude }}</i><br>Destination Longitude:  <i id="plng">{{ propcoords.destlongitude }}<br></i>

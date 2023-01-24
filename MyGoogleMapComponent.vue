@@ -325,7 +325,6 @@ import { Loader } from '@googlemaps/js-api-loader'
               path: [currPos.value, otherLoc.value],
               map: map.value
             })
-          
         })
 
         
@@ -449,8 +448,8 @@ import { Loader } from '@googlemaps/js-api-loader'
             ? 0
             : t(distance.value, 30)
         )
-        
-        return { currPos, otherLoc, distance, mapDivHere, calculatedTime}
+        console.log("WAYPOINTLOC map component", waypointLoc)
+        return { currPos, otherLoc, distance, mapDivHere, calculatedTime, waypointLoc}
       },
       methods: {
         addWaypoint() {
@@ -499,7 +498,7 @@ import { Loader } from '@googlemaps/js-api-loader'
       </div>
     </div>
     <!-- <button id="coords-confirm-button" @click="$emit('someEvent', {c:currPos, d:otherLoc} )">Confirm</button> -->
-    <div class="submit-div" @click="$emit('someEvent', {c:currPos, d:otherLoc, distance:distance} )">CONFIRM</div>
+    <div class="submit-div" @click="$emit('someEvent', {c:currPos, d:otherLoc, distance:distance, w:waypointLoc} )">CONFIRM</div>
     <div ref="mapDivHere" style="width:100%; height:80vh;"/>
     <div id="airportClicked"></div>
     <div id="addWaypoint">Add Waypoint</div>
@@ -507,7 +506,7 @@ import { Loader } from '@googlemaps/js-api-loader'
       <span id="markerName"></span> is within a <span id="colorAirspace"></span> area.
       <br><br>
       <div id="airspaceMessage"></div>
-      <br><br>
+      <br>
       <div id="contactMessage"></div>
     </div>
   </div>
