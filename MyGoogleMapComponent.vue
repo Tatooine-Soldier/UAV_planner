@@ -405,12 +405,17 @@ import { Loader } from '@googlemaps/js-api-loader'
         function waypointsLength() {
           var result = 0;
           var total = 0;
-          if (flightPlanCoordinates.length > 1) {
+          if (flightPlanCoordinates.length > 1) { //if there are more than one waypoint, get the lengths between them all and add them
             for (var i = 0; i < flightPlanCoordinates.length-1; i++) {
               result = parseFloat(haversineDistance(flightPlanCoordinates[i], flightPlanCoordinates[i+1]))
+              result += parseFloat(haversineDistance(flightPlanCoordinates[i], currPos.value))
+              result += parseFloat(haversineDistance(flightPlanCoordinates[flightPlanCoordinates.length-1], otherLoc.value))
               total = result;
             }
-          } else {
+          } else if (flightPlanCoordinates.length === 0) {
+            total = parseFloat(haversineDistance(currPos.value, otherLoc.value))
+          } 
+          else {
             total = parseFloat(haversineDistance(currPos.value, waypointLoc.value))
             result = parseFloat(haversineDistance(waypointLoc.value, otherLoc.value))
             total += result
@@ -418,6 +423,7 @@ import { Loader } from '@googlemaps/js-api-loader'
           total = total.toFixed(2);
           var dis = document.getElementById("distanceKM");
           dis.innerHTML = "Distance of path(km): "+total;
+
           return total;
         }
 
@@ -445,7 +451,7 @@ import { Loader } from '@googlemaps/js-api-loader'
         const distance = computed(() =>
         otherLoc.value === null && waypoint.value === false
           ? 0
-          : haversineDistance(currPos.value, otherLoc.value)
+          : waypointsLength()
         )
 
         const waypointsDistance = computed(() => 
