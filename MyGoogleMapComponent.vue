@@ -172,6 +172,28 @@ import { Loader } from '@googlemaps/js-api-loader'
                 console.log("PATH", flightPlanCoordinates)
                 //flightPlanCoordinates.push(waypointLoc.value)
                 updatePath()
+                circle = function() {
+                  var airportsList =  getAirports();
+                  for (var airspace=0; airspace<airportsList.length; airspace++) { //for circle on map
+                        console.log("marker lat", waypointLoc.value)
+                        var distnace = haversineDistance(airportsList[airspace].center, waypointLoc.value)
+                        distnace = distnace*1000;     //convert to metres
+                        if (distnace < (airportsList[airspace].rad)) {  // the radius was not accurately represented on the map so I multiplied by .6 to be more accuarte?????
+                            console.log("*WITHIN RADIUS*:\n", "distance: ", distnace, "airport name and rad:", airportsList[airspace].name, airportsList[airspace].rad);
+                            const ret = {
+                                result: true, 
+                                name: airportsList[airspace].name, 
+                                color: airportsList[airspace].color,
+                                marker: "Waypoint",
+                                contact: airportsList[airspace].contact
+                            }
+                            circleRef.value =  ret
+                            displayWarning()
+                        } 
+                       
+                    }
+                  },
+                circle.call()
               },
               
               console.log("After dragging", flightPlanCoordinates)
@@ -327,6 +349,7 @@ import { Loader } from '@googlemaps/js-api-loader'
               path: [currPos.value, otherLoc.value],
               map: map.value
             })
+            getLineSegments(line)
         })
 
         
@@ -353,7 +376,57 @@ import { Loader } from '@googlemaps/js-api-loader'
             })
         }) 
 
-     
+        function getLineSegments(polyline) {
+          const sourcePoint = 0;
+          const destinationPoint = 1;
+          var slat = polyline.getPath().getAt(sourcePoint).lat()
+          var slng = polyline.getPath().getAt(sourcePoint).lng()
+          var dlat = polyline.getPath().getAt(destinationPoint).lat()
+          var dlng = polyline.getPath().getAt(destinationPoint).lng()
+          var points = {
+            source: {
+              lat: slat,
+              lng: slng
+            },
+            destination: {
+              lat: dlat,
+              lng: dlng
+            }
+          }
+          console.log(points)
+
+          var x = 0;
+          var y = 0;
+          var z = 0;
+          for (var loc in points) {
+            var latitude = points[loc].lat * Math.PI / 180; 
+            var longitude = points[loc].lng * Math.PI / 180;
+            
+            latitude = parseFloat(latitude)
+            longitude = parseFloat(longitude)
+
+            x = x + parseFloat(Math.cos(latitude)) * parseFloat(Math.cos(longitude));
+            console.log("mul", x)
+            y += Math.cos(latitude) * Math.sin(longitude);
+            z += Math.sin(latitude);
+            console.log("xyz",x,y,z)
+
+          }
+
+          x = x / 2;
+          y = y / 2;
+          z = z / 2;
+          
+
+          var centralLongitude = Math.atan2(y, x);
+          var centralSquareRoot = Math.sqrt(x * x + y * y);
+          var centralLatitude = Math.atan2(z, centralSquareRoot);
+
+          var centrelat = centralLatitude * 180 / Math.PI
+          var centrelng =  centralLongitude * 180 / Math.PI
+          console.log("centre:", centrelat, centrelng)
+            
+        }
 
        
 
@@ -544,7 +617,7 @@ import { Loader } from '@googlemaps/js-api-loader'
     <div ref="mapDivHere" style="width:100%; height:80vh;"/>
     <div id="airportClicked"></div>
     <div id="addWaypoint">Add Waypoint</div>
-    <div>{{ waypointsDistance }}</div>
+   
     <div id="locationWarning">
       <span id="markerName"></span> is within a <span id="colorAirspace"></span> area.
       <br><br>
