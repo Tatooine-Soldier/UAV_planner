@@ -422,7 +422,7 @@ import { Loader } from '@googlemaps/js-api-loader'
           }
           total = total.toFixed(2);
           var dis = document.getElementById("distanceKM");
-          dis.innerHTML = "Distance of path(km): "+total;
+          dis.innerHTML = total+"km";
 
           return total;
         }
@@ -499,13 +499,13 @@ import { Loader } from '@googlemaps/js-api-loader'
 <template>
   <div id="big-container">
     <div class="distance-caption-container">
-      <div class="distance-and-time">
-        <div id="distanceKM">
-          Distance of path(km): {{ distance }}
+      <div class="distance-details" >
+          <div id="distanceKM" class="distanceUpdate">{{ distance }}km</div>
+          <div class="sub-distance">Distance of path(km)</div>
         </div>
-        <div>
-          Estimated arrival: {{ calculatedTime }}
-        </div>
+      <div class="distance-details">
+        <div id="distanceTime" class="distanceUpdate">{{ calculatedTime }}</div>
+        <div class="sub-distance">Estimated arrival</div>
       </div>
       <div class="source-coords">
         <div class="source-coords-title">
@@ -561,13 +561,36 @@ import { Loader } from '@googlemaps/js-api-loader'
     width: 18.5%;
     padding: 7px;
   }
+
+  
+
+  .distanceUpdate {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+  }
+
+  #distanceTime {
+    font-size: 20px;;
+  }
+
+  .sub-distance {
+    font-size: 12px;;
+  }
+
+  .distance-details {
+    display: grid;
+    grid-template-rows: 75% 25%;
+    text-align: center;
+  }
   
 
   .distance-caption-container {
     background-color: white;
     padding: 5px;
     display: grid;
-    grid-template-columns: 35% 35% 30%;
+    grid-template-columns: 20% 30% 25% 25%;
   }
 
   .distance-and-time {
