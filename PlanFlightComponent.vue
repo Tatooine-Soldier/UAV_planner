@@ -1,6 +1,7 @@
 <script setup>
   import FinalGoogleMapComponent from "@/components/FinalGoogleMapComponent.vue"
 import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
+import MyCalendarComponent from "../components/MyCalendarComponent.vue";
 //import FinalGoogleMapComponentVue from "@/components/FinalGoogleMapComponent.vue";
 //   const props = defineProps(['title'])
 </script>
@@ -30,7 +31,7 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
                 <MyGoogleMapComponent @someEvent="logme"></MyGoogleMapComponent>
             </section>
             <section id="final-map-container">
-                <FinalGoogleMapComponent :propcoords="coords" :propspeed="speed" :key="componentKey"></FinalGoogleMapComponent>
+                <FinalGoogleMapComponent :propcoords="coords" :propspeed="speed" :propdate="date" :propway="waypoints" :key="componentKey"></FinalGoogleMapComponent>
             </section>
             <section class="waypoint-submit-container" id="waypoint-container">
                 Enter desired waypoints:
@@ -87,6 +88,7 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
                                     <section>
                                         <div class="check-time-db" @click="getDates()">Check availablility</div>
                                         <!-- <button>Add</button> -->
+                                        <MyCalendarComponent :propdates="bookedDates"></MyCalendarComponent>
                                     </section>
                                 <!-- </form> -->
                             </section>
@@ -120,7 +122,11 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
                                     </section>
                                     <section class="waypoints-container">
                                         <div class="waypoints-select">
-                                            <label for="waypoints">How many Waypoints to visit?</label>
+                                            <label for="waypoint">Waypoint Lat:</label>
+                                            <input type="text" name="waypoint" ref="mywaylat"/>
+                                            <label for="waypoint">Waypoint Lng:</label>
+                                            <input type="text" name="waypoint" ref="mywaylng"/>
+                                            <!-- <label for="waypoints">How many Waypoints to visit?</label>
                                             <div>
                                                 <select id="waypoints" name="waypoints" v-model="waypoints">
                                                     <option value="0" v-on:click="setWaypoint()">0</option>
@@ -135,7 +141,7 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
                                                     <option value="9" v-on:click="setWaypoint()">9</option>
                                                     <option value="10" v-on:click="setWaypoint()">10</option>
                                                 </select>
-                                            </div>
+                                            </div> -->
                                         </div>
 
                                     </section>
@@ -186,6 +192,33 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
                                         High speeds are between <b>45-80kmh</b>
                                     </div>
                                 </section>
+                                <hr>
+                                <section class="altitude-container">
+                                    <p class="fp-subtitle">Select your desired UAV altitude(metres):</p>
+                                    <section>
+                                        
+                                        <label for="altitude">Altitude: </label>
+                                        <input type="number" id="altitude" name="altitude" min="15" max="120" ref="myaltitude">
+                                        <p><small><i>* EU Aviation Safety Authority states the maximum flight altitude is 120m.* <br>More information can be found <a href="https://www.easa.europa.eu/en/light/topics/drones" style="color:white;">https://www.easa.europa.eu/en/light/topics/drones</a></i></small></p>
+                                    </section>
+                                </section>
+                                <hr>
+                                <section class="orientation-container">
+                                    <p class="fp-subtitle">Select your desired view orientation:</p>
+                                    <section>
+                                        <label for="orientation">Select minute: </label>
+                                        <select id="orientation" name="orientation" ref="myorientation">
+                                            <option value="N">N</option>
+                                            <option value="NE">NE</option>
+                                            <option value="E">E</option>
+                                            <option value="SE">SE</option>
+                                            <option value="S">S</option>
+                                            <option value="SW">SW</option>
+                                            <option value="W">W</option>
+                                            <option value="NW">NW</option>
+                                        </select>
+                                    </section>
+                                </section>
                                 <!-- <input id="submit" name="submit" type="submit" value="Add"/> -->
                                 <!-- </form> -->
                         </section>
@@ -194,8 +227,8 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
                         <h1 id="fp-headers">Book</h1>
                         <section class="fp-sub-info">
                                 <p class="fp-subtitle">Request flight plan</p>
-                                <input id="submit" name="submit" type="submit" value="Add"/>
-                                
+                                <div class="check-time-db" @click="showFinalDetails()">Submit</div>
+                                <!-- <input id="submit" name="submit" type="submit" value="Add"/> -->
                         </section>
                     </section>
         </section>
@@ -339,12 +372,7 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
         text-align: left;
     }
 
-    .waypoints-select {
-        display: grid;
-        grid-template-rows: 50% 50%;
-        row-gap: 4px;
-    }
-
+  
     .speeds-option {
         display: grid;
         grid-template-rows: 33% 33% 33%;
@@ -482,7 +510,6 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
       }
 
     .date-flights-container {
-        display: none;
         color: red;
     }
   
@@ -514,9 +541,13 @@ export default {
         },
         info: null,
         distance: null,
-        waypoints: null,
+        waypoints: {
+            lat: '',
+            lng: ''
+        },
         componentKey: 0,
         bookedDates: null,
+        altitude: 0,
       }
     },
     components: {
@@ -530,6 +561,9 @@ export default {
         this.coords.sourcelongitude = this.$refs.mysourcelong.value;
         this.coords.destlatitude = this.$refs.mydestlat.value;
         this.coords.destlongitude = this.$refs.mydestlong.value;
+        this.waypoints.lat =  this.$refs.mywaylat.value;      //SEND ACROSS TO FINAL MAP COMPONENT AND GENERATE FLIGHT PATH
+        this.waypoints.lng =  this.$refs.mywaylng.value;
+        this.altitude =  this.$refs.myaltitude.value;
         if (document.getElementById('low-radio').checked) {
             this.speed.description = document.getElementById('low-radio').value;
             this.speed.velocity = 20;
@@ -543,19 +577,51 @@ export default {
             this.speed.description = "** Please select speed **"
         }
         console.log("COOORDS--->",this.coords)
-
-        var details = document.getElementById('flight-details-container');
-        details.style.display = 'block';
+       
+        // var details = document.getElementById('flight-details-container');
+        // details.style.display = 'block';
 
         var grey = document.getElementById('flight-planner-columns');
         grey.style.opacity = 0.2;
         grey.style.pointerEvents = "none";
 
+
+        // const flight = { 
+        //     srclat: this.coords.sourcelatitude, 
+        //     srclng: this.coords.sourcelongitude, 
+        //     destlat: this.coords.destlatitude, 
+        //     destlng: this.coords.destlongitude,
+        //     hour: this.date.hour,
+        //     minute: this.date.minute,
+        //     date: this.date.day,
+        //     speed: this.speed.description
+        // }
+
+        // //this needs to be in a seperate function. 
+        // //if user selects "confirm", call this function
+        // axios
+        // .post("/storeFlight", flight)
+        // .then((response) => {
+        //   const data = response.data;
+        //   console.log("STORED FLIGHT SUCCESSFUL: ",data);
+        // })
+        // .catch (function (error) {
+        //     console.log("ERROR:", error);    
+        // })
+
         
+      },
+      showFinalDetails() {
+        this.handleSubmit()
+        var details = document.getElementById('flight-details-container');
+        details.style.display = 'block';
       },
       disappear: function (event) {
         var details = document.getElementById('flight-details-container');
         details.style.display = 'None';
+        console.log(event)
+        var finaldetails = document.getElementById('final-map-container');
+        finaldetails.style.display = 'None';
         console.log(event)
 
         var grey = document.getElementById('flight-planner-columns');
@@ -581,6 +647,32 @@ export default {
         ex.style.display = "none"
       },
       showFinalMap() {
+        const flight = { 
+            srclat: this.coords.sourcelatitude, 
+            srclng: this.coords.sourcelongitude, 
+            destlat: this.coords.destlatitude, 
+            destlng: this.coords.destlongitude,
+            hour: this.date.hour,
+            minute: this.date.minute,
+            date: this.date.day,
+            speed: this.speed.description,
+            waypoint: this.waypoints,
+            altitude: this.altitude
+        }
+
+        //this needs to be in a seperate function. 
+        //if user selects "confirm", call this function
+        axios
+        .post("/storeFlight", flight)
+        .then((response) => {
+          const data = response.data;
+          console.log("STORED FLIGHT SUCCESSFUL: ",data);
+        })
+        .catch (function (error) {
+            console.log("ERROR:", error);    
+        })
+
+
         var map = document.getElementById("final-map-container")
         map.style.display = "block"
         var con = document.getElementById("ex-sign")
@@ -609,12 +701,15 @@ export default {
             i ++;
         }
       }, 
-      logme({c, d, distance}) {
+      logme({c, d, distance, w}) { // data received from map component 
         console.log("RECEIVED IN PARENT",c.lat, c.lng, d.lat, d.lng);
         this.$refs.mysourcelat.value = c.lat.toString();
         this.$refs.mysourcelong.value = c.lng.toString();
         this.$refs.mydestlat.value = d.lat.toString();
         this.$refs.mydestlong.value = d.lng.toString();
+        this.$refs.mywaylat.value =  w.lat.toString();
+        this.$refs.mywaylng.value =  w.lng.toString();
+
         this.distance = distance;
 
         var map = document.getElementById("details-map-container")
