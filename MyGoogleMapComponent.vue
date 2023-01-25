@@ -47,6 +47,7 @@ import { Loader } from '@googlemaps/js-api-loader'
         var circle;
         var mycircle;
         var circleRef =  ref(null);
+        var updatedDistance = ref(null)
         var destinfowindow;
 
         
@@ -421,10 +422,19 @@ import { Loader } from '@googlemaps/js-api-loader'
             total += result
           }
           total = total.toFixed(2);
+          var calculatedWaypointTime;
+          calculatedWaypointTime =  t(total, 30)
+          updateTime(calculatedWaypointTime)
+          
           var dis = document.getElementById("distanceKM");
           dis.innerHTML = total+"km";
 
           return total;
+        }
+
+        function updateTime(calculatedTime) { //update the estimated time calculations in html
+          var t = document.getElementById("distanceTime")
+          t.innerHTML = calculatedTime
         }
 
         const haversineDistance = (pos1, pos2) => {
@@ -461,6 +471,7 @@ import { Loader } from '@googlemaps/js-api-loader'
         )
 
         const t = (distance, speed) => {
+          console.log("distance", distance)
           const tme = distance/speed
           const remainder = tme%1
           console.log("REMAINDER",remainder)
@@ -476,12 +487,13 @@ import { Loader } from '@googlemaps/js-api-loader'
           const time = hours.toFixed(0).toString() + " hours " + minutes.toFixed(2).toString() + " minutes"
           return time
         }
-        const calculatedTime = computed(() =>
+
+        var calculatedTime = computed(() =>
           distance.value === null 
             ? 0
             : t(distance.value, 30)
         )
-        console.log("WAYPOINTLOC map component", waypointLoc)
+        
         return { currPos, otherLoc, distance, mapDivHere, calculatedTime, waypointsDistance,  waypointLoc}
       },
       methods: {
