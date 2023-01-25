@@ -471,20 +471,17 @@ import { Loader } from '@googlemaps/js-api-loader'
         )
 
         const t = (distance, speed) => {
-          console.log("distance", distance)
           const tme = distance/speed
           const remainder = tme%1
-          console.log("REMAINDER",remainder)
-          const minutes = 60*remainder
-          console.log("MINUTES",minutes)
-          var hours = tme/1
-          console.log("HOURS",hours)
+          const minutes = parseInt(60*remainder)
+          const seconds =  (minutes%1)*60
+          var hours = parseInt(tme/1)
           if (hours < 1) {
             hours = 0
-            const time = minutes.toFixed(2).toString()+" minutes"
+            const time = minutes.toString()+" minutes  "
             return time 
           }
-          const time = hours.toFixed(0).toString() + " hours " + minutes.toFixed(2).toString() + " minutes"
+          const time = hours.toFixed(0).toString() + " hours  " + minutes.toString()+" minutes  " 
           return time
         }
 
