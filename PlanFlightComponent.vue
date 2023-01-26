@@ -123,9 +123,9 @@ import MyCalendarComponent from "../components/MyCalendarComponent.vue";
                                     <section class="waypoints-container">
                                         <div class="waypoints-select">
                                             <label for="waypoint">Waypoint Lat:</label>
-                                            <input type="text" name="waypoint" ref="mywaylat"/>
+                                            <input type="text" name="waypoint" size="16" ref="mywaylat"/>
                                             <label for="waypoint">Waypoint Lng:</label>
-                                            <input type="text" name="waypoint" ref="mywaylng"/>
+                                            <input type="text" name="waypoint" size="16" ref="mywaylng"/>
                                             <!-- <label for="waypoints">How many Waypoints to visit?</label>
                                             <div>
                                                 <select id="waypoints" name="waypoints" v-model="waypoints">
@@ -161,7 +161,10 @@ import MyCalendarComponent from "../components/MyCalendarComponent.vue";
                             <p class="fp-subtitle">Select your desired UAV speed:</p>
                                 <!-- <form action="/speed" method="post"> -->
                                 <section class="speed-container">
-                                    <small><i>* Please check the max speed of your UAV before selecting speed *</i></small>
+                                   
+                                    <label for="speed">Speed(km/h): </label>
+                                    <input type="number" id="speed" name="speed" min="1" max="120" ref="myspeed" value="30">
+                                    <!-- <small><i>* Please check the max speed of your UAV before selecting speed *</i></small>
                                     <p>The speed of the UAV will determine which flight corridor it will be assigned to for the flight</p>
                                     <section class="speeds-option">
                                         <section class="speed-containers">
@@ -190,7 +193,7 @@ import MyCalendarComponent from "../components/MyCalendarComponent.vue";
                                     </div>
                                     <div class="info-container" id="highc">
                                         High speeds are between <b>45-80kmh</b>
-                                    </div>
+                                    </div> -->
                                 </section>
                                 <hr>
                                 <section class="altitude-container">
@@ -217,6 +220,22 @@ import MyCalendarComponent from "../components/MyCalendarComponent.vue";
                                             <option value="W">W</option>
                                             <option value="NW">NW</option>
                                         </select>
+                                    </section>
+                                </section>
+                                <hr>
+                                <section class="drone-details">
+                                    <section>
+                                        <p>Aircraft details:</p>
+                                        <section class="drone-spec">
+                                            <section class="spec-inputs">
+                                                <label for="drone-name">UAV name: </label>
+                                                <input type="text" name="drone-name" size="16" ref="mydronename"/>
+                                                <label for="drone-model">UAV model: </label>
+                                                <input type="text" name="drone-model" size="16" ref="mydronemodel">
+                                                <label for="drone-weight">UAV weight: </label>
+                                                <input type="text" name="drone-weight" size="16" ref="mydroneweight">
+                                            </section>
+                                        </section>
                                     </section>
                                 </section>
                                 <!-- <input id="submit" name="submit" type="submit" value="Add"/> -->
@@ -352,6 +371,16 @@ import MyCalendarComponent from "../components/MyCalendarComponent.vue";
         position: relative;
     }
 
+    .waypoints-select {
+        padding: 5px;
+        display: grid;
+        grid-template-columns: 38% 62%;
+    }
+
+    .waypoints-select label {
+        text-align: left;
+    }
+
     .coords-inputs {
         padding: 12px;
         display: grid;
@@ -372,6 +401,15 @@ import MyCalendarComponent from "../components/MyCalendarComponent.vue";
         text-align: left;
     }
 
+    .spec-inputs {
+        padding: 12px;
+        display: grid;
+        grid-template-columns: 38% 62%;
+    }
+
+    .spec-inputs label {
+        text-align: left;
+    }
   
     .speeds-option {
         display: grid;
@@ -548,6 +586,7 @@ export default {
         componentKey: 0,
         bookedDates: null,
         altitude: 0,
+        orientation: ''
       }
     },
     components: {
@@ -564,18 +603,15 @@ export default {
         this.waypoints.lat =  this.$refs.mywaylat.value;      //SEND ACROSS TO FINAL MAP COMPONENT AND GENERATE FLIGHT PATH
         this.waypoints.lng =  this.$refs.mywaylng.value;
         this.altitude =  this.$refs.myaltitude.value;
-        if (document.getElementById('low-radio').checked) {
-            this.speed.description = document.getElementById('low-radio').value;
-            this.speed.velocity = 20;
-        } else if (document.getElementById('mid-radio').checked) {
-            this.speed.description = document.getElementById('mid-radio').value;
-            this.speed.velocity = 45;
-        } else if (document.getElementById('high-radio').checked) {
-            this.speed.description = document.getElementById('high-radio').value;
-            this.speed.velocity = 65;
-        } else {
-            this.speed.description = "** Please select speed **"
-        }
+        this.orientation = this.$refs.myorientation.value;
+        this.speed.velocity = this.$refs.myspeed.value;
+        if (this.speed.velocity < 20) {
+            this.speed.description = "low-speed";
+        } else if (21 <= this.speed.velocity < 46 ) {
+            this.speed.description = "mid-speed";
+        } else if (46 <= this.speed.velocity < 100 ) {
+            this.speed.description = "high-speed";
+        } 
         console.log("COOORDS--->",this.coords)
        
         // var details = document.getElementById('flight-details-container');
@@ -655,9 +691,11 @@ export default {
             hour: this.date.hour,
             minute: this.date.minute,
             date: this.date.day,
-            speed: this.speed.description,
+            speed: this.speed.velocity,
+            corridor: this.speed.description,
             waypoint: this.waypoints,
-            altitude: this.altitude
+            altitude: this.altitude,
+            orientation: this.orientation
         }
 
         //this needs to be in a seperate function. 

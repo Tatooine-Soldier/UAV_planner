@@ -34,15 +34,17 @@ type HTML struct {
 }
 
 type Flight struct {
-	Date    string `json:"date"`
-	Hour    string `json:"hour"`
-	Minute  string `json:"minute"`
-	Srclat  string `json:"srclat"`
-	Srclng  string `json:"srclng"`
-	Destlat string `json:"destlat"`
-	Destlng string `json:"destlng"`
-	Speed   string `json:"speed"`
-	// Corridor   string `json:"corridor"`
+	Date        string `json:"date"`
+	Hour        string `json:"hour"`
+	Minute      string `json:"minute"`
+	Srclat      string `json:"srclat"`
+	Srclng      string `json:"srclng"`
+	Destlat     string `json:"destlat"`
+	Destlng     string `json:"destlng"`
+	Speed       string `json:"speed"`
+	Altitude    string `json:"altitude"`
+	Orientation string `json:"orientation"`
+	Corridor    string `json:"corridor"`
 	// UserID     int64 `json:"userID"`
 	// FlightTime int64 `json:"flightTime"`
 	// Altitude   int64 `json:"altitude"`
@@ -386,7 +388,7 @@ func getDateFlight(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	fmt.Printf("%v", len(results))
+	fmt.Printf("\n'%v' matching docs found\n", len(results))
 
 	for _, d := range results {
 		fmt.Printf("MATCHING DOC: %v\n", d)
@@ -394,7 +396,36 @@ func getDateFlight(w http.ResponseWriter, r *http.Request) {
 
 	//NEED TO SEND THE HOUR TIMES IN THESE DOCS BACK TO FRONTEND TO DISPLAY
 
-	fmt.Fprint(w, "recieved at backend")
+	var times []interface{} // for the dates
+	var time []interface{}  //for the actual hours and minutes
+	for _, doc := range results {
+		times = append(times, doc["date"])
+		time = append(time, doc["time"])
+	}
+
+	//convert times (type interface) to type string
+	var timesStr []string
+	for _, v := range times {
+		valStr := fmt.Sprint(v)
+		timesStr = append(timesStr, valStr)
+		// fmt.Fprintf(w, valStr+",")
+	}
+
+	var timeStr []string
+	for _, x := range time {
+		valStr := fmt.Sprint(x)
+		timeStr = append(timeStr, valStr)
+		// fmt.Fprintf(w, valStr+",")
+	}
+
+	var pairs []string
+	for i, _ := range timeStr {
+		timeval := timeStr[i]
+		timesval := timesStr[i]
+		timeval = timeval + " " + timesval
+		pairs = append(pairs, timeval)
+		fmt.Fprintf(w, timeval+",")
+	}
 }
 
 func storeFlight(w http.ResponseWriter, r *http.Request) {
@@ -423,7 +454,7 @@ func storeFlight(w http.ResponseWriter, r *http.Request) {
 	ftime := flight.Hour + ":" + flight.Minute
 	startCoord := bson.D{{"lat", flight.Srclat}, {"lng", flight.Srclng}}
 	destCoord := bson.D{{"lat", flight.Destlat}, {"lng", flight.Destlng}}
-	flightDoc := bson.D{{"date", flight.Date}, {"time", ftime}, {"startCoord", startCoord}, {"destCoord", destCoord}, {"corridor", flight.Speed}}
+	flightDoc := bson.D{{"date", flight.Date}, {"time", ftime}, {"startCoord", startCoord}, {"destCoord", destCoord}, {"speed", flight.Speed}, {"corridor", flight.Corridor}, {"altitude", flight.Altitude}, {"orientation", flight.Orientation}}
 
 	err = insertDB(context.TODO(), client, flightDoc, "flights")
 	fmt.Printf("\nERROR-->\n", err)
