@@ -7,6 +7,7 @@ import { Loader } from '@googlemaps/js-api-loader'
     import { airports, getAirports } from '../airports'
     import { LinkedList, Node } from '../linkedList'
     import { checkD } from '@/withinAirspace';
+    import { getLineSegments } from '../lineSegments'
     // import haversineDistance from './calculateDistance'
     const GOOGLE_MAPS_API_KEY = 'AIzaSyDTNOMjJP2zMMEHcGy2wMNae1JnHkGVvn0'
     export default {
@@ -49,6 +50,7 @@ import { Loader } from '@googlemaps/js-api-loader'
         var circleRef =  ref(null);
         var updatedDistance = ref(null)
         var destinfowindow;
+        var lineSegmentsList = {};
 
         
         
@@ -349,7 +351,31 @@ import { Loader } from '@googlemaps/js-api-loader'
               path: [currPos.value, otherLoc.value],
               map: map.value
             })
-            getLineSegments(line)
+            lineSegmentsList = getLineSegments(line)
+            circle = function() {
+                  var airportsList =  getAirports();
+                  for (var airspace=0; airspace<airportsList.length; airspace++) { //for circle on map
+                        console.log("marker lat", currPos.value)
+                        for (var p in lineSegmentsList) {
+                          var distnace = haversineDistance(airportsList[airspace].center, lineSegmentsList[p])
+                          distnace = distnace*1000;     //convert to metres
+                          if (distnace < (airportsList[airspace].rad)) {  // the radius was not accurately represented on the map so I multiplied by .6 to be more accuarte?????
+                              console.log("*WITHIN RADIUS*:\n", "distance: ", distnace, "airport name and rad:", airportsList[airspace].name, airportsList[airspace].rad);
+                              const ret = {
+                                  result: true, 
+                                  name: airportsList[airspace].name, 
+                                  color: airportsList[airspace].color,
+                                  marker: "Path",
+                                  contact: airportsList[airspace].contact
+                              }
+                              circleRef.value =  ret
+                              displayWarning()
+                          } 
+                        }
+                       
+                    }
+                  },
+                circle.call()
         })
 
         
@@ -376,61 +402,34 @@ import { Loader } from '@googlemaps/js-api-loader'
             })
         }) 
 
-        function getLineSegments(polyline) {
-          const sourcePoint = 0;
-          const destinationPoint = 1;
-          var slat = polyline.getPath().getAt(sourcePoint).lat()
-          var slng = polyline.getPath().getAt(sourcePoint).lng()
-          var dlat = polyline.getPath().getAt(destinationPoint).lat()
-          var dlng = polyline.getPath().getAt(destinationPoint).lng()
-          var points = {
-            source: {
-              lat: slat,
-              lng: slng
-            },
-            destination: {
-              lat: dlat,
-              lng: dlng
+        function displayWarning() { 
+              
+              if (circleRef.value.result) {
+                var doc = document.getElementById("locationWarning");
+                doc.style.display = "block"; 
+                var colorDiv = document.getElementById("colorAirspace");
+                colorDiv.style.color = circleRef.value.color;
+                var msgDiv = document.getElementById("airspaceMessage");
+                var contactDiv = document.getElementById("contactMessage");
+                msgDiv.style.color = "#FFFFFF";
+                var markerDiv = document.getElementById("markerName");
+                if (circleRef.value.color === "#FF8833") {
+                  colorDiv.innerHTML = "AMBER";
+                  markerDiv.innerHTML =  circleRef.value.marker;
+                  msgDiv.innerHTML = "Please contact <span id='airName'>"+ circleRef.value.name + "</span> UAS zone authority before beginning your flight."; //Unmanned Aerial System
+                  contactDiv.style.color = "#FFFFFF"
+                  contactDiv.innerHTML = "Email: <span><i><a id='emailAirport' href = 'mailto: "+circleRef.value.contact+"'>"+ circleRef.value.contact +"</a></i></span>"; 
+                  var email = document.getElementById("emailAirport");
+                  email.style.color = "#FFFFFF"
+                  email.style.fontSize = "12px";
+                  var nameDiv = document.getElementById("airName");
+                  nameDiv.style.color =  "#FF8833";
+                } else if (circleRef.value.color === "#FF0000") {
+                  colorDiv.innerHTML = "RED";
+                  msgDiv.innerHTML = RED_ZONE;
+                }
+              }
             }
-          }
-          console.log(points)
-
-          var x = 0;
-          var y = 0;
-          var z = 0;
-          for (var loc in points) {
-            var latitude = points[loc].lat * Math.PI / 180; 
-            var longitude = points[loc].lng * Math.PI / 180;
-            
-            latitude = parseFloat(latitude)
-            longitude = parseFloat(longitude)
-
-            x = x + parseFloat(Math.cos(latitude)) * parseFloat(Math.cos(longitude));
-            console.log("mul", x)
-            y += Math.cos(latitude) * Math.sin(longitude);
-            z += Math.sin(latitude);
-            console.log("xyz",x,y,z)
-
-          }
-
-          x = x / 2;
-          y = y / 2;
-          z = z / 2;
-          
-
-          var centralLongitude = Math.atan2(y, x);
-          var centralSquareRoot = Math.sqrt(x * x + y * y);
-          var centralLatitude = Math.atan2(z, centralSquareRoot);
-
-          var centrelat = centralLatitude * 180 / Math.PI
-          var centrelng =  centralLongitude * 180 / Math.PI
-          console.log("centre:", centrelat, centrelng)
-            
-        }
-
-       
-
-        
 
 
         // let waypointLineZ = null   //between final marker in array and destMarker
