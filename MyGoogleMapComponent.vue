@@ -12,6 +12,9 @@ import { Loader } from '@googlemaps/js-api-loader'
     const GOOGLE_MAPS_API_KEY = 'AIzaSyDTNOMjJP2zMMEHcGy2wMNae1JnHkGVvn0'
     export default {
       name: 'App',
+      data() {
+        return {speed: 1}
+      },
       setup() {
         const { coords } = useGeolocation()
         const initial = computed(() => ({
@@ -52,6 +55,8 @@ import { Loader } from '@googlemaps/js-api-loader'
         var updatedDistance = ref(null)
         var destinfowindow;
         var lineSegmentsList = {};
+        var speedref = ref(0);
+        
 
         
         
@@ -524,7 +529,7 @@ import { Loader } from '@googlemaps/js-api-loader'
           }
           total = total.toFixed(2);
           var calculatedWaypointTime;
-          calculatedWaypointTime =  t(total, 30)
+          calculatedWaypointTime =  t(total,  parseFloat(document.getElementById("speed").value))
           updateTime(calculatedWaypointTime)
           
           var dis = document.getElementById("distanceKM");
@@ -572,6 +577,7 @@ import { Loader } from '@googlemaps/js-api-loader'
         )
 
         const t = (distance, speed) => {
+          console.log("speed in t", speed)
           const tme = distance/speed
           const remainder = tme%1
           const minutes = parseInt(60*remainder)
@@ -583,21 +589,25 @@ import { Loader } from '@googlemaps/js-api-loader'
             return time 
           }
           const time = hours.toFixed(0).toString() + " hours  " + minutes.toString()+" minutes  " 
+          
           return time
         }
 
         var calculatedTime = computed(() =>
           distance.value === null 
             ? 0
-            : t(distance.value, 30)
+            : t(distance.value, parseFloat(document.getElementById("speed").value))
         )
+
         
         return { currPos, otherLoc, distance, mapDivHere, calculatedTime, waypointsDistance,  waypointLoc}
       },
       methods: {
         addWaypoint() {
 
-
+        }, 
+        getSpeed() {
+          return this.speed
         }
       }
     
@@ -645,6 +655,10 @@ import { Loader } from '@googlemaps/js-api-loader'
     <div ref="mapDivHere" style="width:100%; height:80vh;"/>
     <div id="airportClicked"></div>
     <div id="addWaypoint">Add Waypoint</div>
+    <div>
+      <label for="Speed">Speed: </label>
+      <input type="number" id="speed" name="speed" min="1" max="120" ref="selectedspeed" value="30" >
+    </div>
    
     <div id="locationWarning">
       <span id="markerName"></span> is within a <span id="colorAirspace"></span> area.
