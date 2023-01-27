@@ -22,6 +22,7 @@ import { Loader } from '@googlemaps/js-api-loader'
         const currPos = ref(null)
         const otherLoc = ref(null)
         const waypointLoc = ref(null)
+        waypointLoc.value = {lat: "nil", lng: "nil"}
         let clickListener = null;
         let dragListener = null;
         let waypointDragListener = null;
@@ -389,6 +390,8 @@ import { Loader } from '@googlemaps/js-api-loader'
               strokeColor: "#FF0000",
               strokeOpacity: 0.5,
             })
+            // lineSegmentsList = getLineSegments(waypointLines)
+            //inPath(lineSegmentsList)
         })
         // flightPlanCoordinates[flightPlanCoordinates.length-1]
         let waypointLinesD = null  //waypoint to dest
@@ -429,7 +432,33 @@ import { Loader } from '@googlemaps/js-api-loader'
                   msgDiv.innerHTML = RED_ZONE;
                 }
               }
-            }
+        }
+
+
+        // function inPath(lineSegs) {
+        //       var airportsList =  getAirports();
+        //       for (var airspace=0; airspace<airportsList.length; airspace++) { //for circle on map
+        //             for (var p in lineSegs) {
+        //                var distnace = haversineDistance(airportsList[airspace].center, lineSegs[p])
+        //                distnace = distnace*1000;     //convert to metres
+        //                if (distnace < (airportsList[airspace].rad)) {  // the radius was not accurately represented on the map so I multiplied by .6 to be more accuarte?????
+        //                   console.log("*WITHIN RADIUS*:\n", "distance: ", distnace, "airport name and rad:", airportsList[airspace].name, airportsList[airspace].rad);
+        //                   const ret = {
+        //                       result: true, 
+        //                       name: airportsList[airspace].name, 
+        //                       color: airportsList[airspace].color,
+        //                         marker: "Path",
+        //                         contact: airportsList[airspace].contact
+        //                   }
+        //                   circleRef.value =  ret
+        //                   displayWarning()
+        //                 } 
+        //               }
+                     
+        //           }
+        //         }
+        
+        
 
 
         // let waypointLineZ = null   //between final marker in array and destMarker
