@@ -1,3 +1,182 @@
+<template>
+  <div id="big-container">
+    <div class="distance-caption-container">
+      <div class="distance-details" >
+          <div id="distanceKM" class="distanceUpdate">{{ distance }}km</div>
+          <div class="sub-distance">Distance of path(km)</div>
+        </div>
+      <div class="distance-details">
+        <div id="distanceTime" class="distanceUpdate">{{ calculatedTime }}</div>
+        <div class="sub-distance">Estimated arrival</div>
+      </div>
+      <div class="source-coords">
+        <div class="source-coords-title">
+          STARTING POINT:
+        </div>
+        <div>
+          Lat: <span class="coords-display" id="cursorLat"></span>
+        </div>
+        <div>
+          Lng: <span class="coords-display" id="cursorLng"></span>
+        </div>
+      </div>
+      <div class="dest-coords">
+        <div class="source-coords-title">
+          DESTINATION POINT
+        </div>
+        <div>
+          Lat: <span class="coords-display" id="destCursorLat"></span>
+        </div>
+        <div>
+          Lng: <span class="coords-display" id="destCursorLng"></span>
+        </div>
+      </div>
+    </div>
+    <!-- <button id="coords-confirm-button" @click="$emit('someEvent', {c:currPos, d:otherLoc} )">Confirm</button> -->
+    <div class="submit-div" @click="$emit('someEvent', {c:currPos, d:otherLoc, distance:distance, w:waypointLoc} )">CONFIRM</div>
+    <div ref="mapDivHere" style="width:100%; height:80vh;"/>
+    <div id="airportClicked"></div>
+    <div id="addWaypoint">Add Waypoint</div>
+   
+    <div id="locationWarning">
+      <span id="markerName"></span> is within a <span id="colorAirspace"></span> area.
+      <br><br>
+      <div id="airspaceMessage"></div>
+      <br>
+      <div id="contactMessage"></div>
+    </div>
+  </div>
+
+</template>
+
+<style>
+  #locationWarning {
+    display: none;
+    color: white;
+    background-color: rgb(101, 100, 100);
+    border: solid 1px rgb(101, 100, 100);
+    border-radius: 5px;
+    box-shadow: 0px 1px 3px #576481;
+    position: absolute;
+    top: 42%;
+    margin-left: 1.2%;
+    width: 18.5%;
+    padding: 7px;
+  }
+
+  
+
+  .distanceUpdate {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+  }
+
+  #distanceTime {
+    font-size: 20px;;
+  }
+
+  .sub-distance {
+    font-size: 12px;;
+  }
+
+  .distance-details {
+    display: grid;
+    grid-template-rows: 75% 25%;
+    text-align: center;
+  }
+  
+
+  .distance-caption-container {
+    background-color: white;
+    padding: 5px;
+    display: grid;
+    grid-template-columns: 20% 30% 25% 25%;
+  }
+
+  .distance-and-time {
+    display: grid;
+    grid-template-rows: 50% 50%;
+  }
+
+  .source-coords {
+    display: grid;
+    grid-template-rows: 20% 40% 40%;
+  }
+
+  .dest-coords {
+    display: grid;
+    grid-template-rows: 20% 40% 40%;
+  }
+
+  .coords-display {
+    font-size: 12px;
+    width: 60%;
+    padding: 2px;
+  }
+
+  .source-coords-title {
+    padding-bottom:20px;
+  }
+
+  #coords-confirm-button {
+    position: static;
+    padding: 2px;
+    width: 100%;
+  }
+
+  .submit-div {
+    background-color: white;
+    border: solid 1px grey;
+    text-align: center;
+    padding: 3px;
+    transition: 0.4s;
+  }
+
+  .submit-div:hover {
+    background-color: rgb(101, 100, 100);
+    color: white;
+  }
+
+  #airportClicked {
+    position: absolute;
+    z-index: 1;
+    color: white;
+    font-size: 1em;
+    width: 25%;
+    left: 37%;
+    top: 20%;
+    text-align: center;
+    background-color: rgb(101, 100, 100);
+    padding: 10px;
+    border: solid 1.5px grey;
+    border-radius: 20px;
+    opacity: .9;
+    display: none;
+  }
+
+  #addWaypoint {
+    background-color: white;
+    color: black;
+    width: 19%;
+    position: absolute;
+    top: 35%;
+    margin-left: 1.2%;
+    text-align: center;
+    padding: 5px;
+    border: solid .1px #9a9a9a;
+    border-radius: 3px;;
+    box-shadow: 0px 1px 3px #576481;
+    display: none;
+  }
+
+  #addWaypoint:hover {
+    background-color: rgb(235, 234, 234);
+    cursor: pointer;
+  }
+</style>
+
 <script>
 import { Loader } from '@googlemaps/js-api-loader'
     /* eslint-disable no-undef*/
@@ -8,14 +187,16 @@ import { Loader } from '@googlemaps/js-api-loader'
     import { LinkedList, Node } from '../linkedList'
     import { checkD } from '@/withinAirspace';
     import { getLineSegments } from '../lineSegments'
+    
     // import haversineDistance from './calculateDistance'
     const GOOGLE_MAPS_API_KEY = 'AIzaSyDTNOMjJP2zMMEHcGy2wMNae1JnHkGVvn0'
     export default {
       name: 'App',
+      props: ['propspeed'],
       data() {
         return {speed: 1}
       },
-      setup() {
+      setup(props) {
         const { coords } = useGeolocation()
         const initial = computed(() => ({
           lat: coords.value.latitude,
@@ -55,7 +236,7 @@ import { Loader } from '@googlemaps/js-api-loader'
         var updatedDistance = ref(null)
         var destinfowindow;
         var lineSegmentsList = {};
-        var speedref = ref(0);
+        var speedref = ref(30);
         
 
         
@@ -592,11 +773,17 @@ import { Loader } from '@googlemaps/js-api-loader'
           
           return time
         }
+        
+        // window.addEventListener('DOMContentLoaded', (event) => {
+        //   speedref.value = parseFloat(document.getElementById("sspeed").value)
+        //   console.log("Listener:",parseFloat(document.getElementById("sspeed").value))
+        // })
 
         var calculatedTime = computed(() =>
           distance.value === null 
             ? 0
-            : t(distance.value, parseFloat(document.getElementById("speed").value))
+            : t(distance.value, props.propspeed)
+            //parseFloat(document.getElementById("sspeed").value)
         )
 
         
@@ -606,195 +793,15 @@ import { Loader } from '@googlemaps/js-api-loader'
         addWaypoint() {
 
         }, 
-        getSpeed() {
-          return this.speed
-        }
+        // getSpeed() {
+        //   var t = document.getElementById("distanceTime")  
+        //   var calculatedTime = calculateT(t.value ,parseFloat(document.getElementById("speed").value))
+        //   t.innerHTML = calculatedTime
+        //   return this.speed
+        // }
       }
     
     }
   
 
 </script>
-
-<template>
-  <div id="big-container">
-    <div class="distance-caption-container">
-      <div class="distance-details" >
-          <div id="distanceKM" class="distanceUpdate">{{ distance }}km</div>
-          <div class="sub-distance">Distance of path(km)</div>
-        </div>
-      <div class="distance-details">
-        <div id="distanceTime" class="distanceUpdate">{{ calculatedTime }}</div>
-        <div class="sub-distance">Estimated arrival</div>
-      </div>
-      <div class="source-coords">
-        <div class="source-coords-title">
-          STARTING POINT:
-        </div>
-        <div>
-          Lat: <span class="coords-display" id="cursorLat"></span>
-        </div>
-        <div>
-          Lng: <span class="coords-display" id="cursorLng"></span>
-        </div>
-      </div>
-      <div class="dest-coords">
-        <div class="source-coords-title">
-          DESTINATION POINT
-        </div>
-        <div>
-          Lat: <span class="coords-display" id="destCursorLat"></span>
-        </div>
-        <div>
-          Lng: <span class="coords-display" id="destCursorLng"></span>
-        </div>
-      </div>
-    </div>
-    <!-- <button id="coords-confirm-button" @click="$emit('someEvent', {c:currPos, d:otherLoc} )">Confirm</button> -->
-    <div class="submit-div" @click="$emit('someEvent', {c:currPos, d:otherLoc, distance:distance, w:waypointLoc} )">CONFIRM</div>
-    <div ref="mapDivHere" style="width:100%; height:80vh;"/>
-    <div id="airportClicked"></div>
-    <div id="addWaypoint">Add Waypoint</div>
-    <div>
-      <label for="Speed">Speed: </label>
-      <input type="number" id="speed" name="speed" min="1" max="120" ref="selectedspeed" value="30" >
-    </div>
-   
-    <div id="locationWarning">
-      <span id="markerName"></span> is within a <span id="colorAirspace"></span> area.
-      <br><br>
-      <div id="airspaceMessage"></div>
-      <br>
-      <div id="contactMessage"></div>
-    </div>
-  </div>
-
-</template>
-
-<style>
-  #locationWarning {
-    display: none;
-    color: white;
-    background-color: rgb(101, 100, 100);
-    border: solid 1px rgb(101, 100, 100);
-    border-radius: 5px;
-    box-shadow: 0px 1px 3px #576481;
-    position: absolute;
-    top: 42%;
-    margin-left: 1.2%;
-    width: 18.5%;
-    padding: 7px;
-  }
-
-  
-
-  .distanceUpdate {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 24px;
-  }
-
-  #distanceTime {
-    font-size: 20px;;
-  }
-
-  .sub-distance {
-    font-size: 12px;;
-  }
-
-  .distance-details {
-    display: grid;
-    grid-template-rows: 75% 25%;
-    text-align: center;
-  }
-  
-
-  .distance-caption-container {
-    background-color: white;
-    padding: 5px;
-    display: grid;
-    grid-template-columns: 20% 30% 25% 25%;
-  }
-
-  .distance-and-time {
-    display: grid;
-    grid-template-rows: 50% 50%;
-  }
-
-  .source-coords {
-    display: grid;
-    grid-template-rows: 20% 40% 40%;
-  }
-
-  .dest-coords {
-    display: grid;
-    grid-template-rows: 20% 40% 40%;
-  }
-
-  .coords-display {
-    font-size: 12px;
-    width: 60%;
-    padding: 2px;
-  }
-
-  .source-coords-title {
-    padding-bottom:20px;
-  }
-
-  #coords-confirm-button {
-    position: static;
-    padding: 2px;
-    width: 100%;
-  }
-
-  .submit-div {
-    background-color: white;
-    border: solid 1px grey;
-    text-align: center;
-    padding: 3px;
-    transition: 0.4s;
-  }
-
-  .submit-div:hover {
-    background-color: rgb(101, 100, 100);
-    color: white;
-  }
-
-  #airportClicked {
-    position: absolute;
-    z-index: 1;
-    color: white;
-    font-size: 1em;
-    width: 25%;
-    left: 37%;
-    top: 20%;
-    text-align: center;
-    background-color: rgb(101, 100, 100);
-    padding: 10px;
-    border: solid 1.5px grey;
-    border-radius: 20px;
-    opacity: .9;
-    display: none;
-  }
-
-  #addWaypoint {
-    background-color: white;
-    color: black;
-    width: 19%;
-    position: absolute;
-    top: 35%;
-    margin-left: 1.2%;
-    text-align: center;
-    padding: 5px;
-    border: solid .1px #9a9a9a;
-    border-radius: 3px;;
-    box-shadow: 0px 1px 3px #576481;
-    display: none;
-  }
-
-  #addWaypoint:hover {
-    background-color: rgb(235, 234, 234);
-    cursor: pointer;
-  }
-</style>

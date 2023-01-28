@@ -2,6 +2,7 @@
   import FinalGoogleMapComponent from "@/components/FinalGoogleMapComponent.vue"
 import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
 import MyCalendarComponent from "../components/MyCalendarComponent.vue";
+import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
 //import FinalGoogleMapComponentVue from "@/components/FinalGoogleMapComponent.vue";
 //   const props = defineProps(['title'])
 </script>
@@ -28,7 +29,8 @@ import MyCalendarComponent from "../components/MyCalendarComponent.vue";
                 </section>
             </section>
             <section id="details-map-container">
-                <MyGoogleMapComponent @someEvent="logme"></MyGoogleMapComponent>
+                <MyGoogleMapComponent @someEvent="logme" :propspeed="time"></MyGoogleMapComponent>
+                <SpeedSelectorComponent @speedEvent="logspeed"></SpeedSelectorComponent>
             </section>
             <section id="final-map-container">
                 <FinalGoogleMapComponent :propcoords="coords" :propspeed="speed" :propdate="date" :propway="waypoints" :key="componentKey"></FinalGoogleMapComponent>
@@ -123,9 +125,9 @@ import MyCalendarComponent from "../components/MyCalendarComponent.vue";
                                     <section class="waypoints-container">
                                         <div class="waypoints-select">
                                             <label for="waypoint">Waypoint Lat:</label>
-                                            <input type="text" name="waypoint" size="16" ref="mywaylat"/>
+                                            <input type="text" name="waypoint" size="16" ref="mywaylat" value="0.0"/>
                                             <label for="waypoint">Waypoint Lng:</label>
-                                            <input type="text" name="waypoint" size="16" ref="mywaylng"/>
+                                            <input type="text" name="waypoint" size="16" ref="mywaylng" value="0.0"/>
                                             <!-- <label for="waypoints">How many Waypoints to visit?</label>
                                             <div>
                                                 <select id="waypoints" name="waypoints" v-model="waypoints">
@@ -586,7 +588,8 @@ export default {
         componentKey: 0,
         bookedDates: null,
         altitude: 0,
-        orientation: ''
+        orientation: '',
+        time: 0
       }
     },
     components: {
@@ -612,7 +615,8 @@ export default {
         } else if (46 <= this.speed.velocity < 100 ) {
             this.speed.description = "high-speed";
         } 
-        console.log("COOORDS--->",this.coords)
+        console.log("waypoints:", this.$refs.mywaylng.value, this.$refs.mywaylat.value)
+
        
         // var details = document.getElementById('flight-details-container');
         // details.style.display = 'block';
@@ -754,6 +758,9 @@ export default {
         map.style.display = "none"
         var con = document.getElementById("ex-sign")
         con.style.display = "none"
+      },
+      logspeed(c) {
+        this.time = c
       },
       setWaypoint() {
         var w = document.getElementById("waypoint-container")
