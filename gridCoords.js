@@ -7,50 +7,80 @@ export class Grid {
         this.elist = []
         this.slist = []
         this.wlist = []
+        this.gap = 0.05
     }
 
     //generate the coordinates then store them in a database collection "grids"
     // .05 change in coordinate value is roughly a 6km change in distance
+    //centerList param is the coordinate which will be the centerpoint of the grid
     generateCoords(centerList) { 
+        for (var i = 0; i < 48; i++) {
+
+            for (var center in centerList) {
+                for (var j in centerList[center]) {
+                    var nlat = centerList[center][j].lat + this.gap 
+                    var nlng = centerList[center][j].lng
+                    var nnext = {lat: nlat, lng: nlng}
+                    this.nlist.push(nnext)
+
+                    var elat = centerList[center][j].lat 
+                    var elng = centerList[center][j].lng + this.gap 
+                    var enext = {lat: elat, lng: elng}
+                    this.elist.push(enext)
+
+                    var slat = centerList[center][j].lat - this.gap
+                    var slng = centerList[center][j].lng 
+                    var snext = {lat: slat, lng: slng}
+                    this.slist.push(snext)
+
+                    var wlat = centerList[center][j].lat
+                    var wlng = centerList[center][j].lng - this.gap
+                    var wnext = {lat: wlat, lng: wlng}
+                    this.wlist.push(wnext)
+                }
+            }
+            this.gap = this.gap + .05
+        }
+        this.gap = 0.05
         
-        for (var center in centerList) {
-            var nlat = centerList[center].lat + .05
-            var nlng = centerList[center].lng
-            var nnext = {lat: nlat, lng: nlng}
-            this.nlist.push(nnext)
 
-            var elat = centerList[center].lat 
-            var elng = centerList[center].lng + .05
-            var enext = {lat: elat, lng: elng}
-            this.elist.push(enext)
+        for (i = 0; i < 48; i++) { // now get the coordinates of each column
+            for (var point in this.nlist) { //north rows for west columns and east columns
+                
+                wlat = this.nlist[point].lat
+                wlng = this.nlist[point].lng - this.gap
+                wnext = {lat: wlat, lng: wlng}
+                this.wlist.push(wnext)
 
-            var slat = centerList[center].lat - .05
-            var slng = centerList[center].lng 
-            var snext = {lat: slat, lng: slng}
-            this.slist.push(snext)
-
-            var wlat = centerList[center].lat
-            var wlng = centerList[center].lng -.05
-            var wnext = {lat: wlat, lng: wlng}
-            this.wlist.push(wnext)
-
-            this.counter.value = this.counter.value + 1
-            if (this.counter.value > 50) {
-                break
-                // return [nlist, elist, slist, wlist]
+                elat = this.nlist[point].lat
+                elng = this.nlist[point].lng + this.gap
+                enext = {lat: elat, lng: elng}
+                this.elist.push(enext)
             }
-            else {
-                this.generateCoords([nnext, enext, snext, wnext])
+
+            for (point in this.slist) { //north rows for west columns and east columns
+            
+                wlat = this.slist[point].lat
+                wlng = this.slist[point].lng - this.gap
+                wnext = {lat: wlat, lng: wlng}
+                this.wlist.push(wnext)
+
+                elat = this.slist[point].lat
+                elng = this.slist[point].lng + this.gap
+                enext = {lat: elat, lng: elng}
+                this.elist.push(enext)
             }
+            this.gap = this.gap + .05
         }
 
         var finalList = [this.nlist, this.elist, this.slist, this.wlist]
         return finalList
-
-        //console.log("FINAL:  nlist:", this.nlist, "elist:", this.elist, "slist:", this.slist, "wlist:", this.wlist)
-
+ 
     }
 }
+
+
+
 // const grid = { //coordinates are a grid, each coordinate has two layers above it 
 
 // }
