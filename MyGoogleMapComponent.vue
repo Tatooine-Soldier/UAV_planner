@@ -339,22 +339,22 @@ import { Loader } from '@googlemaps/js-api-loader'
             )
           )
 
-          // var grid  = new Grid;
-          // var ps = grid.generateCoords([[{lat: 53.531386134765576, lng: -7.925040162129355}]]) //centerPoint for Ireland grid
-          // for (var plist in ps) {  //for list in listOfLists
-          //   for (var j=0;j<ps[plist].length;j++) {
-          //       const gridCircle = new google.maps.Circle({
-          //         strokeColor: "#220088",
-          //         strokeOpacity: 0.8,
-          //         strokeWeight: 1,
-          //         fillColor: "#110066",
-          //         fillOpacity: 0.7,
-          //         map: map.value,
-          //         center: ps[plist][j],
-          //         radius: 400
-          //     });
-          //   }
-          // }
+          var grid  = new Grid(30);
+          var ps = grid.generateCoords([[{lat: 53.531386134765576, lng: -7.925040162129355}]]) //centerPoint for Ireland grid
+          for (var plist in ps) {  //for list in listOfLists
+            for (var j=0;j<ps[plist].length;j++) {
+                const gridCircle = new google.maps.Circle({
+                  strokeColor: "#220088",
+                  strokeOpacity: 0.8,
+                  strokeWeight: 1,
+                  fillColor: "#110066",
+                  fillOpacity: 0.7,
+                  map: map.value,
+                  center: ps[plist][j],
+                  radius: 400
+              });
+            }
+          }
 
 
           waypointDiv = document.getElementById("addWaypoint");

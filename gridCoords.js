@@ -1,20 +1,23 @@
  /* eslint-disable no-unused-vars */ 
 import {ref} from 'vue'
+import axios from 'axios'
+
 export class Grid {
-    constructor() {
+    constructor(size) {
         this.counter = ref(0)
         this.nlist = []
         this.elist = []
         this.slist = []
         this.wlist = []
         this.gap = 0.05
+        this.size = size
     }
 
     //generate the coordinates then store them in a database collection "grids"
     // .05 change in coordinate value is roughly a 6km change in distance
     //centerList param is the coordinate which will be the centerpoint of the grid
     generateCoords(centerList) { 
-        for (var i = 0; i < 48; i++) {
+        for (var i = 0; i < this.size; i++) {
 
             for (var center in centerList) {
                 for (var j in centerList[center]) {
@@ -44,7 +47,7 @@ export class Grid {
         this.gap = 0.05
         
 
-        for (i = 0; i < 48; i++) { // now get the coordinates of each column
+        for (i = 0; i < this.size; i++) { // now get the coordinates of each column
             for (var point in this.nlist) { //north rows for west columns and east columns
                 
                 wlat = this.nlist[point].lat
@@ -74,6 +77,40 @@ export class Grid {
         }
 
         var finalList = [this.nlist, this.elist, this.slist, this.wlist]
+
+        var coordinate = {
+        id: 0,
+        lat: 0.0,
+        lng: 0.0,
+        }
+        var c = 0
+        var coordsList = []
+        for (point in finalList) {
+            for (var coord in finalList[point]) {
+                coordinate = {
+                    lat: finalList[point][coord].lat,
+                    lng: finalList[point][coord].lng,
+                    id: c
+                }
+                coordsList.push(coordinate)
+                c++
+            }
+        }
+
+        var coordMsg = {coordinates: coordsList}
+        
+
+        axios
+        .post("/storeGridCoordinates", coordMsg)
+        .then((response) => {
+          const data = response.data;
+          console.log("STORED GRID SUCCESSFUL: ",data);
+        })
+        .catch (function (error) {
+            console.log("ERROR:", error);    
+        })
+
+        
         return finalList
  
     }
