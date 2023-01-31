@@ -51,6 +51,21 @@ type Flight struct {
 	// UavID      int64 `json:"uavID"`
 }
 
+type GridofCoordinates struct {
+	Coordinates []interface{} `json:"coordinates"`
+}
+
+type MidCoord interface {
+	get() map[string]interface{}
+}
+
+type Coordinate struct {
+	Id        string `json:"id"`
+	Latitude  string `json:"lat"`
+	Longitude string `json:"lng"`
+	//Corridor  string `json:"corridor"`
+}
+
 type QueryDate struct {
 	Date string `json:"date"`
 }
@@ -344,6 +359,7 @@ func main() {
 	http.HandleFunc("/getAllTimes", getAllTimes)
 	http.HandleFunc("/storeFlight", storeFlight)
 	http.HandleFunc("/getDateFlight", getDateFlight)
+	http.HandleFunc("/storeGridCoordinates", storeGridCoordinates)
 
 	// dist := calculateDistance(3.44, 3.44)
 	listenerErr := http.ListenAndServe(":3333", nil)
@@ -354,6 +370,49 @@ func handle(w http.ResponseWriter, r *http.Request, name string) {
 	fs := http.FileServer(http.Dir("../../../dist"))
 	url := fmt.Sprintf("//%v", name)
 	http.Handle(url, fs)
+}
+
+func storeGridCoordinates(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		panic("GET method not permitted")
+	} else {
+		r.ParseForm()
+	}
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+	log.Println("BODY:", string(body))
+
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		panic(err)
+	}
+
+	var grid GridofCoordinates
+	err = json.Unmarshal(body, &grid)
+	fmt.Printf("COORDSLIST: %vFINISHED", grid.Coordinates)
+
+	var coord Coordinate
+	for _, val := range grid.Coordinates {
+		//convert from interface to map[string]interface{}
+		t := val.(map[string]interface{})
+		coord.Id = t["id"].(string)
+		coord.Latitude = t["lat"].(string)
+		coord.Longitude = t["lng"].(string)
+		fmt.Printf("coord: %v\t %v\t %v\n", coord.Id, coord.Latitude, coord.Longitude)
+
+		//build mongo record
+		gridCoord := bson.D{{"lat", coord.Latitude}, {"lng", coord.Longitude}}
+		gridDoc := bson.D{{"id", coord.Id}, {"coordinate", gridCoord}}
+		err = insertDB(context.TODO(), client, gridDoc, "grid")
+		fmt.Printf("\nERROR-->\n", err)
+
+	}
+	fmt.Print("done")
+
+	fmt.Fprint(w, "stored")
+
 }
 
 func getDateFlight(w http.ResponseWriter, r *http.Request) {
