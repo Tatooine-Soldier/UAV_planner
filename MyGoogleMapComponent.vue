@@ -187,6 +187,7 @@ import { Loader } from '@googlemaps/js-api-loader'
     import { LinkedList, Node } from '../linkedList'
     import { checkD } from '@/withinAirspace';
     import { getLineSegments } from '../lineSegments'
+    import { Grid } from '../gridCoords';
     
     // import haversineDistance from './calculateDistance'
     const GOOGLE_MAPS_API_KEY = 'AIzaSyDTNOMjJP2zMMEHcGy2wMNae1JnHkGVvn0'
@@ -244,7 +245,8 @@ import { Loader } from '@googlemaps/js-api-loader'
         onMounted(async () => {
           await loader.load()
           currPos.value = {lat: initial.value.lat, lng: initial.value.lng}
-          console.log(currPos.value)
+          console.log("currPos.value", currPos.value)
+
           var circleList = [];
           function displayWarning() { 
               
@@ -336,6 +338,23 @@ import { Loader } from '@googlemaps/js-api-loader'
                waypointList = new LinkedList(sourceMarker.value, destMarker.value)
             )
           )
+
+          // var grid  = new Grid;
+          // var ps = grid.generateCoords([[{lat: 53.531386134765576, lng: -7.925040162129355}]]) //centerPoint for Ireland grid
+          // for (var plist in ps) {  //for list in listOfLists
+          //   for (var j=0;j<ps[plist].length;j++) {
+          //       const gridCircle = new google.maps.Circle({
+          //         strokeColor: "#220088",
+          //         strokeOpacity: 0.8,
+          //         strokeWeight: 1,
+          //         fillColor: "#110066",
+          //         fillOpacity: 0.7,
+          //         map: map.value,
+          //         center: ps[plist][j],
+          //         radius: 400
+          //     });
+          //   }
+          // }
 
 
           waypointDiv = document.getElementById("addWaypoint");
@@ -621,74 +640,6 @@ import { Loader } from '@googlemaps/js-api-loader'
         }
 
 
-        // function inPath(lineSegs) {
-        //       var airportsList =  getAirports();
-        //       for (var airspace=0; airspace<airportsList.length; airspace++) { //for circle on map
-        //             for (var p in lineSegs) {
-        //                var distnace = haversineDistance(airportsList[airspace].center, lineSegs[p])
-        //                distnace = distnace*1000;     //convert to metres
-        //                if (distnace < (airportsList[airspace].rad)) {  // the radius was not accurately represented on the map so I multiplied by .6 to be more accuarte?????
-        //                   console.log("*WITHIN RADIUS*:\n", "distance: ", distnace, "airport name and rad:", airportsList[airspace].name, airportsList[airspace].rad);
-        //                   const ret = {
-        //                       result: true, 
-        //                       name: airportsList[airspace].name, 
-        //                       color: airportsList[airspace].color,
-        //                         marker: "Path",
-        //                         contact: airportsList[airspace].contact
-        //                   }
-        //                   circleRef.value =  ret
-        //                   displayWarning()
-        //                 } 
-        //               }
-                     
-        //           }
-        //         }
-        
-        
-
-
-        // let waypointLineZ = null   //between final marker in array and destMarker
-        // watch([map,otherLoc, wl[wl.length-1]], () => {
-        //   if (waypointLineZ) waypointLineZ.setMap(null)
-        //   waypointLineZ = new new google.maps.Polyline({
-        //       path: [otherLoc.value, wl[wl.length-1]],
-        //       map: map.value,
-        //       strokeColor: "#FF0000",
-        //       strokeOpacity: 0.5,
-        //     })
-        // })
-
-        // let waypointLineA = null   //between final marker in array and destMarker
-        // watch([map, currPos, wl[0]], () => {
-        //   if (waypointLineA) waypointLineA.setMap(null)
-        //   waypointLineA = new google.maps.Polyline({
-        //       path: [currPos.value, wl[0]],
-        //       map: map.value,
-        //       strokeColor: "#FF0000",
-        //       strokeOpacity: 0.5,
-        //     })
-        // })
-
-
-        // let waypointPath = null 
-        // watch([map, wl[0], wl[wl.length-1]], () => {
-        //   if (waypointPath) waypointPath.setMap(null)
-        //   waypointPath = new google.maps.Polyline({
-        //       path: wayPositionsList,
-        //       map: map.value,
-        //       strokeColor: "#FF0000",
-        //       strokeOpacity: 0.5,
-        //     })
-        // })
-
-        // var wayPositionsList = function() {
-        //   var item
-        //   var markerList = []
-        //   for (item in wl) {
-        //     markerList.push(wl[item].value.position)
-        //   } 
-        //   return markerList
-        // }
         
         function waypointsLength() {
           var result = 0;
@@ -711,7 +662,7 @@ import { Loader } from '@googlemaps/js-api-loader'
           total = total.toFixed(2);
           var calculatedWaypointTime;
           calculatedWaypointTime =  t(total,  parseFloat(document.getElementById("speed").value))
-          updateTime(calculatedWaypointTime)
+          //updateTime(calculatedWaypointTime)
           
           var dis = document.getElementById("distanceKM");
           dis.innerHTML = total+"km";
@@ -758,9 +709,13 @@ import { Loader } from '@googlemaps/js-api-loader'
         )
 
         const t = (distance, speed) => {
-          console.log("speed in t", speed)
+          console.log("speed in t", speed, "distance in t", distance)
+          if (speed === 0) {
+            speed = 1
+          }
           const tme = distance/speed
           const remainder = tme%1
+          console.log("REMAINDER",remainder)
           const minutes = parseInt(60*remainder)
           const seconds =  (minutes%1)*60
           var hours = parseInt(tme/1)
@@ -780,11 +735,13 @@ import { Loader } from '@googlemaps/js-api-loader'
         // })
 
         var calculatedTime = computed(() =>
-          distance.value === null 
-            ? 0
-            : t(distance.value, props.propspeed)
-            //parseFloat(document.getElementById("sspeed").value)
+            distance.value === null 
+              ? 0
+              : t(distance.value, props.propspeed)
+              //parseFloat(document.getElementById("sspeed").value)
         )
+      
+        console.log("(calculatedTime):", calculatedTime)
 
         
         return { currPos, otherLoc, distance, mapDivHere, calculatedTime, waypointsDistance,  waypointLoc}
