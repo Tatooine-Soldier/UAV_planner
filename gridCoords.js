@@ -80,17 +80,17 @@ export class Grid {
 
         var coordinate = {
         id: 0,
-        lat: 0.0,
-        lng: 0.0,
+        lat: "",
+        lng: "",
         }
         var c = 0
         var coordsList = []
         for (point in finalList) {
             for (var coord in finalList[point]) {
                 coordinate = {
-                    lat: finalList[point][coord].lat,
-                    lng: finalList[point][coord].lng,
-                    id: c
+                    lat: String(finalList[point][coord].lat),
+                    lng: String(finalList[point][coord].lng),
+                    id: String(c)
                 }
                 coordsList.push(coordinate)
                 c++
