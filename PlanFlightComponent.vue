@@ -585,6 +585,11 @@ export default {
             lat: '',
             lng: ''
         },
+        droneSpec: {
+            name: '',
+            model: '',
+            weight: ''
+        },
         componentKey: 0,
         bookedDates: null,
         altitude: 0,
@@ -608,6 +613,9 @@ export default {
         this.altitude =  this.$refs.myaltitude.value;
         this.orientation = this.$refs.myorientation.value;
         this.speed.velocity = this.$refs.myspeed.value;
+        this.droneSpec.name = this.$refs.mydronename.value;
+        this.droneSpec.model = this.$refs.mydronemodel.value;
+        this.droneSpec.weight = this.$refs.mydroneweight.value;
         if (this.speed.velocity < 20) {
             this.speed.description = "low-speed";
         } else if (21 <= this.speed.velocity < 46 ) {
@@ -687,6 +695,11 @@ export default {
         ex.style.display = "none"
       },
       showFinalMap() {
+        const drone  = {
+            name: this.droneSpec.name,
+            model: this.droneSpec.model,
+            weight: this.droneSpec.weight
+        }
         const flight = { 
             srclat: this.coords.sourcelatitude, 
             srclng: this.coords.sourcelongitude, 
@@ -699,7 +712,8 @@ export default {
             corridor: this.speed.description,
             waypoint: this.waypoints,
             altitude: this.altitude,
-            orientation: this.orientation
+            orientation: this.orientation,
+            drone: drone
         }
 
         //this needs to be in a seperate function. 
@@ -761,6 +775,8 @@ export default {
       },
       logspeed(c) {
         this.time = c
+        var s = document.getElementById("speed")
+        s.value = c
       },
       setWaypoint() {
         var w = document.getElementById("waypoint-container")

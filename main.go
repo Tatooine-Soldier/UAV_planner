@@ -45,10 +45,17 @@ type Flight struct {
 	Altitude    string `json:"altitude"`
 	Orientation string `json:"orientation"`
 	Corridor    string `json:"corridor"`
+	Drone       Drone  `json:"drone"`
 	// UserID     int64 `json:"userID"`
 	// FlightTime int64 `json:"flightTime"`
 	// Altitude   int64 `json:"altitude"`
 	// UavID      int64 `json:"uavID"`
+}
+
+type Drone struct {
+	Name   string `json:"name"`
+	Model  string `json:"model"`
+	Weight string `json:"weight"`
 }
 
 type GridofCoordinates struct {
@@ -513,12 +520,14 @@ func storeFlight(w http.ResponseWriter, r *http.Request) {
 	ftime := flight.Hour + ":" + flight.Minute
 	startCoord := bson.D{{"lat", flight.Srclat}, {"lng", flight.Srclng}}
 	destCoord := bson.D{{"lat", flight.Destlat}, {"lng", flight.Destlng}}
-	flightDoc := bson.D{{"date", flight.Date}, {"time", ftime}, {"startCoord", startCoord}, {"destCoord", destCoord}, {"speed", flight.Speed}, {"corridor", flight.Corridor}, {"altitude", flight.Altitude}, {"orientation", flight.Orientation}}
-
+	flightDoc := bson.D{{"date", flight.Date}, {"time", ftime}, {"startCoord", startCoord}, {"destCoord", destCoord}, {"speed", flight.Speed}, {"corridor", flight.Corridor}, {"altitude", flight.Altitude}, {"orientation", flight.Orientation}, {"drone", flight.Drone.Name}}
 	err = insertDB(context.TODO(), client, flightDoc, "flights")
+
+	droneDoc := bson.D{{"name", flight.Drone.Name}, {"model", flight.Drone.Model}, {"weight", flight.Drone.Weight}}
+	err = insertDB(context.TODO(), client, droneDoc, "drones")
+
 	fmt.Printf("\nERROR-->\n", err)
 
-	//fmt.Printf("\nhour: %v\n, minute: %v\n, day: %v\n, srclat: %v\n, srclng: %v\n, destlat: %v\n, destlng: %v\n, speed: %v\n", hour, minute, date, srclat, srclng, destlat, destlng, speed)
 	fmt.Fprint(w, "stored")
 }
 
