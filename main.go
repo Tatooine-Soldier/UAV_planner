@@ -367,6 +367,7 @@ func main() {
 	http.HandleFunc("/storeFlight", storeFlight)
 	http.HandleFunc("/getDateFlight", getDateFlight)
 	http.HandleFunc("/storeGridCoordinates", storeGridCoordinates)
+	http.HandleFunc("/fetchGridCoordinates", fetchGridCoordinates)
 
 	// dist := calculateDistance(3.44, 3.44)
 	listenerErr := http.ListenAndServe(":3333", nil)
@@ -377,6 +378,64 @@ func handle(w http.ResponseWriter, r *http.Request, name string) {
 	fs := http.FileServer(http.Dir("../../../dist"))
 	url := fmt.Sprintf("//%v", name)
 	http.Handle(url, fs)
+}
+
+func fetchGridCoordinates(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		panic("GET method not permitted")
+	} else {
+		r.ParseForm()
+	}
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+	log.Println("BODY:", string(body))
+
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		panic(err)
+	}
+
+	ctx := context.TODO()
+	usersCollection := client.Database("fyp_test").Collection("grid")
+	filter := bson.M{}
+	result, err := usersCollection.Find(ctx, filter)
+	var results []bson.M
+	if err = result.All(context.TODO(), &results); err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("%v results", results)
+
+	var coords []string
+	for _, doc := range results {
+		stringDoc := fmt.Sprint(doc) + ","
+		fmt.Printf(stringDoc)
+		coords = append(coords, fmt.Sprint(stringDoc))
+		// c := &Coordinate{
+		// 	Id: doc["id"].(string),
+		// }
+		// b, err := json.Marshal(c)
+		// if err != nil {
+		// 	fmt.Println(err)
+		// 	return
+		// }
+		// fmt.Printf("\njson.Marshal(c)--> ", string(b))
+		fmt.Fprintf(w, stringDoc)
+	}
+
+	//convert times (type interface) to type string
+	// var cdsStr []string
+	// for _, v := range cds {
+	// 	valStr := fmt.Sprint(v)
+	// 	cdsStr = append(cdsStr, valStr)
+	// 	fmt.Fprintf(w, valStr+",")
+	// }
+
+	fmt.Printf("\n'%v' matching docs found\n", len(results))
+	fmt.Fprintf(w, "Hola")
+
 }
 
 func storeGridCoordinates(w http.ResponseWriter, r *http.Request) {
@@ -504,7 +563,6 @@ func storeFlight(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	log.Println("BODY:", string(body))
 
 	// connect to client
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
@@ -530,6 +588,12 @@ func storeFlight(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprint(w, "stored")
 }
+
+// func storeDrone() {
+
+// 	droneDoc := bson.D{{"name", flight.Drone.Name}, {"model", flight.Drone.Model}, {"weight", flight.Drone.Weight}}
+// 	err = insertDB(context.TODO(), client, droneDoc, "drones")
+// }
 
 func getAllTimes(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
