@@ -22,6 +22,8 @@
             </div>
         </section>
     </section>
+    <div id="results">{{ bookedDates }}</div>
+    <TimeSlotsComponent :proptimes="timeslots"></TimeSlotsComponent>
 </template>
 
 <style>
@@ -82,137 +84,164 @@
         cursor: pointer;
     }
 
+    #results {
+      display: none;
+      border: solid 1px red;
+      background-color: grey;
+      padding: 5px;
+      position: relative;
+      z-index: 1;
+    }
+
 </style>
 
 <script>
     import axios from 'axios';
+    import TimeSlotsComponent from './TimeSlotsComponent.vue';
     export default {
-      data: function() {
+    data: function () {
         return {
-          weekdays: ['Mo','Tu','We','Th','Fr','Sa','Su'],
-          months: [
-            'January','February','March','April','May','June','July',
-            'August','September','October','November','December'
-          ],
-          years: [
-            '2023', '2024', '2025'
-          ],
-          currentDate: {
-            date: 0,
-            month: 0,
-            year: 0
-          },
-          bookedDates: null
-        }
-      }, 
-      props: ['propdates'],
-      methods: {
+            weekdays: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
+            months: [
+                "January",
+                "February",
+                "March",
+                "April",
+                "May",
+                "June",
+                "July",
+                "August",
+                "September",
+                "October",
+                "November",
+                "December"
+            ],
+            years: [
+                "2023",
+                "2024",
+                "2025"
+            ],
+            currentDate: {
+                date: 0,
+                month: 0,
+                year: 0
+            },
+            bookedDates: null,
+            timeslots: [],
+        };
+    },
+    props: ["propdates"],
+    methods: {
         getCurrentDate() {
-          let today = new Date();
-          this.currentDate.date = today.getDate();
-          this.currentDate.month = today.getMonth();
-          console.log("MONTH", this.currentDate.month)
-          this.currentDate.year = today.getFullYear();
+            let today = new Date();
+            this.currentDate.date = today.getDate();
+            this.currentDate.month = today.getMonth();
+            console.log("MONTH", this.currentDate.month);
+            this.currentDate.year = today.getFullYear();
         },
         monthUp() {
-          if(this.currentDate.month === 11) {
-            this.currentDate.month = 0;
-            this.currentDate.year += 1;
-          }
-          else {
-            this.currentDate.month += 1;
-          }        
+            if (this.currentDate.month === 11) {
+                this.currentDate.month = 0;
+                this.currentDate.year += 1;
+            }
+            else {
+                this.currentDate.month += 1;
+            }
         },
         monthDown() {
-          if(this.currentDate.month === 0) {
-            this.currentDate.month = 11;
-            this.currentDate.year -= 1;
-          }
-          else {
-            this.currentDate.month -= 1;
-          } 
-        }, 
+            if (this.currentDate.month === 0) {
+                this.currentDate.month = 11;
+                this.currentDate.year -= 1;
+            }
+            else {
+                this.currentDate.month -= 1;
+            }
+        },
         getBookings() {
-          // let date = document.getElementById("datecell");
-          // var d = date.innerHTML
-          // if (d.length != 2) {
-          //   d = "0"+d
-          // }
+            // let date = document.getElementById("datecell");
+            // var d = date.innerHTML
+            // if (d.length != 2) {
+            //   d = "0"+d
+            // }
+            let date = this.currentDate.date;
+            String(date);
+            if (["1", "2", "3", "4", "5", "6", "7", "8", "9"].indexOf(date) >= 0) {
+                date = "0" + date;
+            }
+            let month = this.currentDate.month;
+            month = month + 1;
+            String(month);
+            if (month.length != 2) {
+                month = "0" + month;
+            }
+            let year = this.currentDate.year;
+            let fullDate = year + "-" + month + "-" + date;
+            const queryDate = {
+                date: fullDate,
+            };
+            
+            axios
+                .post("/getDateFlight", queryDate)
+                .then((response) => {
+                const data = response.data;
+                console.log("FETCHED FLIGHTS FOR THIS DATE: ", data);
+                if (data.length === 0) {
+                    this.bookedDates = "Available";
+                }
+                else {
+                    const myArray = data.split(",");
+                    var datesDisplay = null;
+                    var item;
+                    var timeList = [];
+                    for (item in myArray) {
+                        console.log("\nitem:" + typeof item + "\tdatesDisplay:" + datesDisplay);
+                        if (item === "0") {
+                            datesDisplay = myArray[item] + "\n";
+                        }
+                        else {
 
-          let date = this.currentDate.date
-          String(date)
-          if (['1', '2', '3', '4', '5', '6', '7', '8', '9'].indexOf(date) >= 0) {
-            date = "0"+date;
-          }
-
-          let month =  this.currentDate.month 
-          month = month+1
-          String(month)
-          if (month.length != 2) {
-            month = "0"+month
-          }
-
-          let year = this.currentDate.year
-
-          let fullDate = year+"-"+month+"-"+date
-          const queryDate = {
-            date: fullDate,
-          }
-          console.log(queryDate)
-
-
-        axios
-          .post("/getDateFlight", queryDate)
-          .then((response) => {
-            const data = response.data;
-            console.log("FETCHED FLIGHTS FOR THIS DATE: ",data);
-          })
-          .catch (function (error) {
-              console.log("ERROR:", error);    
-          })
-
+                            datesDisplay = datesDisplay + "\n" + myArray[item];
+                            console.log("typeof:", typeof myArray[item])
+                            if (myArray[item] !== "") {
+                              var time = myArray[item].slice(0,5)
+                              timeList.push(time)
+                            }
+                        }
+                    }
+                    this.timeslots = timeList
+                    this.bookedDates = datesDisplay;
+                }
+                var times = document.getElementById("results");
+                times.style.display = "block";
+            })
+                .catch(function (error) {
+                console.log("ERROR:", error);
+            });
         }
-      },
-      
-      computed: {
+    },
+    computed: {
         prevMonthDays() {
-          let year = this.currentDate.month === 0 ? this.currentDate.year - 1 : this.currentDate.year;
-          let month = this.currentDate.month === 0 ? 12 : this.currentDate.month;
-          return new Date(year, month, 0).getDate();
+            let year = this.currentDate.month === 0 ? this.currentDate.year - 1 : this.currentDate.year;
+            let month = this.currentDate.month === 0 ? 12 : this.currentDate.month;
+            return new Date(year, month, 0).getDate();
         },
         firstMonthDay() {
-          let firstDay = new Date(this.currentDate.year, this.currentDate.month, 1).getDay();
-          if(firstDay === 0) firstDay = 7;
-          return firstDay;
+            let firstDay = new Date(this.currentDate.year, this.currentDate.month, 1).getDay();
+            if (firstDay === 0)
+                firstDay = 7;
+            return firstDay;
         },
         currentDay() {
-          return new Date(this.currentDate.year, this.currentDate.month, this.currentDate.date).getDay();
+            return new Date(this.currentDate.year, this.currentDate.month, this.currentDate.date).getDay();
         },
         currentMonthDays() {
-          return new Date(this.currentDate.year, this.currentDate.month +1, 0).getDate();
+            return new Date(this.currentDate.year, this.currentDate.month + 1, 0).getDate();
         }
-      }
-      ,created() {
+    },
+    created() {
         this.getCurrentDate();
         // this.bookedDates = props.propdates;
-      },
-      // setup(props) {
-      //   watch(() => props.propdates, () => {
-      //     console.log("***PROPS***", props.propdates)
-      //     var arrHours = ref([]);
-      //     var arrDates = ref([]);  
-      //     var date;
-      //     for (date in props.propdates) {
-      //       console.log(props.propdates[date])  //need to link these to the calendar. check console. maybe give each cell in the calendar a value and then match?
-      //       var arrMy =  props.propdates[date].split(" ");
-      //       arrDates.value.push(arrMy[1])
-      //       arrHours.value.push(arrMy[0])
-      //     }
-      //     console.log("arrDates:", arrDates.value.length, arrHours.value.length)
-      //     return {
-      //       arrDates, arrHours
-      //     }
-      //   })
-      // }
-    }
+    },
+    components: { TimeSlotsComponent }
+}
 </script>
