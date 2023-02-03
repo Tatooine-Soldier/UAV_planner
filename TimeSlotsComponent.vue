@@ -79,11 +79,28 @@
         props: ['proptimes'],
         watch: { 
             proptimes: function(newVal, oldVal) { // watch it
-            console.log('Prop changed: ', newVal, ' | was: ', oldVal)
-            function update() {
-                console.log("LOOPING THROUGH BOTH AFTER CHANGE")
-            }
-            update()
+                console.log('Prop changed: ', newVal, ' | was: ', oldVal)
+                function update(l) {
+                    var tlist = []
+                    for (var i = 0; i <newVal.length; i++) {
+                        console.log("newVal[i]", newVal[i])
+                        const t = {
+                            time: newVal[i],
+                            status: true
+                        }
+                        tlist.push(t)
+                    }
+                    for (var j = 0; j < l.length; j++) {
+                        for (i=0; i < tlist.length; i++) {
+                            if (l[j].time === tlist[i].time && l[j].status === false) { //tlist[i]is everything that should be unavailable for this date, l[j] is every date
+                                l[j] = tlist[i]
+                            }  
+                            if (l[j].status === true && l[j].time !== tlist[i].time ) { // if the displayed list item is red but it shouldn't be(eg. it didnt update and still shows the booked dtimes for the last date)
+                                l[j].status = false
+                            }
+                        }
+                    }//then rerender the list
+                }update(this.timesList)
             }
         },
         data() {
@@ -101,7 +118,7 @@
             // the time will be unavailable if another drone will be within the radius within the 15 minutes range
             for (var i = 0; i < timeSlots.length; i++) { 
                 console.log("timeSlots[i]-->", timeSlots[i]);
-                this.timesList.push(timeSlots[i].time) 
+                this.timesList.push(timeSlots[i]) 
             }
         }
     }
