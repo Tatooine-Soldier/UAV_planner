@@ -54,8 +54,8 @@
         height: 15px;
         margin-left: 15px;
         position: absolute;
-        background-color: rgb(0, 128, 73);
-        border: solid .5px rgb(0, 128, 73);
+        background-color: rgb(1, 181, 91);
+        border: solid .5px rgb(1, 181, 91);
         border-radius: 15px;
     }
 
@@ -90,16 +90,20 @@
                         }
                         tlist.push(t)
                     }
+                    
                     for (var j = 0; j < l.length; j++) {
+                        var checked = false; //used to not override the slots previously marked as bookied by other times that occur later for the same date
                         for (i=0; i < tlist.length; i++) {
-                            if (l[j].time === tlist[i].time && l[j].status === false) { //tlist[i]is everything that should be unavailable for this date, l[j] is every date
+                            if (l[j].time === tlist[i].time ) { //tlist[i]is everything that should be unavailable for this date, l[j] is every date
                                 l[j] = tlist[i]
-                            }  
-                            if (l[j].status === true && l[j].time !== tlist[i].time ) { // if the displayed list item is red but it shouldn't be(eg. it didnt update and still shows the booked dtimes for the last date)
+                                checked =  true
+                            } 
+                            else if (l[j].time !== tlist[i].time && checked === false) { // if the displayed list item is red but it shouldn't be(eg. it didnt update and still shows the booked dtimes for the last date)
                                 l[j].status = false
                             }
+                            
                         }
-                    }//then rerender the list
+                    }
                 }update(this.timesList)
             }
         },
