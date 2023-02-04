@@ -408,33 +408,35 @@ func fetchGridCoordinates(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Printf("%v results", results)
 
-	var coords []string
-	for _, doc := range results {
-		stringDoc := fmt.Sprint(doc) + ","
-		fmt.Printf(stringDoc)
-		coords = append(coords, fmt.Sprint(stringDoc))
-		// c := &Coordinate{
-		// 	Id: doc["id"].(string),
-		// }
-		// b, err := json.Marshal(c)
-		// if err != nil {
-		// 	fmt.Println(err)
-		// 	return
-		// }
-		// fmt.Printf("\njson.Marshal(c)--> ", string(b))
-		fmt.Fprintf(w, stringDoc)
-	}
-
-	//convert times (type interface) to type string
-	// var cdsStr []string
-	// for _, v := range cds {
-	// 	valStr := fmt.Sprint(v)
-	// 	cdsStr = append(cdsStr, valStr)
-	// 	fmt.Fprintf(w, valStr+",")
+	// var coords []string
+	// for _, doc := range results {
+	// 	stringDoc := fmt.Sprint(doc) + ","
+	// 	fmt.Printf(stringDoc)
+	// 	coords = append(coords, fmt.Sprint(stringDoc))
+	// 	fmt.Fprintf(w, stringDoc)
 	// }
 
+	//need this to be json
+	var temp []interface{}
+	for _, doc := range results {
+		temp = append(temp, doc)
+		//fmt.Printf("doc:%v \nc.Id:%v\n\n", doc, c.Id)
+	}
+	c := &GridofCoordinates{
+		Coordinates: temp,
+	}
+
+	j, err := json.Marshal(c.Coordinates)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	jstr := string(j)
+	fmt.Printf("%v<---jstr", jstr)
+
 	fmt.Printf("\n'%v' matching docs found\n", len(results))
-	fmt.Fprintf(w, "Hola")
+	fmt.Fprintf(w, jstr)
 
 }
 
