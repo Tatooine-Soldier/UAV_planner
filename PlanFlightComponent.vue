@@ -9,17 +9,7 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
 
 <template>
     <section class="flight-planner" id="flight-planner">
-        <!-- <form action="/planner" method="post"> -->
-        <!-- <section class="split-container">
-            <section class="side-container">
-                <section class="four-rows"></section>
-            </section>
-            <section class="map-container"></section>
-        </section> -->
-
-
-
-
+            <!-- <form action="/planner" method="post"> -->
         <form @submit.prevent="handleSubmit()">
             <section class="flight-details-container" id="flight-details-container">
                 <section class="flight-details" id="flight-details">
@@ -39,7 +29,7 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
                 </section>
             </section>
             <section id="details-map-container">
-                <MyGoogleMapComponent @someEvent="logme" :propspeed="time"></MyGoogleMapComponent>
+                <!-- <MyGoogleMapComponent @someEvent="logme" :propspeed="time"></MyGoogleMapComponent> -->
                 <SpeedSelectorComponent @speedEvent="logspeed"></SpeedSelectorComponent>
             </section>
             <section id="final-map-container">
@@ -57,191 +47,236 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
                 </li>
             </section>
             <div><img src="../assets/ex-sign.png" id="ex-sign" v-on:click="disappearEx()"/></div>
-        <section class="flight-planner-columns" id="flight-planner-columns">
-            <section class="fp-info-container">
-                        <h1 id="fp-headers">When</h1>
-                        <section class="fp-sub-info">
-                            <section class="border-decor">
-                                <p class="fp-subtitle">Select your time to fly:</p>
-                                <!-- <form @submit.prevent="handleSubmit()"> -->
-                                    <section class="time-selection">
-                                        <div>
-                                            <label for="hour">Select hour: </label>
-                                            <select id="hour" name="hour" v-model="date.hour">
-                                                <option value="00">00</option>
-                                                <option value="01">01</option>
-                                                <option value="02">02</option>
-                                                <option value="03">03</option>
-                                                <option value="04">04</option>
-                                                <option value="05">05</option>
-                                                <option value="06">06</option>
-                                                <option value="07">07</option>
-                                                <option value="08">08</option>
-                                                <option value="09">09</option>
-                                                <option value="10">10</option>
-                                                <option value="11">11</option>
-                                                <option value="12">12</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label for="minute">Select minute: </label>
-                                            <select id="minute" name="minute" v-model="date.minute">
-                                                <option value="00">00</option>
-                                                <option value="15">15</option>
-                                                <option value="30">30</option>
-                                                <option value="45">45</option>
-                                            </select>
-                                        </div>
-                                        <div id="last-div">
-                                            <label for="day">Select day: </label>
-                                            <input type="date" name="date" v-model="date.day"/>
-                                        </div>
-                                    </section>
-                                    <section>
-                                        <div class="check-time-db" @click="getDates()">Check availablility</div>
-                                        <!-- <button>Add</button> -->
-                                        <MyCalendarComponent :propdates="bookedDates"></MyCalendarComponent>
-                                    </section>
-                                <!-- </form> -->
-                            </section>
-                        </section>
-                    </section>
-                    <section class="fp-info-container">
-                        <h1 id="fp-headers">Where</h1>
-                        <section class="fp-sub-info">
-                            <p class="fp-subtitle">Select your source and destination:</p>
-                            <section class="coords-container">
-                                
-                                <!-- <form action="/location" method="post"> -->
-                                <section class="coords">
-                                    <section class="coords-source">
-                                        <div class="coords-labels"><b>Source:</b></div>
-                                        <section class="coords-inputs">
-                                            <label for="latitude">Latitude: </label>
-                                            <input type="text" name="sourcelatitude" size="16" ref="mysourcelat"/>
-                                            <label for="longitude">Longitude: </label>
-                                            <input type="text" name="sourcelongitude" size="16" ref="mysourcelong"/>
-                                        </section>
-                                    </section>
-                                    <section class="coords-destination">
-                                        <div class="coords-labels"><b>Destination:</b></div>
-                                        <section class="coords-inputs">
-                                            <label for="latitude">Latitude: </label>
-                                            <input type="text" name="destlatitude" size="16" ref="mydestlat"/>
-                                            <label for="longitude">Longitude: </label>
-                                            <input type="text" name="destlongitude" size="16" ref="mydestlong">
-                                        </section>
-                                    </section>
-                                    <section class="waypoints-container">
-                                        <div class="waypoints-select">
-                                            <label for="waypoint">Waypoint Lat:</label>
-                                            <input type="text" name="waypoint" size="16" ref="mywaylat" value="0.0"/>
-                                            <label for="waypoint">Waypoint Lng:</label>
-                                            <input type="text" name="waypoint" size="16" ref="mywaylng" value="0.0"/>
-                                            <!-- <label for="waypoints">How many Waypoints to visit?</label>
-                                            <div>
-                                                <select id="waypoints" name="waypoints" v-model="waypoints">
-                                                    <option value="0" v-on:click="setWaypoint()">0</option>
-                                                    <option value="1" v-on:click="setWaypoint()">1</option>
-                                                    <option value="2" v-on:click="setWaypoint()">2</option>
-                                                    <option value="3" v-on:click="setWaypoint()">3</option>
-                                                    <option value="4" v-on:click="setWaypoint()">4</option>
-                                                    <option value="5" v-on:click="setWaypoint()">5</option>
-                                                    <option value="6" v-on:click="setWaypoint()">6</option>
-                                                    <option value="7" v-on:click="setWaypoint()">7</option>
-                                                    <option value="8" v-on:click="setWaypoint()">8</option>
-                                                    <option value="9" v-on:click="setWaypoint()">9</option>
-                                                    <option value="10" v-on:click="setWaypoint()">10</option>
-                                                </select>
-                                            </div> -->
-                                        </div>
 
-                                    </section>
+            <!-- row content  -->
+            <section class="split-container">
+                <section class="side-container">
+                    <section class="four-rows">
+                        <section class="fp-info-container">
+
+                            <section class="fp-sub-info">
+                                <section class="border-decor">
+                                    <p class="fp-subtitle">Select your time to fly:</p>
+                                    <!-- <form @submit.prevent="handleSubmit()"> -->
+                                        <section class="time-selection">
+                                            <div>
+                                                <label for="hour">Select hour: </label>
+                                                <select id="hour" name="hour" v-model="date.hour">
+                                                    <option value="00">00</option>
+                                                    <option value="01">01</option>
+                                                    <option value="02">02</option>
+                                                    <option value="03">03</option>
+                                                    <option value="04">04</option>
+                                                    <option value="05">05</option>
+                                                    <option value="06">06</option>
+                                                    <option value="07">07</option>
+                                                    <option value="08">08</option>
+                                                    <option value="09">09</option>
+                                                    <option value="10">10</option>
+                                                    <option value="11">11</option>
+                                                    <option value="12">12</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label for="minute">Select minute: </label>
+                                                <select id="minute" name="minute" v-model="date.minute">
+                                                    <option value="00">00</option>
+                                                    <option value="15">15</option>
+                                                    <option value="30">30</option>
+                                                    <option value="45">45</option>
+                                                </select>
+                                            </div>
+                                            <div id="last-div">
+                                                <label for="day">Select day: </label>
+                                                <input type="date" name="date" v-model="date.day"/>
+                                            </div>
+                                        </section>
+                                        <section>
+                                            <div class="check-time-db" @click="getDates()">Check availablility</div>
+                                            <!-- <button>Add</button> -->
+                                            <MyCalendarComponent :propdates="bookedDates"></MyCalendarComponent>
+                                        </section>
+                                    <!-- </form> -->
                                 </section>
-                                <!-- <input id="submit" name="submit" type="submit" value="Add"/> -->
-                                <!-- </form> -->
-                                <p><b id="or">OR</b></p>
-                                <p>Select location on the map below</p>
-                                <!-- <section></section> Display the map her-->
-                                <input id="map-but" name="but" type="button" value="MAP" v-on:click="showMap()"/>  
                             </section>
                         </section>
-                    </section>
-                    <section class="fp-info-container">
-                        <h1 id="fp-headers">How</h1>
-                        <section class="fp-sub-info">
-                            <p class="fp-subtitle">Select your desired UAV speed:</p>
-                                <!-- <form action="/speed" method="post"> -->
-                                <section class="speed-container">
-                                   
-                                    <label for="speed">Speed(km/h): </label>
-                                    <input type="number" id="speed" name="speed" min="1" max="120" ref="myspeed" value="30">
-                                 
-                                </section>
-                                <hr>
-                                <section class="altitude-container">
-                                    <p class="fp-subtitle">Select your desired UAV altitude(metres):</p>
-                                    <section>
-                                        
-                                        <label for="altitude">Altitude: </label>
-                                        <input type="number" id="altitude" name="altitude" min="15" max="120" ref="myaltitude">
-                                        <p><small><i>* EU Aviation Safety Authority states the maximum flight altitude is 120m.* <br>More information can be found <a href="https://www.easa.europa.eu/en/light/topics/drones" style="color:white;">https://www.easa.europa.eu/en/light/topics/drones</a></i></small></p>
+                        <section class="fp-info-container">
+                        
+                            <section class="fp-sub-info">
+                                <p class="fp-subtitle">Select your source and destination:</p>
+                                <section class="coords-container">
+                                    
+                                    <!-- <form action="/location" method="post"> -->
+                                    <section class="coords">
+                                        <section class="coords-source">
+                                            <div class="coords-labels"><b>Source:</b></div>
+                                            <section class="coords-inputs">
+                                                <label for="latitude">Latitude: </label>
+                                                <input type="text" name="sourcelatitude" size="16" ref="mysourcelat"/>
+                                                <label for="longitude">Longitude: </label>
+                                                <input type="text" name="sourcelongitude" size="16" ref="mysourcelong"/>
+                                            </section>
+                                        </section>
+                                        <section class="coords-destination">
+                                            <div class="coords-labels"><b>Destination:</b></div>
+                                            <section class="coords-inputs">
+                                                <label for="latitude">Latitude: </label>
+                                                <input type="text" name="destlatitude" size="16" ref="mydestlat"/>
+                                                <label for="longitude">Longitude: </label>
+                                                <input type="text" name="destlongitude" size="16" ref="mydestlong">
+                                            </section>
+                                        </section>
+                                        <section class="waypoints-container">
+                                            <div class="waypoints-select">
+                                                <label for="waypoint">Waypoint Lat:</label>
+                                                <input type="text" name="waypoint" size="16" ref="mywaylat" value="0.0"/>
+                                                <label for="waypoint">Waypoint Lng:</label>
+                                                <input type="text" name="waypoint" size="16" ref="mywaylng" value="0.0"/>
+                                                <!-- <label for="waypoints">How many Waypoints to visit?</label>
+                                                <div>
+                                                    <select id="waypoints" name="waypoints" v-model="waypoints">
+                                                        <option value="0" v-on:click="setWaypoint()">0</option>
+                                                        <option value="1" v-on:click="setWaypoint()">1</option>
+                                                        <option value="2" v-on:click="setWaypoint()">2</option>
+                                                        <option value="3" v-on:click="setWaypoint()">3</option>
+                                                        <option value="4" v-on:click="setWaypoint()">4</option>
+                                                        <option value="5" v-on:click="setWaypoint()">5</option>
+                                                        <option value="6" v-on:click="setWaypoint()">6</option>
+                                                        <option value="7" v-on:click="setWaypoint()">7</option>
+                                                        <option value="8" v-on:click="setWaypoint()">8</option>
+                                                        <option value="9" v-on:click="setWaypoint()">9</option>
+                                                        <option value="10" v-on:click="setWaypoint()">10</option>
+                                                    </select>
+                                                </div> -->
+                                            </div>
+    
+                                        </section>
                                     </section>
+                                    <!-- <input id="submit" name="submit" type="submit" value="Add"/> -->
+                                    <!-- </form> -->
+                                    <!-- <p><b id="or">OR</b></p> -->
+                                    <!-- <p>Select location on the map below</p> -->
+                                    <!-- <section></section> Display the map her-->
+                                    <!-- <input id="map-but" name="but" type="button" value="MAP" v-on:click="showMap()"/>   -->
                                 </section>
-                                <hr>
-                                <section class="orientation-container">
-                                    <p class="fp-subtitle">Select your desired view orientation:</p>
-                                    <section>
-                                        <label for="orientation">Select minute: </label>
-                                        <select id="orientation" name="orientation" ref="myorientation">
-                                            <option value="N">N</option>
-                                            <option value="NE">NE</option>
-                                            <option value="E">E</option>
-                                            <option value="SE">SE</option>
-                                            <option value="S">S</option>
-                                            <option value="SW">SW</option>
-                                            <option value="W">W</option>
-                                            <option value="NW">NW</option>
-                                        </select>
+                            </section>
+                        </section>
+                        <section class="fp-info-container">
+                            
+                            <section class="fp-sub-info">
+                                <p class="fp-subtitle">Select your desired UAV speed:</p>
+                                    <!-- <form action="/speed" method="post"> -->
+                                    <section class="speed-container">
+                                       
+                                        <label for="speed">Speed(km/h): </label>
+                                        <input type="number" id="speed" name="speed" min="1" max="120" ref="myspeed" value="30">
+                                     
                                     </section>
-                                </section>
-                                <hr>
-                                <section class="drone-details">
-                                    <section>
-                                        <p>Aircraft details:</p>
-                                        <section class="drone-spec">
-                                            <section class="spec-inputs">
-                                                <label for="drone-name">UAV name: </label>
-                                                <input type="text" name="drone-name" size="16" ref="mydronename"/>
-                                                <label for="drone-model">UAV model: </label>
-                                                <input type="text" name="drone-model" size="16" ref="mydronemodel">
-                                                <label for="drone-weight">UAV weight: </label>
-                                                <input type="text" name="drone-weight" size="16" ref="mydroneweight">
+                                    <hr>
+                                    <section class="altitude-container">
+                                        <p class="fp-subtitle">Select your desired UAV altitude(metres):</p>
+                                        <section>
+                                            
+                                            <label for="altitude">Altitude: </label>
+                                            <input type="number" id="altitude" name="altitude" min="15" max="120" ref="myaltitude">
+                                            <p><small><i>* EU Aviation Safety Authority states the maximum flight altitude is 120m.* <br>More information can be found <a href="https://www.easa.europa.eu/en/light/topics/drones" style="color:white;">https://www.easa.europa.eu/en/light/topics/drones</a></i></small></p>
+                                        </section>
+                                    </section>
+                                    <hr>
+                                    <section class="orientation-container">
+                                        <p class="fp-subtitle">Select your desired view orientation:</p>
+                                        <section>
+                                            <label for="orientation">Select minute: </label>
+                                            <select id="orientation" name="orientation" ref="myorientation">
+                                                <option value="N">N</option>
+                                                <option value="NE">NE</option>
+                                                <option value="E">E</option>
+                                                <option value="SE">SE</option>
+                                                <option value="S">S</option>
+                                                <option value="SW">SW</option>
+                                                <option value="W">W</option>
+                                                <option value="NW">NW</option>
+                                            </select>
+                                        </section>
+                                    </section>
+                                    <hr>
+                                    <section class="drone-details">
+                                        <section>
+                                            <p>Aircraft details:</p>
+                                            <section class="drone-spec">
+                                                <section class="spec-inputs">
+                                                    <label for="drone-name">UAV name: </label>
+                                                    <input type="text" name="drone-name" size="16" ref="mydronename"/>
+                                                    <label for="drone-model">UAV model: </label>
+                                                    <input type="text" name="drone-model" size="16" ref="mydronemodel">
+                                                    <label for="drone-weight">UAV weight: </label>
+                                                    <input type="text" name="drone-weight" size="16" ref="mydroneweight">
+                                                </section>
                                             </section>
                                         </section>
                                     </section>
-                                </section>
-                                <!-- <input id="submit" name="submit" type="submit" value="Add"/> -->
-                                <!-- </form> -->
+                                    <!-- <input id="submit" name="submit" type="submit" value="Add"/> -->
+                                    <!-- </form> -->
+                            </section>
+                        </section>
+                        <section class="fp-info-container">
+                            
+                            <section class="fp-sub-info">
+                                   
+                                    <div class="check-time-db" @click="showFinalDetails()">Submit</div>
+                                    <!-- <input id="submit" name="submit" type="submit" value="Add"/> -->
+                            </section>
                         </section>
                     </section>
-                    <section class="fp-info-container">
-                        <h1 id="fp-headers">Book</h1>
-                        <section class="fp-sub-info">
-                                <p class="fp-subtitle">Request flight plan</p>
-                                <div class="check-time-db" @click="showFinalDetails()">Submit</div>
-                                <!-- <input id="submit" name="submit" type="submit" value="Add"/> -->
-                        </section>
-                    </section>
-        </section>
+                </section>
+                <section class="map-container">
+                    <MyGoogleMapComponent @someEvent="logme" :propspeed="time"></MyGoogleMapComponent>
+                </section>
+            </section>
+        </form>
+
+
+
+
         
-    </form>
     </section>
 </template>
 
 <style>
+
+    .split-container {
+        display: grid;
+        grid-template-columns: 35% 65%;
+        height: 100vh;
+    }
+
+    .side-container {
+        height: auto;
+        overflow-y: scroll;
+       
+    }
+
+    .four-rows {
+        display: grid;
+        grid-template-rows: 25% 25% 25% 25%;
+        color: white;
+        
+    }
+
+    .map-container {
+        padding: 5px;
+    }
+
+
+
+
+
     .info-container {
         display: none;
+    }
+
+    .fp-headers {
+
     }
 
     #lowc {
@@ -297,21 +332,16 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
 
     .fp-info-container {
         width: 100%;
-        height: 100%;
         text-align: center;
-        border-left: solid 2px white;
-        border-right: solid 2px white;
-        padding-bottom: 5px;
+        padding: 5px;
+        margin: 5px;
     }
 
     .fp-info-container h1 {
         margin: 0px;
     }
 
-    #fp-headers {
-        font-size: 32px;
-        padding-top: 10px;
-    }
+ 
 
     .fp-sub-info {
         padding: 10px;
