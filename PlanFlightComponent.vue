@@ -10,6 +10,16 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
 <template>
     <section class="flight-planner" id="flight-planner">
         <!-- <form action="/planner" method="post"> -->
+        <!-- <section class="split-container">
+            <section class="side-container">
+                <section class="four-rows"></section>
+            </section>
+            <section class="map-container"></section>
+        </section> -->
+
+
+
+
         <form @submit.prevent="handleSubmit()">
             <section class="flight-details-container" id="flight-details-container">
                 <section class="flight-details" id="flight-details">
@@ -166,36 +176,7 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
                                    
                                     <label for="speed">Speed(km/h): </label>
                                     <input type="number" id="speed" name="speed" min="1" max="120" ref="myspeed" value="30">
-                                    <!-- <small><i>* Please check the max speed of your UAV before selecting speed *</i></small>
-                                    <p>The speed of the UAV will determine which flight corridor it will be assigned to for the flight</p>
-                                    <section class="speeds-option">
-                                        <section class="speed-containers">
-                                            <div class="speed-selectors">
-                                                <label for="latitude">Low speed: </label>
-                                                <label for="latitude">Mid speed: </label>
-                                                <label for="latitude">High speed: </label>
-                                            </div>
-                                            <div class="speed-selectors">
-                                                <input type="radio" name="description" id="low-radio" value="low-speed corridor"/>
-                                                <input type="radio" name="description" id="mid-radio" value="mid-speed corridor"/>
-                                                <input type="radio" name="description" id="high-radio" value="high-speed corridor"/>
-                                            </div>
-                                            <div class="speed-selectors">
-                                                <img src="../assets/iicon.png" alt="info" v-on:mouseover="lowInfo()" v-on:mouseout="hideInfo()"/>
-                                                <img src="../assets/iicon.png" alt="info" v-on:mouseover="midInfo()" v-on:mouseout="hideInfo()"/>
-                                                <img src="../assets/iicon.png" alt="info" v-on:mouseover="highInfo()" v-on:mouseout="hideInfo()"/>
-                                            </div>
-                                        </section>
-                                    </section>
-                                    <div class="info-container" id="lowc">
-                                        Low speeds are between <b>5km-20kmh</b>
-                                    </div>
-                                    <div class="info-container" id="midc">
-                                        Mid speeds are between <b>20kmh-45kmh</b>
-                                    </div>
-                                    <div class="info-container" id="highc">
-                                        High speeds are between <b>45-80kmh</b>
-                                    </div> -->
+                                 
                                 </section>
                                 <hr>
                                 <section class="altitude-container">
