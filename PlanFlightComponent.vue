@@ -822,10 +822,13 @@ export default {
       },
       hidePanel() {
         var d = document.getElementById("splitContainer");
+        var l = document.getElementById("lt");
         if (this.displayCounter % 2 === 0) {
             d.classList.replace('split-container','full-display')
+            l.innerHTML = "&lt";
         } else {
             d.classList.replace('full-display','split-container')
+            l.innerHTML = "&gt";
         }
         this.displayCounter += 1
       },
