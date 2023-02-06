@@ -30,7 +30,7 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
             </section>
             <section id="details-map-container">
                 <!-- <MyGoogleMapComponent @someEvent="logme" :propspeed="time"></MyGoogleMapComponent> -->
-                <SpeedSelectorComponent @speedEvent="logspeed"></SpeedSelectorComponent>
+                <!-- <SpeedSelectorComponent @speedEvent="logspeed"></SpeedSelectorComponent> -->
             </section>
             <section id="final-map-container">
                 <FinalGoogleMapComponent :propcoords="coords" :propspeed="speed" :propdate="date" :propway="waypoints" :key="componentKey"></FinalGoogleMapComponent>
@@ -49,12 +49,17 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
             <div><img src="../assets/ex-sign.png" id="ex-sign" v-on:click="disappearEx()"/></div>
 
             <!-- row content  -->
-            <section class="split-container">
+            <span><b @click="hidePanel()" id="lt">&gt;</b></span>
+            <section class="split-container" id="splitContainer">
+                <section class="map-container">
+                    <MyGoogleMapComponent @someEvent="logme" :propspeed="time"></MyGoogleMapComponent>
+                    <SpeedSelectorComponent @speedEvent="logspeed"></SpeedSelectorComponent>
+                </section>
                 <section class="side-container">
                     <section class="four-rows">
                         <section class="fp-info-container">
-
                             <section class="fp-sub-info">
+                                
                                 <section class="border-decor">
                                     <p class="fp-subtitle">Select your time to fly:</p>
                                     <!-- <form @submit.prevent="handleSubmit()"> -->
@@ -186,7 +191,7 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
                                     <section class="orientation-container">
                                         <p class="fp-subtitle">Select your desired view orientation:</p>
                                         <section>
-                                            <label for="orientation">Select minute: </label>
+                                            <label for="orientation">Select orientation: </label>
                                             <select id="orientation" name="orientation" ref="myorientation">
                                                 <option value="N">N</option>
                                                 <option value="NE">NE</option>
@@ -220,18 +225,13 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
                             </section>
                         </section>
                         <section class="fp-info-container">
-                            
-                            <section class="fp-sub-info">
-                                   
                                     <div class="check-time-db" @click="showFinalDetails()">Submit</div>
                                     <!-- <input id="submit" name="submit" type="submit" value="Add"/> -->
-                            </section>
+                            
                         </section>
                     </section>
                 </section>
-                <section class="map-container">
-                    <MyGoogleMapComponent @someEvent="logme" :propspeed="time"></MyGoogleMapComponent>
-                </section>
+                
             </section>
         </form>
 
@@ -246,13 +246,15 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
 
     .split-container {
         display: grid;
-        grid-template-columns: 35% 65%;
+        grid-template-columns: 65% 35%;
         height: 100vh;
     }
 
     .side-container {
         height: auto;
         overflow-y: scroll;
+        overflow-x: scroll;
+        background-color: rgb(117, 115, 115);
        
     }
 
@@ -263,11 +265,11 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
         
     }
 
-    .map-container {
-        padding: 5px;
+    
+
+    .full-display {
+        width: 100%;
     }
-
-
 
 
 
@@ -275,8 +277,20 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
         display: none;
     }
 
-    .fp-headers {
+    #lt {
+        background-color: red;
+        color: white;
+        font-size: 1.2em;
+        width: 2%;
+        position: absolute;
+        top: 15%;
+        right: 7%;
+        border: solid black 1px;
+        background-color: rgb(117, 115, 115);
+    }
 
+    #lt:hover {
+        cursor: pointer;
     }
 
     #lowc {
@@ -334,7 +348,12 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
         width: 100%;
         text-align: center;
         padding: 5px;
-        margin: 5px;
+        
+    }
+
+    .fp-info-container:last-of-type {
+        margin-top: 50%;
+
     }
 
     .fp-info-container h1 {
@@ -552,7 +571,7 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
         padding: 3px;
         transition: 0.4s;
         color: black;
-        margin-top: 10%;
+     
       }
     
       .check-time-db:hover {
@@ -562,6 +581,10 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
 
     .date-flights-container {
         color: red;
+    }
+
+    .map-conatiner {
+        z-index: 1;
     }
   
 
@@ -605,7 +628,8 @@ export default {
         bookedDates: null,
         altitude: 0,
         orientation: '',
-        time: 0
+        time: 0,
+        displayCounter: 0
       }
     },
     components: {
@@ -640,9 +664,9 @@ export default {
         // var details = document.getElementById('flight-details-container');
         // details.style.display = 'block';
 
-        var grey = document.getElementById('flight-planner-columns');
-        grey.style.opacity = 0.2;
-        grey.style.pointerEvents = "none";
+        // var grey = document.getElementById('flight-planner-columns');
+        // grey.style.opacity = 0.2;
+        // grey.style.pointerEvents = "none";
 
 
         // const flight = { 
@@ -795,6 +819,15 @@ export default {
       },
       forceRenderer() {
         this.componentKey += 1
+      },
+      hidePanel() {
+        var d = document.getElementById("splitContainer");
+        if (this.displayCounter % 2 === 0) {
+            d.classList.replace('split-container','full-display')
+        } else {
+            d.classList.replace('full-display','split-container')
+        }
+        this.displayCounter += 1
       },
       getDates() {
         axios
