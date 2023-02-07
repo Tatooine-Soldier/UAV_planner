@@ -25,7 +25,8 @@ export class Graph {
           for (var val in data) {
             var coord =  {
                 id: data[val]["id"],
-                coordinate: data[val]["coordinate"]
+                coordinate: data[val]["coordinate"],
+                edges: []
             }
             // console.log(coord)
             this.adjacencyList.set(coord, [])
@@ -49,17 +50,33 @@ export class Graph {
     }
     //for each node in the graph, create a edge between any node thats less than .5 away 
     linkEdges() {
+        
         console.log("Calling link edges")
-        for (var nouter in this.nodesList) { 
-            console.log("nouter this.nodesList[nouter]", this.nodesList[nouter].coordinate.lat)
-            for (var ninner in this.nodesList) {
-                console.log("ninner this.nodesList[nouter]", this.nodesList[ninner].coordinate.lat)
-                // if ( ((this.nodesList[nouter].value.coordinate.lat - this.nodesList[ninner].value.coordinate.lat) < 0.06) || ((this.nodesList[nouter].value.coordinate.lng - this.nodesList[ninner].value.coordinate.lng) < 0.06) ) {
-                //     this.adjacencyList.set(this.nodesList[nouter].value, this.nodesList[nouter].edges.push(this.nodesList[ninner].value))  //put edge between niodes
-                //     console.log("added edge between ", this.nodesList[nouter].value, " and ", this.nodesList[ninner].value)
-                // } 
+        var counter = 0;
+            for (var nouter in this.nodesList) { 
+                try {
+                    //console.log("nouter this.nodesList[nouter]", this.nodesList[nouter].coordinate.lat) 
+                    for (var ninner in this.nodesList) {
+                        //console.log("ninner this.nodesList[nouter]", this.nodesList[ninner].coordinate.lat)
+    
+                            if ( ( this.getCoordDistance(this.nodesList[nouter].coordinate.lat, this.nodesList[ninner].coordinate.lat) < 0.06) && (this.getCoordDistance(this.nodesList[nouter].coordinate.lng, this.nodesList[ninner].coordinate.lng) < 0.06) ) {
+                                this.nodesList[nouter].edges.push(this.nodesList[ninner])
+                                //this.adjacencyList.set(this.nodesList[nouter], this.nodesList[nouter].edges.push(this.nodesList[ninner].value))  //put edge between niodes
+                                console.log("added edge between ", this.nodesList[nouter].coordinate, " and ", this.nodesList[ninner].coordinate)
+                            
+                            } 
+                        }
+                }
+                catch(error){
+                    console.log("Error connecting grid: --> ", error)
+                }
             }
-        }
+        
+    }
+
+    getCoordDistance(c1, c2) {
+        return Math.abs(c1 - c2)
+
     }
 
 }
