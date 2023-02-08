@@ -60,11 +60,15 @@ export class Graph {
                         //console.log("ninner this.nodesList[nouter]", this.nodesList[ninner].coordinate.lat)
     
                             if ( ( this.getCoordDistance(this.nodesList[nouter].coordinate.lat, this.nodesList[ninner].coordinate.lat) < 0.06) && (this.getCoordDistance(this.nodesList[nouter].coordinate.lng, this.nodesList[ninner].coordinate.lng) < 0.06) && this.nodesList[nouter] !== this.nodesList[ninner] ) {
-                                this.nodesList[nouter].edges.push(this.nodesList[ninner])
-                                // this.adjacencyList.set(this.nodesList[nouter], this.nodesList[nouter].edges.push(this.nodesList[ninner]))  //put edge between niodes
+                                //this.nodesList[nouter].edges.push(this.nodesList[ninner])
+                                this.nodesList[nouter].edges.push(this.nodesList[ninner].coordinate)
+                                console.log("this should be a liast", this.adjacencyList.get(this.nodesList[nouter]))
+                                var vals = this.adjacencyList.get(this.nodesList[nouter])
+                                vals.push(this.nodesList[ninner])
+                                this.adjacencyList.set(this.nodesList[nouter], vals)  //put edge between niodes
 
-                                console.log("added edge between ", this.nodesList[nouter].coordinate, " and ", this.nodesList[ninner].coordinate)
-                                console.log("adjacenecy list updated: ", this.adjacencyList) //the adjacenecy list value for nouter should be updataded to include ninner in the list
+                               // console.log("added edge between ", this.nodesList[nouter].coordinate, " and ", this.nodesList[ninner].coordinate)
+                                console.log("adjacenecylist[nouter] ", this.adjacencyList.get(this.nodesList[nouter])) //the adjacenecy list value for nouter should be updataded to include ninner in the list
                             
                             } 
                         }
@@ -101,17 +105,15 @@ export class Graph {
 
             for(let [key,val] of this.adjacencyList) {
                 //console.log("val key.coordinate:", key.coordinate)
-                if (visited.has(key.coordinate) === false) { //if node has not been visited already
-                    visited.set(key.coordinate, true)
-                    q.push(key.coordinate)
+                for (let c in val) {
+                    if (visited.has(val[c].coordinate) === false) { //if node has not been visited already
+                        visited.set(val[c].coordinate, true)
+                        q.push(val[c].coordinate)
+                    }
                 }
                 
 
-                // if (!discovered[this.adjacencyList[v][i]]) {
-                //     discovered[this.adjacencyList[v][i]] = true;
-                //     q.push(this.adjacencyList[v][i]);
-                //     // console.log("YES IF", this.adjacenecyList[v][i]);
-                // }
+               
             }
         }
         console.log("ficnished")
