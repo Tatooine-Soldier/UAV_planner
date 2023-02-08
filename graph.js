@@ -59,10 +59,12 @@ export class Graph {
                     for (var ninner in this.nodesList) {
                         //console.log("ninner this.nodesList[nouter]", this.nodesList[ninner].coordinate.lat)
     
-                            if ( ( this.getCoordDistance(this.nodesList[nouter].coordinate.lat, this.nodesList[ninner].coordinate.lat) < 0.06) && (this.getCoordDistance(this.nodesList[nouter].coordinate.lng, this.nodesList[ninner].coordinate.lng) < 0.06) ) {
+                            if ( ( this.getCoordDistance(this.nodesList[nouter].coordinate.lat, this.nodesList[ninner].coordinate.lat) < 0.06) && (this.getCoordDistance(this.nodesList[nouter].coordinate.lng, this.nodesList[ninner].coordinate.lng) < 0.06) && this.nodesList[nouter] !== this.nodesList[ninner] ) {
                                 this.nodesList[nouter].edges.push(this.nodesList[ninner])
-                                //this.adjacencyList.set(this.nodesList[nouter], this.nodesList[nouter].edges.push(this.nodesList[ninner].value))  //put edge between niodes
+                                // this.adjacencyList.set(this.nodesList[nouter], this.nodesList[nouter].edges.push(this.nodesList[ninner]))  //put edge between niodes
+
                                 console.log("added edge between ", this.nodesList[nouter].coordinate, " and ", this.nodesList[ninner].coordinate)
+                                console.log("adjacenecy list updated: ", this.adjacencyList) //the adjacenecy list value for nouter should be updataded to include ninner in the list
                             
                             } 
                         }
@@ -71,12 +73,48 @@ export class Graph {
                     console.log("Error connecting grid: --> ", error)
                 }
             }
+            console.log("done")
+            this.BFS({lat: 53.531386134765576, lng: -7.925040162129355}, {lat: 53.431386134765575, lng: -8.075040162129355})
         
     }
 
     getCoordDistance(c1, c2) {
         return Math.abs(c1 - c2)
+    }
 
+    BFS(start, dest) {
+        console.log("Running BFS")
+        var q = []
+        q.push(start)
+
+        var visited = new Map();
+        visited.set(start, true)
+
+        while(q.length) {
+            let v = q.shift();
+            console.log(v);
+
+            console.log("v: ", v, "dest", dest, typeof v.lat, typeof dest.lat)
+            if ((v.lat === dest.lat.toString())&&(v.lng === dest.lng.toString())) {
+                return true;
+            }
+
+            for(let [key,val] of this.adjacencyList) {
+                //console.log("val key.coordinate:", key.coordinate)
+                if (visited.has(key.coordinate) === false) { //if node has not been visited already
+                    visited.set(key.coordinate, true)
+                    q.push(key.coordinate)
+                }
+                
+
+                // if (!discovered[this.adjacencyList[v][i]]) {
+                //     discovered[this.adjacencyList[v][i]] = true;
+                //     q.push(this.adjacencyList[v][i]);
+                //     // console.log("YES IF", this.adjacenecyList[v][i]);
+                // }
+            }
+        }
+        console.log("ficnished")
     }
 
 }
