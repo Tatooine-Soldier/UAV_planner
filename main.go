@@ -457,6 +457,10 @@ func storeGridCoordinates(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
+	filter := bson.D{}
+	usersCollection := client.Database("fyp_test").Collection("grid")
+	usersCollection.DeleteMany(context.TODO(), filter)
+
 	var grid GridofCoordinates
 	err = json.Unmarshal(body, &grid)
 	fmt.Printf("COORDSLIST: %vFINISHED", grid.Coordinates)

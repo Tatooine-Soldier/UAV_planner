@@ -1,6 +1,7 @@
  /* eslint-disable no-unused-vars */ 
 import {ref} from 'vue'
 import axios from 'axios'
+import { Graph } from './graph'
 
 export class Grid {
     constructor(size) {
@@ -16,8 +17,9 @@ export class Grid {
     //generate the coordinates then store them in a database collection "grids"
     // .05 change in coordinate value is roughly a 6km change in distance
     //centerList param is the coordinate which will be the centerpoint of the grid
-    generateCoords(centerList) { 
-        for (var i = 0; i < this.size; i++) {
+    // formula for number of nodes in the grid is ((n*2)+1)^2 where n is the size passed into the grid
+    generateCoords(centerList) {  
+        for (var i = 0; i < this.size; i++) { //creates a "crucifix" pattern, n e s w
 
             for (var center in centerList) {
                 for (var j in centerList[center]) {
@@ -99,18 +101,23 @@ export class Grid {
 
         var coordMsg = {coordinates: coordsList}
         
+        
+        // DO NOT DELETE THIS //
 
         axios
         .post("/storeGridCoordinates", coordMsg)
         .then((response) => {
           const data = response.data;
           console.log("STORED GRID SUCCESSFUL: ",data);
+          var graph = new Graph();
+          graph.getCoordinates();
         })
         .catch (function (error) {
             console.log("ERROR:", error);    
         })
 
-        
+        //add a function that drops the grid collection first  so then this can be left commented in
+
         return finalList
  
     }
