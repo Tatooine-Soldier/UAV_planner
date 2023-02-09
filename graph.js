@@ -29,7 +29,7 @@ export class Graph {
                 edges: []
             }
             // console.log(coord)
-            this.adjacencyList.set(coord, [])
+            this.adjacencyList.set(coord, []) //list of coord objects {id,coordinate,edges}
             this.nodesList.push(coord)
             
           }
@@ -41,7 +41,8 @@ export class Graph {
             this.nodesList.push(n)
 
           }
-          this.linkEdges()
+          var al = this.linkEdges()
+          return al
           //write function here that loops through the adjacency list and add edges to nodes that are less than .5 away from eachother
         })
         .catch (function (error) {
@@ -53,6 +54,7 @@ export class Graph {
         
         console.log("Calling link edges")
         var counter = 0;
+
             for (var nouter in this.nodesList) { 
                 try {
                     //console.log("nouter this.nodesList[nouter]", this.nodesList[nouter].coordinate.lat) 
@@ -62,7 +64,6 @@ export class Graph {
                             if ( ( this.getCoordDistance(this.nodesList[nouter].coordinate.lat, this.nodesList[ninner].coordinate.lat) < 0.06) && (this.getCoordDistance(this.nodesList[nouter].coordinate.lng, this.nodesList[ninner].coordinate.lng) < 0.06) && this.nodesList[nouter] !== this.nodesList[ninner] ) {
                                 //this.nodesList[nouter].edges.push(this.nodesList[ninner])
                                 this.nodesList[nouter].edges.push(this.nodesList[ninner].coordinate)
-                                console.log("this should be a liast", this.adjacencyList.get(this.nodesList[nouter]))
                                 var vals = this.adjacencyList.get(this.nodesList[nouter])
                                 vals.push(this.nodesList[ninner])
                                 this.adjacencyList.set(this.nodesList[nouter], vals)  //put edge between niodes
@@ -79,7 +80,7 @@ export class Graph {
             }
             console.log("done")
             this.BFS({lat: 53.531386134765576, lng: -7.925040162129355}, {lat: 53.431386134765575, lng: -8.075040162129355})
-        
+            return this.adjacencyList
     }
 
     getCoordDistance(c1, c2) {
@@ -96,7 +97,7 @@ export class Graph {
 
         while(q.length) {
             let v = q.shift();
-            console.log(v);
+            //console.log(v);
 
             console.log("v: ", v, "dest", dest, typeof v.lat, typeof dest.lat)
             if ((v.lat === dest.lat.toString())&&(v.lng === dest.lng.toString())) {
@@ -104,20 +105,16 @@ export class Graph {
             }
 
             for(let [key,val] of this.adjacencyList) {
-                //console.log("val key.coordinate:", key.coordinate)
                 for (let c in val) {
                     if (visited.has(val[c].coordinate) === false) { //if node has not been visited already
                         visited.set(val[c].coordinate, true)
                         q.push(val[c].coordinate)
                     }
-                }
-                
-
-               
+                }               
             }
         }
-        console.log("ficnished")
     }
+
 
 }
 

@@ -110,7 +110,7 @@ export class Grid {
           const data = response.data;
           console.log("STORED GRID SUCCESSFUL: ",data);
           var graph = new Graph();
-          graph.getCoordinates();
+          var al = graph.getCoordinates();
         })
         .catch (function (error) {
             console.log("ERROR:", error);    
