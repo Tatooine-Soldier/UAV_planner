@@ -42,7 +42,11 @@ export class Graph {
 
           }
           var al = this.linkEdges()
-          return al
+          while(typeof al !== "undefined") {
+            console.log("returning al")
+            return al
+          }
+          
           //write function here that loops through the adjacency list and add edges to nodes that are less than .5 away from eachother
         })
         .catch (function (error) {
@@ -69,7 +73,7 @@ export class Graph {
                                 this.adjacencyList.set(this.nodesList[nouter], vals)  //put edge between niodes
 
                                // console.log("added edge between ", this.nodesList[nouter].coordinate, " and ", this.nodesList[ninner].coordinate)
-                                console.log("adjacenecylist[nouter] ", this.adjacencyList.get(this.nodesList[nouter])) //the adjacenecy list value for nouter should be updataded to include ninner in the list
+                                //console.log("adjacenecylist[nouter] ", this.adjacencyList.get(this.nodesList[nouter])) //the adjacenecy list value for nouter should be updataded to include ninner in the list
                             
                             } 
                         }
@@ -79,12 +83,17 @@ export class Graph {
                 }
             }
             console.log("done")
-            this.BFS({lat: 53.531386134765576, lng: -7.925040162129355}, {lat: 53.431386134765575, lng: -8.075040162129355})
+            //this.BFS({lat: 53.531386134765576, lng: -7.925040162129355}, {lat: 53.431386134765575, lng: -8.075040162129355})
+
             return this.adjacencyList
     }
 
     getCoordDistance(c1, c2) {
         return Math.abs(c1 - c2)
+    }
+
+    getAdjacencyList() {
+        return this.adjacencyList
     }
 
     BFS(start, dest) {
@@ -115,7 +124,66 @@ export class Graph {
         }
     }
 
+    dijkstra(start, end) {
 
+
+    }
+
+
+}
+
+export class PQ {
+    constructor() {
+        this.itemList = []
+    }
+
+    enqueue(element, priority) {
+        var pn = new PQnode(element, priority)
+        for (var i = 0; i < this.itemsList.length; i++) {
+            if (this.itemsList[i].priority > pn.priority) { //ascending pq
+                this.itemsList.splice(i, 0, pn);
+                contain = true;
+                break;
+            }
+        }
+    }
+
+    dequeue() {
+        if (this.itemsList.length > 0) {
+            return this.itemsList.shift();
+        }
+        else {
+            console.warn("EMPTY PQ", this.itemsList);
+            return "EMPTY PQ"
+        }
+    }
+
+    getHead() {
+        if (this.itemsList.length > 0) {
+            return this.itemsList[0]
+        }
+        else {
+            console.warn("EMPTY PQ", this.items)
+            return "EMPTY PQ"
+        }
+    }
+
+    getTail() {
+        if (this.itemsList.length > 0) {
+            return this.itemsList[this.itemsList.length - 1]
+        }
+        else {
+            console.warn("EMPTY PQ", this.items)
+            return "EMPTY PQ"
+        }
+    }
+}
+
+class PQnode {
+    constructor(element, priority) {
+        this.element =  element 
+        this.priority = priority
+    }
 }
 
 export class Node {
