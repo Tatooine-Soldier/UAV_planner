@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	// "go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 )
 
 type Head struct {
@@ -83,6 +84,11 @@ type ResponseData struct {
 
 type ResponseDataDate struct {
 	Message []string `json:"message"`
+}
+
+type Userobj struct {
+	Name     string `json:"name"`
+	Password string `json:"password"`
 }
 
 func getRoot(w http.ResponseWriter, r *http.Request) {
@@ -161,27 +167,49 @@ func checkDBLogin(ctx context.Context, client *mongo.Client, data primitive.D, c
 }
 
 func loginRequest(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
-		panic("GET method not permitted")
-	} else {
-		r.ParseForm()
-		fmt.Printf("BEFORE HASH AND STORAGE--> %v %v", r.Form["username"], r.Form["password"])
+	// if r.Method == "GET" {
+	// 	panic("GET method not permitted")
+	// } else {
+	// 	r.ParseForm()
+	// 	fmt.Printf("BEFORE HASH AND STORAGE--> %v %v", r.Form["username"], r.Form["password"])
+	// }
+	// username := r.Form["username"]
+	// password := r.Form["password"]
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
 	}
-	username := r.Form["username"]
-	password := r.Form["password"]
+	log.Println("BODY:", string(body))
+
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
 		panic(err)
 	}
+
+	var user Userobj
+	err = json.Unmarshal(body, &user)
+	fmt.Printf("User in main.go:", user)
+
+	username := user.Name
+	var password []string
+	password = append(password, user.Password)
 
 	itemByted := encodeToByte(password)
 
 	hashedVal := sha256.New()
 	hashedVal.Write([]byte(itemByted))
 
-	user := bson.D{{"fullName", username}, {"password", hashedVal.Sum(nil)}}
-	if userExists := checkDBLogin(context.TODO(), client, user, "users"); userExists {
+	// uid := uuid.New()
+	// id := fmt.Sprintf("%v", uid)
+	// idInt := rand.Intn(1000)
+	// id := strconv.Itoa(idInt)
+	// {"id", id}
+
+	userDoc := bson.D{{"fullName", username}, {"password", hashedVal.Sum(nil)}}
+	if userExists := checkDBLogin(context.TODO(), client, userDoc, "users"); userExists {
 		fmt.Printf("User exists %v", userExists)
+		returnLoginSucces(w, r, user)
+		return
 	} else {
 		http.Redirect(w, r, "/login", http.StatusFound)
 	}
@@ -190,6 +218,10 @@ func loginRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//http.Redirect(w, r, "/planner", http.StatusSeeOther) //this goes to profile page
+}
+
+func returnLoginSucces(w http.ResponseWriter, r *http.Request, user Userobj) {
+	fmt.Fprintf(w, user.Name+" is logged in with id: ")
 }
 
 // encode the string array into byte array
