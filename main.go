@@ -13,13 +13,13 @@ import (
 	"crypto/sha256"
 
 	"github.com/EpicStep/go-simple-geo/geo"
+	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	// "go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 )
 
 type Head struct {
@@ -93,6 +93,12 @@ type ResponseDataDate struct {
 
 type Userobj struct {
 	Name     string `json:"name"`
+	Password string `json:"password"`
+}
+
+type UserSignobj struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
@@ -299,36 +305,81 @@ func renderTmpl(w http.ResponseWriter, r *http.Request) {
 }
 
 func signupRequest(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
-		panic("GET method not permitted")
-	} else {
-		r.ParseForm()
-		fmt.Printf("BEFORE HASH AND STORAGE--> %v %v", r.Form["username"], r.Form["password"])
+	// if r.Method == "GET" {
+	// 	panic("GET method not permitted")
+	// } else {
+	// 	r.ParseForm()
+	// 	fmt.Printf("BEFORE HASH AND STORAGE--> %v %v", r.Form["username"], r.Form["password"])
+	// }
+	// username := r.Form["username"]
+	// password := r.Form["password"]
+	// email := r.Form["email"]
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
 	}
-	username := r.Form["username"]
-	password := r.Form["password"]
-	email := r.Form["email"]
+	log.Println("BODY:", string(body))
+
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
 		panic(err)
 	}
 
-	alreadySignedUp := checkDBSignup(context.TODO(), client, username[0], "users")
-	if alreadySignedUp {
-		fmt.Println("User already exists")
-		http.Redirect(w, r, "/signup", http.StatusSeeOther)
-		return
-	}
+	var user UserSignobj
+	err = json.Unmarshal(body, &user)
+	fmt.Printf("User in main.go:", user)
+
+	username := user.Name
+	email := user.Email
+	var password []string
+	password = append(password, user.Password)
 
 	itemByted := encodeToByte(password)
 
 	hashedVal := sha256.New()
 	hashedVal.Write([]byte(itemByted))
 
-	user := bson.D{{"fullName", username}, {"email", email}, {"password", hashedVal.Sum(nil)}}
-	fmt.Printf("\nINSERTING THIS HASH-->%v\n ", hashedVal.Sum(nil))
-	insertDB(context.TODO(), client, user, "users")
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	uid := uuid.New()
+	id := fmt.Sprintf("%v", uid)
+	// idInt := rand.Intn(1000)
+	// id := strconv.Itoa(idInt)
+
+	userDoc := bson.D{{"fullName", username}, {"email", email}, {"password", hashedVal.Sum(nil)}, {"id", id}}
+
+	alreadySignedUp := checkDBSignup(context.TODO(), client, username, "users")
+	if alreadySignedUp {
+		fmt.Println("User already exists")
+		returnSignupSuccess(w, r, user, false)
+		return
+	} else {
+		fmt.Printf("\nINSERTING THIS HASH-->%v\n ", hashedVal.Sum(nil))
+		insertDB(context.TODO(), client, userDoc, "users")
+		returnSignupSuccess(w, r, user, true)
+	}
+
+	// itemByted := encodeToByte(password)
+
+	// hashedVal := sha256.New()
+	// hashedVal.Write([]byte(itemByted))
+
+	// user := bson.D{{"fullName", username}, {"email", email}, {"password", hashedVal.Sum(nil)}}
+	// fmt.Printf("\nINSERTING THIS HASH-->%v\n ", hashedVal.Sum(nil))
+	// insertDB(context.TODO(), client, user, "users")
+	// http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func returnSignupSuccess(w http.ResponseWriter, r *http.Request, user UserSignobj, success bool) {
+	if success {
+		l := &LoginSuccessObj{Name: user.Name, Result: success}
+		b, err := json.Marshal(l)
+		if err != nil {
+			return
+		}
+		fmt.Fprintf(w, string(b))
+		return
+	} else {
+		fmt.Fprintf(w, "", success)
+	}
 }
 
 func totalRequest(w http.ResponseWriter, r *http.Request) {
