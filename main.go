@@ -34,6 +34,11 @@ type HTML struct {
 	// contains filtered or unexported fields
 }
 
+type LoginSuccessObj struct {
+	Name   string `json:"name"`
+	Result bool   `json:"result"`
+}
+
 type Flight struct {
 	Date        string `json:"date"`
 	Hour        string `json:"hour"`
@@ -208,20 +213,29 @@ func loginRequest(w http.ResponseWriter, r *http.Request) {
 	userDoc := bson.D{{"fullName", username}, {"password", hashedVal.Sum(nil)}}
 	if userExists := checkDBLogin(context.TODO(), client, userDoc, "users"); userExists {
 		fmt.Printf("User exists %v", userExists)
-		returnLoginSucces(w, r, user)
+		returnLoginSucces(w, r, user, true)
 		return
 	} else {
-		http.Redirect(w, r, "/login", http.StatusFound)
-	}
-
-	if err != nil {
+		// http.Redirect(w, r, "/login", http.StatusFound)
+		returnLoginSucces(w, r, user, false)
 		return
 	}
 	//http.Redirect(w, r, "/planner", http.StatusSeeOther) //this goes to profile page
 }
 
-func returnLoginSucces(w http.ResponseWriter, r *http.Request, user Userobj) {
-	fmt.Fprintf(w, user.Name+" is logged in with id: ")
+func returnLoginSucces(w http.ResponseWriter, r *http.Request, user Userobj, success bool) {
+	if success {
+		l := &LoginSuccessObj{Name: user.Name, Result: success}
+		b, err := json.Marshal(l)
+		if err != nil {
+			return
+		}
+		fmt.Fprintf(w, string(b))
+		return
+	} else {
+		fmt.Fprintf(w, "", success)
+	}
+
 }
 
 // encode the string array into byte array
