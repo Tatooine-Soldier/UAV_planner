@@ -118,15 +118,14 @@ export class Graph {
                     if (visited.has(val[c].coordinate) === false) { //if node has not been visited already
                         visited.set(val[c].coordinate, true)
                         q.push(val[c].coordinate)
+                        break
                     }
                 }               
             }
-        }
+        } console.log("done in BFS")
     }
 
     dijkstra(start, end) {
-
-
     }
 
 
@@ -134,23 +133,52 @@ export class Graph {
 
 export class PQ {
     constructor() {
-        this.itemList = []
+        this.itemsList = []
+    }
+
+    runDemo() {
+        this.enqueue({lat:53.42513900150771, lng: -5.787576783223105}, 0)
+        this.enqueue({lat:52.62513900150771, lng: -6.797489472894278}, 4)
+        this.enqueue({lat:56.52513900150771, lng: -5.000489472894278}, 2)
+        this.print()
+        this.dequeue()
+        this.print()
+        this.getHead();
+    }
+
+    print() {
+        var counter = 0;
+        for (var i = 0; i < this.itemsList.length; i++) {
+            console.log("item: ", this.itemsList[i], "index: ", i)
+        }
     }
 
     enqueue(element, priority) {
-        var pn = new PQnode(element, priority)
-        for (var i = 0; i < this.itemsList.length; i++) {
-            if (this.itemsList[i].priority > pn.priority) { //ascending pq
-                this.itemsList.splice(i, 0, pn);
-                contain = true;
-                break;
+        var pn = {
+            value: element,
+            priority: priority
+        }
+        console.log("Enqueueing: ", pn)
+        if (this.itemsList.length === 0) {
+            this.itemsList.push(pn)
+        }
+        else {
+            var size = this.itemsList.length-1
+            size++
+            for (var i = 0; i < size; i++) {
+                if (this.itemsList[i].priority < pn.priority) {
+                    this.itemsList.splice(i, 0, pn);
+                } 
             }
         }
+
+    
     }
 
     dequeue() {
         if (this.itemsList.length > 0) {
-            return this.itemsList.shift();
+            console.log("DEQUEUING", this.itemsList[0])
+            this.itemsList.shift()
         }
         else {
             console.warn("EMPTY PQ", this.itemsList);
@@ -160,6 +188,7 @@ export class PQ {
 
     getHead() {
         if (this.itemsList.length > 0) {
+            console.log("head", this.itemsList[0])
             return this.itemsList[0]
         }
         else {
@@ -177,14 +206,16 @@ export class PQ {
             return "EMPTY PQ"
         }
     }
+
+   
 }
 
-class PQnode {
-    constructor(element, priority) {
-        this.element =  element 
-        this.priority = priority
-    }
-}
+// export class PQnode {
+//     constructor(element, priority) {
+//         this.element =  element 
+//         this.priority = priority
+//     }
+// }
 
 export class Node {
     constructor(element) {
