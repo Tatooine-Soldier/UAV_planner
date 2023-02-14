@@ -83,7 +83,7 @@ export class Graph {
                         //console.log("ninner this.nodesList[nouter]", this.nodesList[ninner].coordinate.lat)
                             console.log("ninner this.nodesList[ninner]", this.nodesList[ninner])
                             //console.log(typeof this.nodesList[nouter].value.coordinate.lat, this.nodesList[ninner].value.coordinate.lat, this.getCoordDistance(this.nodesList[nouter].value.lat, this.nodesList[ninner].value.lat))
-                            if ( ( this.getCoordDistance(this.nodesList[nouter].value.coordinate.lat, this.nodesList[ninner].value.coordinate.lat) < 0.06) && (this.getCoordDistance(this.nodesList[nouter].value.coordinate.lng, this.nodesList[ninner].value.coordinate.lng) < 0.06) && this.nodesList[nouter] !== this.nodesList[ninner] ) {
+                            if ( ( this.getCoordDistance(this.nodesList[nouter].value.coordinate.lat, this.nodesList[ninner].value.coordinate.lat) < 0.06) && (this.getCoordDistance(this.nodesList[nouter].value.coordinate.lng, this.nodesList[ninner].value.coordinate.lng) < 0.06) && this.nodesList[nouter].value.coordinate !== this.nodesList[ninner].value.coordinate ) {
                               
                                 this.nodesList[nouter].edges.push(this.nodesList[ninner].coordinate)
                                 //this.edges.set(nodesList[nouter], this.edges.get(this.nodesList).push(this.nodesList[ninner]))
@@ -96,7 +96,7 @@ export class Graph {
                             
                             } 
                         }
-                        // console.log("this.nodesList[nouter] with edges", this.nodesList[nouter])
+                        console.log("\nthis.nodesList[nouter] with edges", this.nodesList[nouter])
                 }
                 catch(error){
                     console.log("Error connecting grid: --> ", error)
@@ -149,67 +149,69 @@ export class Graph {
         } console.log("done in BFS")
     }
 
-    // dijkstra(start, end) {
+    getCoord(start) { //;loop through adjacency list and find the node.coordinates that matches the start coordinates
+        for (var [key, val] of this.adjacencyList) {
+            //console.log(" key:", key.value.coordinate.lat, "val:", val)
+            if (String(start.value.lat) === key.value.coordinate.lat && String(start.value.lng) === key.value.coordinate.lng) {
+                return key
+            }
+            
+        }
+    }
 
-    //     // var open = new PQ()
-    //     // var locs = new Map() //keys are vertices, values are location in open
-    //     // var closed = new Map()
-    //     // var preds = new Map()
+    dijkstra(start, end) {
 
-    //     // preds.set(start, null)
+        console.log("Starting node in dijkstra: ", start)
 
-    //     // open.enqueue(start, 0)
-    //     // locs.set(start, 0)
+        var distances = new Map()
+        var previous = new Map();
+        const pq = new PQ();
+        console.log("\n*this.nodesList*\n", this.nodesList)
 
-    //     // while (!open.isEmpty) {
-    //     //     var v = open.dequeue()  
-    //     //     locs.delete(v)
-    //     // }
+        for (var v of this.nodesList) {
+            console.log("Setting ", v , "to be infinity")
+            distances.set(v, Infinity)
+            previous.set(v, null)
+        }
 
-    //     console.log("Starting node in dijkstra: ", start)
-   
-    //     var distances = new Map()
-    //     var previous = new Map();
-    //     const pq = new PQ();
-
-    //     for (var v of this.nodesList) {
-    //         console.log("Setting ", this.nodesList[v] , "to be infinity")
-    //         distances.set(this.nodesList[v], Infinity)
-    //         previous.set(this.nodesList[v], null)
-    //     }
-          
+        start =  this.getCoord(start)
         
-    //     distances.set(start, 0)
-    //     pq.enqueue(start, 0)
+        distances.set(start, 0)
+        pq.enqueue(start, 0)
 
-    //     while (!pq.isEmpty()) {
-    //         const currentVertex = pq.dequeue()
-    //         console.log("Should return list of vertexs connected to it", this.adjacencyList.get(currentVertex.value))
+        while (!pq.isEmpty()) {
+            const currentVertex = pq.dequeue()
+            console.log("currentVertex", currentVertex.value)
+            // console.log("Should return list of vertexs connected to it", this.adjacencyList)
+            console.log("this.adjacencyList.get(currentVertex)", this.adjacencyList.get(currentVertex.value))
 
-    //         for (const n of this.adjacencyList.get(currentVertex)){
-    //             const distance =  distances.get(currentVertex) + n.weight
-
-    //             if (distance < distances.get(n.node)) {
-    //                 distances.set(n.node, distance)
-    //                 previous.set(n.node, currentVertex)
-    //                 pq.enqueue(n.node, distance);
-    //             }
-    //         }
+            for (const n of this.adjacencyList.get(currentVertex.value)){
+                if (typeof n !== "undefined") {
+                    console.log("n", n)
+                    console.log("n", n.weight)
+                    // const distance =  distances.get(currentVertex.value) + n.weight 
+                    //     if (distance < distances.get(n.node)) {
+                    //         distances.set(n.value, distance)
+                    //         previous.set(n.value, currentVertex)
+                    //         pq.enqueue(n.value, distance);
+                    //     }
+                }
+            }
             
 
-    //     }
-    //     const path = [];
-    //     let current = end;
-    //     while (current !== null) {
-    //         path.unshift(current)
-    //         current = previous.get(current)
-    //     }
-    //     return{
-    //         path: path, 
-    //         distance: distances.get(end)
-    //     }
+        }
+        const path = [];
+        let current = end;
+        while (current !== null) {
+            path.unshift(current)
+            current = previous.get(current)
+        }
+        return{
+            path: path, 
+            distance: distances.get(end)
+        }
 
-    // }
+    }
 
   
 }
@@ -312,6 +314,7 @@ export class Node {
     constructor(element) {
         this.value = element
         this.edges = []
+        //this.weight =  0
     }
 
     getValue() {
