@@ -1,24 +1,49 @@
 <template>
     <section class="timeslots-container">
         <div><h2>Bookings</h2></div>
-        <section class="cards" v-for="timeslot in timesList" :key="timeslot.time">
-            <div class="inner-card" >
-                <div>Time :</div> <div>{{ timeslot.time }}</div>
-            </div>
-            <div>
-                <div v-if="timeslot.status" class="inner-card" >
-                    <div>Status:</div><div>Unavailable <span class="colour-signal-unavailable"></span></div>
+        <section class="cards" v-for="timeslot in timesList" :key="timeslot.time" @click="handleTimePick(timeslot.time)">
+            <div v-if="timeslot.status" class="disabled-click">
+                <div class="inner-card">
+                    <div>Time :</div> <div id="time-div">{{ timeslot.time }}</div>
                 </div>
-                <div v-else class="inner-card">
-                    <div>Status:</div> <div>Available <span class="colour-signal-available"></span></div>
+                <div>
+                    <div v-if="timeslot.status" class="inner-card" >
+                        <div>Status:</div><div>Unavailable <span class="colour-signal-unavailable"></span></div>
+                    </div>
+                    <div v-else class="inner-card">
+                        <div>Status:</div> <div>Available <span class="colour-signal-available"></span></div>
+                    </div>
                 </div>
             </div>
+            <div v-else>
+                <div class="inner-card">
+                    <div>Time :</div> <div id="time-div">{{ timeslot.time }}</div>
+                </div>
+                <div>
+                    <div v-if="timeslot.status" class="inner-card" >
+                        <div>Status:</div><div>Unavailable <span class="colour-signal-unavailable"></span></div>
+                    </div>
+                    <div v-else class="inner-card">
+                        <div>Status:</div> <div>Available <span class="colour-signal-available"></span></div>
+                    </div>
+                </div>
+            </div>
+            
 
         </section>
     </section>
 </template>
 
 <style>
+    .disabled-click {
+        pointer-events: none;
+        background-color: rgb(241, 240, 240);
+    }
+
+    .disabled-click:hover {
+        cursor:auto;
+    }
+
     .timeslots-container {
         z-index: 1;
         position: absolute;
@@ -33,7 +58,7 @@
     }
 
     .cards {
-        padding: 5px;
+        /*padding: 5px */
         border: solid black 1px;
         width: 90%;
         margin: 10px;
@@ -126,6 +151,12 @@
             for (var i = 0; i < timeSlots.length; i++) { 
                 
                 this.timesList.push(timeSlots[i]) 
+            }
+        },
+        methods: {
+            handleTimePick(t) {
+                var timePicked = t
+                this.$emit('timeEvent', timePicked)
             }
         }
     }

@@ -23,7 +23,7 @@
         </section>
     </section>
     <!-- <div id="results">{{ bookedDates }}</div> -->
-    <div id="ts"><TimeSlotsComponent :proptimes="timeslots" ></TimeSlotsComponent></div>
+    <div id="ts"><TimeSlotsComponent @timeEvent="logTime" :proptimes="timeslots" ></TimeSlotsComponent></div>
     <div><img src="../assets/ex-sign.png" id="ex-sign-bookings" v-on:click="disappearEx()"/></div>
 </template>
 
@@ -246,6 +246,9 @@
             t.style.display = "none";
             var e = document.getElementById("ex-sign-bookings")
             e.style.display = "none";
+        },
+        logTime(t) {
+            console.log("Received in parent-->", t)
         }
     },
     computed: {
