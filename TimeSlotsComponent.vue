@@ -2,11 +2,11 @@
     <section class="timeslots-container">
         <div><h2>Bookings</h2></div>
         <section class="cards" v-for="timeslot in timesList" :key="timeslot.time">
-            <div class="inner-card">
+            <div class="inner-card" >
                 <div>Time :</div> <div>{{ timeslot.time }}</div>
             </div>
             <div>
-                <div v-if="timeslot.status" class="inner-card">
+                <div v-if="timeslot.status" class="inner-card" >
                     <div>Status:</div><div>Unavailable <span class="colour-signal-unavailable"></span></div>
                 </div>
                 <div v-else class="inner-card">
@@ -41,12 +41,16 @@
 
     .cards:hover {
         background-color: rgb(241, 240, 240);
+        cursor: pointer;
     }
 
     .inner-card {
         display: grid;
         grid-template-columns: 50% 50%;
         text-align: left;
+    }
+    .inner-card div:first-child {
+        padding-left: 10%;;
     }
 
     .colour-signal-available {
@@ -83,7 +87,6 @@
                 function update(l) {
                     var tlist = []
                     for (var i = 0; i <newVal.length; i++) {
-                        console.log("newVal[i]", newVal[i])
                         const t = {
                             time: newVal[i],
                             status: true
@@ -121,7 +124,7 @@
             // call axios getDates, loop through the timeSlots and compare to database results
             // the time will be unavailable if another drone will be within the radius within the 15 minutes range
             for (var i = 0; i < timeSlots.length; i++) { 
-                console.log("timeSlots[i]-->", timeSlots[i]);
+                
                 this.timesList.push(timeSlots[i]) 
             }
         }

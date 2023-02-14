@@ -22,8 +22,9 @@
             </div>
         </section>
     </section>
-    <div id="results">{{ bookedDates }}</div>
-    <TimeSlotsComponent :proptimes="timeslots"></TimeSlotsComponent>
+    <!-- <div id="results">{{ bookedDates }}</div> -->
+    <div id="ts"><TimeSlotsComponent :proptimes="timeslots" ></TimeSlotsComponent></div>
+    <div><img src="../assets/ex-sign.png" id="ex-sign-bookings" v-on:click="disappearEx()"/></div>
 </template>
 
 <style>
@@ -84,6 +85,10 @@
         cursor: pointer;
     }
 
+    #ts {
+        display: none;
+    }
+
     #results {
       display: none;
       border: solid 1px red;
@@ -91,6 +96,19 @@
       padding: 5px;
       position: relative;
       z-index: 1;
+    }
+
+    #ex-sign-bookings {
+            position: absolute;
+            top: 20.5%;
+            right: 24%;
+            margin-top: .3%;
+            z-index: 1;
+            display: none;
+    }
+
+    #ex-sign-bookings:hover {
+        cursor: pointer;
     }
 
 </style>
@@ -211,12 +229,23 @@
                     this.timeslots = timeList
                     this.bookedDates = datesDisplay;
                 }
-                var times = document.getElementById("results");
-                times.style.display = "block";
+                
+                // var times = document.getElementById("results");
+                // times.style.display = "block";
+                var t = document.getElementById('ts')
+                t.style.display = 'block'
+                var e = document.getElementById("ex-sign-bookings")
+                e.style.display = "block";
             })
                 .catch(function (error) {
                 console.log("ERROR:", error);
             });
+        },
+        disappearEx() {
+            var t = document.getElementById("ts");
+            t.style.display = "none";
+            var e = document.getElementById("ex-sign-bookings")
+            e.style.display = "none";
         }
     },
     computed: {
