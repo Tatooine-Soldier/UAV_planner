@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"text/template"
 
 	"crypto/sha256"
@@ -37,6 +38,7 @@ type HTML struct {
 type LoginSuccessObj struct {
 	Name   string `json:"name"`
 	Result bool   `json:"result"`
+	Id     string `json:"id"`
 }
 
 type Flight struct {
@@ -48,6 +50,7 @@ type Flight struct {
 	Destlat     string `json:"destlat"`
 	Destlng     string `json:"destlng"`
 	Speed       string `json:"speed"`
+	EndTime     string `json:"endtime"`
 	Altitude    string `json:"altitude"`
 	Orientation string `json:"orientation"`
 	Corridor    string `json:"corridor"`
@@ -177,6 +180,29 @@ func checkDBLogin(ctx context.Context, client *mongo.Client, data primitive.D, c
 	return false
 }
 
+func getID(ctx context.Context, client *mongo.Client, user Userobj) string {
+	//use filter to get all id records where name = user.name
+	//need the id in order to set it to the global variable in vue
+	usersCollection := client.Database("fyp_test").Collection("users")
+	filter := bson.D{{"fullName", user.Name}}
+	result, err := usersCollection.Find(ctx, filter)
+	var results []bson.M
+	if err = result.All(context.TODO(), &results); err != nil {
+		panic(err)
+	}
+
+	var returnId = ""
+	var temp []interface{}
+	for _, doc := range results {
+		temp = append(temp, doc)
+		returnId = fmt.Sprint(doc["id"])
+		return returnId
+	}
+
+	return returnId
+
+}
+
 func loginRequest(w http.ResponseWriter, r *http.Request) {
 	// if r.Method == "GET" {
 	// 	panic("GET method not permitted")
@@ -210,12 +236,6 @@ func loginRequest(w http.ResponseWriter, r *http.Request) {
 	hashedVal := sha256.New()
 	hashedVal.Write([]byte(itemByted))
 
-	// uid := uuid.New()
-	// id := fmt.Sprintf("%v", uid)
-	// idInt := rand.Intn(1000)
-	// id := strconv.Itoa(idInt)
-	// {"id", id}
-
 	userDoc := bson.D{{"fullName", username}, {"password", hashedVal.Sum(nil)}}
 	if userExists := checkDBLogin(context.TODO(), client, userDoc, "users"); userExists {
 		fmt.Printf("User exists %v", userExists)
@@ -231,7 +251,13 @@ func loginRequest(w http.ResponseWriter, r *http.Request) {
 
 func returnLoginSucces(w http.ResponseWriter, r *http.Request, user Userobj, success bool) {
 	if success {
-		l := &LoginSuccessObj{Name: user.Name, Result: success}
+		client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+		if err != nil {
+			panic(err)
+		}
+		uid := getID(context.TODO(), client, user)
+
+		l := &LoginSuccessObj{Name: user.Name, Result: success, Id: uid}
 		b, err := json.Marshal(l)
 		if err != nil {
 			return
@@ -463,6 +489,7 @@ func main() {
 	http.HandleFunc("/getAllTimes", getAllTimes)
 	http.HandleFunc("/storeFlight", storeFlight)
 	http.HandleFunc("/getDateFlight", getDateFlight)
+	http.HandleFunc("/getUsername", getUsername)
 	http.HandleFunc("/storeGridCoordinates", storeGridCoordinates)
 	http.HandleFunc("/fetchGridCoordinates", fetchGridCoordinates)
 
@@ -475,6 +502,24 @@ func handle(w http.ResponseWriter, r *http.Request, name string) {
 	fs := http.FileServer(http.Dir("../../../dist"))
 	url := fmt.Sprintf("//%v", name)
 	http.Handle(url, fs)
+}
+
+func getUsername(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		panic("GET method not permitted")
+	} else {
+		r.ParseForm()
+	}
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+	log.Println("BODY in getUsername:", string(body))
+
+	// client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	// if err != nil {
+	// 	panic(err)
+	// }
 }
 
 func fetchGridCoordinates(w http.ResponseWriter, r *http.Request) {
@@ -678,10 +723,12 @@ func storeFlight(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(body, &flight)
 	fmt.Printf("UNMARSHAL--->%v", flight)
 
+	parseEndTime(flight)
+
 	ftime := flight.Hour + ":" + flight.Minute
 	startCoord := bson.D{{"lat", flight.Srclat}, {"lng", flight.Srclng}}
 	destCoord := bson.D{{"lat", flight.Destlat}, {"lng", flight.Destlng}}
-	flightDoc := bson.D{{"date", flight.Date}, {"time", ftime}, {"startCoord", startCoord}, {"destCoord", destCoord}, {"speed", flight.Speed}, {"corridor", flight.Corridor}, {"altitude", flight.Altitude}, {"orientation", flight.Orientation}, {"drone", flight.Drone.Name}}
+	flightDoc := bson.D{{"date", flight.Date}, {"time", ftime}, {"startCoord", startCoord}, {"destCoord", destCoord}, {"endTime", flight.EndTime}, {"speed", flight.Speed}, {"corridor", flight.Corridor}, {"altitude", flight.Altitude}, {"orientation", flight.Orientation}, {"drone", flight.Drone.Name}}
 	err = insertDB(context.TODO(), client, flightDoc, "flights")
 
 	droneDoc := bson.D{{"name", flight.Drone.Name}, {"model", flight.Drone.Model}, {"weight", flight.Drone.Weight}}
@@ -690,6 +737,63 @@ func storeFlight(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("\nERROR-->\n", err)
 
 	fmt.Fprint(w, "stored")
+}
+
+func parseEndTime(f Flight) {
+	fmt.Println("f", f)
+	if len(f.EndTime) == 5 {
+		hour := f.EndTime[0:3]
+		min := f.EndTime[3:5]
+		hourInt, err := strconv.Atoi(hour)
+		minInt, err := strconv.Atoi(min)
+
+		hourFint, err := strconv.Atoi(f.Hour)
+		minFint, err := strconv.Atoi(f.Minute)
+		if err != nil {
+			fmt.Println("Error during conversion")
+			return
+		}
+		fmt.Printf("End Min + End Hour: %v %v", minInt, hourInt)
+		fmt.Printf("\nStart Min + Start Hour: %v %v", minFint, hourFint)
+
+		var totalHours = hourInt + hourFint //if over 24 --> next day
+		var totalMinutes = minInt + minFint //if over 60
+
+		if totalHours >= 24 {
+			fmt.Printf("next day")
+			//f.Date += 1
+
+			d := f.Date[8:10]
+			date, err := strconv.Atoi(d)
+			if err != nil {
+				fmt.Println("Error during conversion")
+				return
+			}
+			date += 1
+			dateString := strconv.Itoa(date) + "00"
+			strings.ReplaceAll(f.Date, d, dateString)
+
+			t := totalHours % 24
+			totalHours = t
+		}
+
+		if totalMinutes >= 60 {
+			totalHours += 1
+			m := totalMinutes % 60
+			totalMinutes = m
+		}
+
+		//date := time.Date(2023, 6, 1, 0, 0, 0, 0, time.UTC)
+		//fmt.Println(date.Unix())
+
+		//fmt.Printf("%v, %v", minInt, hourInt)
+	}
+
+	// if len(e) == 2 {
+	// 	min := e[0:2]
+	// 	fmt.Printf("%v", min)
+	// }
+
 }
 
 // func storeDrone() {
