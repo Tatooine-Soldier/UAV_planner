@@ -76,7 +76,7 @@ export class Graph {
         var counter = 0;
 
             for (var nouter in this.nodesList) { 
-                
+                this.nodesList[nouter].weight = 1
                 try {
                     //console.log("nouter this.nodesList[nouter]", this.nodesList[nouter].coordinate.lat) 
                     for (var ninner in this.nodesList) {
@@ -103,8 +103,9 @@ export class Graph {
                 }
             }
             console.log("done")
-            // var v = new Node({ lat: 53.63138613476558, lng:-7.775040162129355 })
-            // this.dijkstra(v)
+            var v = new Node({ lat: 53.63138613476558, lng:-7.775040162129355 })
+            var e =  new Node({lat: 53.58138613476557, lng: -7.8750401621293555})
+            this.dijkstra(v, e)
             //this.BFS({lat: 53.531386134765576, lng: -7.925040162129355}, {lat: 53.431386134765575, lng: -8.075040162129355})
 
             return this.adjacencyList
@@ -175,9 +176,14 @@ export class Graph {
         }
 
         start =  this.getCoord(start)
-        
+        end = this.getCoord(end)
+        // start.weight = 0
+        console.log("start-->", start)
+
         distances.set(start, 0)
+        start.weight = 0
         pq.enqueue(start, 0)
+
 
         while (!pq.isEmpty()) {
             const currentVertex = pq.dequeue()
@@ -188,13 +194,14 @@ export class Graph {
             for (const n of this.adjacencyList.get(currentVertex.value)){
                 if (typeof n !== "undefined") {
                     console.log("n", n)
-                    console.log("n", n.weight)
-                    // const distance =  distances.get(currentVertex.value) + n.weight 
-                    //     if (distance < distances.get(n.node)) {
-                    //         distances.set(n.value, distance)
-                    //         previous.set(n.value, currentVertex)
-                    //         pq.enqueue(n.value, distance);
-                    //     }
+                    console.log("distances(should be list of nodes and each distance eg Infinity):", distances)
+                    const distance =  distances.get(currentVertex.value) + n.weight
+                    console.log("distance & n.weight: ", distance, n.weight)
+                    if (distance < distances.get(n)) {
+                        distances.set(n, distance)
+                        previous.set(n, currentVertex.value)
+                        pq.enqueue(n, distance);
+                    }
                 }
             }
             
@@ -206,15 +213,16 @@ export class Graph {
             path.unshift(current)
             current = previous.get(current)
         }
+        console.log(path)
         return{
             path: path, 
             distance: distances.get(end)
         }
 
     }
-
-  
 }
+  
+
 
 export class PQ {
     constructor() {
@@ -249,6 +257,7 @@ export class PQ {
     }
 
     enqueue(element, priority) {
+        console.log("ENQUEUE===>", element)
         var pn = {
             value: element, // Eleement is type Node
             priority: priority
@@ -314,7 +323,7 @@ export class Node {
     constructor(element) {
         this.value = element
         this.edges = []
-        //this.weight =  0
+        this.weight =  0 //cost
     }
 
     getValue() {
