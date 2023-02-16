@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 	"text/template"
 
 	"crypto/sha256"
@@ -739,55 +738,77 @@ func storeFlight(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "stored")
 }
 
-func parseEndTime(f Flight) {
-	fmt.Println("f", f)
-	if len(f.EndTime) == 5 {
-		hour := f.EndTime[0:3]
-		min := f.EndTime[3:5]
-		hourInt, err := strconv.Atoi(hour)
-		minInt, err := strconv.Atoi(min)
-
-		hourFint, err := strconv.Atoi(f.Hour)
-		minFint, err := strconv.Atoi(f.Minute)
-		if err != nil {
-			fmt.Println("Error during conversion")
-			return
-		}
-		fmt.Printf("End Min + End Hour: %v %v", minInt, hourInt)
-		fmt.Printf("\nStart Min + Start Hour: %v %v", minFint, hourFint)
-
-		var totalHours = hourInt + hourFint //if over 24 --> next day
-		var totalMinutes = minInt + minFint //if over 60
-
-		if totalHours >= 24 {
-			fmt.Printf("next day")
-			//f.Date += 1
-
-			d := f.Date[8:10]
-			date, err := strconv.Atoi(d)
-			if err != nil {
-				fmt.Println("Error during conversion")
-				return
-			}
-			date += 1
-			dateString := strconv.Itoa(date) + "00"
-			strings.ReplaceAll(f.Date, d, dateString)
-
-			t := totalHours % 24
-			totalHours = t
-		}
-
-		if totalMinutes >= 60 {
-			totalHours += 1
-			m := totalMinutes % 60
-			totalMinutes = m
-		}
-
-		//date := time.Date(2023, 6, 1, 0, 0, 0, 0, time.UTC)
-		//fmt.Println(date.Unix())
-
-		//fmt.Printf("%v, %v", minInt, hourInt)
+func storeTimestampedFlight(f Flight) {
+	hourToMins, err := strconv.Atoi(f.Hour)
+	rawMins, err := strconv.Atoi(f.Minute)
+	speed, err := strconv.Atoi(f.Speed)
+	if err != nil {
+		fmt.Println("Error during conversion")
+		return
 	}
+	mins := hourToMins * 60
+	mins = mins + rawMins
+
+	duration := mins
+	lengthOfTimestamps := duration / 50 //arbitrary number, may be changed in future
+	var segmented []int
+	distanceTravelled := speed * lengthOfTimestamps
+	segmented = append(segmented, distanceTravelled)
+	// add distance traveeled
+	// for i := 0; i < 50; i++ {
+
+	// }
+}
+
+func parseEndTime(f Flight) {
+	fmt.Println("f", f.EndTime)
+	// if len(f.EndTime) == 5 {
+	// 	hour := f.EndTime[0:2]
+	// 	min := f.EndTime[3:5]
+	// 	hourInt, err := strconv.Atoi(hour)
+	// 	minInt, err := strconv.Atoi(min)
+
+	// 	hourFint, err := strconv.Atoi(f.Hour)
+	// 	minFint, err := strconv.Atoi(f.Minute)
+	// 	if err != nil {
+	// 		fmt.Println("Error during conversion")
+	// 		return
+	// 	}
+	// 	fmt.Printf("End Min + End Hour: %v %v", minInt, hourInt)
+	// 	fmt.Printf("\nStart Min + Start Hour: %v %v", minFint, hourFint)
+
+	// 	var totalHours = hourInt + hourFint //if over 24 --> next day
+	// 	var totalMinutes = minInt + minFint //if over 60
+
+	// 	if totalMinutes >= 60 {
+	// 		totalHours += 1
+	// 		m := totalMinutes % 60
+	// 		totalMinutes = m
+	// 	}
+
+	// 	if totalHours >= 24 {
+	// 		fmt.Printf("next day")
+	// 		//f.Date += 1
+
+	// 		d := f.Date[8:10]
+	// 		date, err := strconv.Atoi(d)
+	// 		if err != nil {
+	// 			fmt.Println("Error during conversion")
+	// 			return
+	// 		}
+	// 		date += 1
+	// 		dateString := strconv.Itoa(date) + "00"
+	// 		strings.ReplaceAll(f.Date, d, dateString)
+
+	// 		t := totalHours % 24
+	// 		totalHours = t
+	// 	}
+
+	//date := time.Date(2023, 6, 1, 0, 0, 0, 0, time.UTC)
+	//fmt.Println(date.Unix())
+
+	//fmt.Printf("%v, %v", minInt, hourInt)
+	//}
 
 	// if len(e) == 2 {
 	// 	min := e[0:2]
