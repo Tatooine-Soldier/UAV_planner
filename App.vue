@@ -1,7 +1,7 @@
 <script setup>
 import NavComponent from "./components/NavComponent.vue"
 import FooterComponent from "./components/FooterComponent.vue";
-//import SettingsComponent from "./views/SettingsComponent.vue";
+import SettingsComponent from "./views/SettingsComponent.vue";
 
 // import { Loader } from '@googlemaps/js-api-loader'
 //     /* eslint-disable no-undef*/
@@ -128,8 +128,10 @@ import FooterComponent from "./components/FooterComponent.vue";
           <router-view id="router-view" ></router-view>
       </main>
     </section>
-    <img src="./assets/settings-cog.jpg" id="settings-logo"/>
-    <!-- <SettingsComponent></SettingsComponent> -->
+    <img src="./assets/settings-cog.jpg" id="settings-logo" @click="showSettings()"/>
+    <div id="sc">
+      <SettingsComponent></SettingsComponent>
+    </div>
     <FooterComponent id="footerApp"/>
   </section>
 </template>
@@ -161,6 +163,15 @@ import FooterComponent from "./components/FooterComponent.vue";
     #settings-logo:hover {
       cursor: pointer;
     }
+
+    #sc {
+      display: none;
+      width: 25%;
+      position: fixed;
+      top: 70%;
+      right: 4%;
+      z-index: 1;
+    }
   
 
 
@@ -172,16 +183,27 @@ export default {
         return {
             user: {
                 name: ""
-            }
+            }, 
+            counter: 0
         };
     },
     methods: {
         displayName({ n }) {
             this.user.name = n;
             console.log("Recieved in parent:", this.user.name);
+        },
+        showSettings() {
+          var s = document.getElementById("sc");
+          if (this.counter % 2 === 0) {
+            s.style.display = "block";
+          } else {
+            s.style.display = "none";
+          }
+          this.counter += 1
+          
         }
     },
-   // components: { SettingsComponent }
+   components: { SettingsComponent }
 }
 </script>
 
