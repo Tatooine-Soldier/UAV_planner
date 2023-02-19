@@ -7,6 +7,7 @@ export class Graph {
         this.nodesList = []
         this.adjacencyList = new Map(); //adjacency list contains keys are nodes and value is list of edges fron that node
         this.edges = new Map();
+        this.myEdges = []
     }
 
     add(v) {
@@ -71,44 +72,70 @@ export class Graph {
     }
     //for each node in the graph, create a edge between any node thats less than .5 away 
     linkEdges() {
-        
+        var edgeList = []
         console.log("Calling link edges")
         var counter = 0;
 
             for (var nouter in this.nodesList) { 
                 this.nodesList[nouter].weight = 1
+                this.adjacencyList.set(this.nodesList[nouter], []) 
                 try {
                     //console.log("nouter this.nodesList[nouter]", this.nodesList[nouter].coordinate.lat) 
                     for (var ninner in this.nodesList) {
-                        //console.log("ninner this.nodesList[nouter]", this.nodesList[ninner].coordinate.lat)
-                            console.log("ninner this.nodesList[ninner]", this.nodesList[ninner])
+                        console.log("nouter this.nodesList[nouter], ninner this.nodesList[ninner]", this.nodesList[nouter].value.id, this.nodesList[ninner].value.id)
+                            //console.log("ninner this.nodesList[ninner]", this.nodesList[ninner])
                             //console.log(typeof this.nodesList[nouter].value.coordinate.lat, this.nodesList[ninner].value.coordinate.lat, this.getCoordDistance(this.nodesList[nouter].value.lat, this.nodesList[ninner].value.lat))
                             if ( ( this.getCoordDistance(this.nodesList[nouter].value.coordinate.lat, this.nodesList[ninner].value.coordinate.lat) < 0.06) && (this.getCoordDistance(this.nodesList[nouter].value.coordinate.lng, this.nodesList[ninner].value.coordinate.lng) < 0.06) && this.nodesList[nouter].value.coordinate !== this.nodesList[ninner].value.coordinate ) {
-                              
+                                edgeList.push(this.nodesList[ninner].value)
                                 this.nodesList[nouter].edges.push(this.nodesList[ninner].coordinate)
                                 //this.edges.set(nodesList[nouter], this.edges.get(this.nodesList).push(this.nodesList[ninner]))
                                 var vals = this.adjacencyList.get(this.nodesList[nouter])
                                 vals.push(this.nodesList[ninner])
+                                console.log("Added edges here for ",this.nodesList[nouter], this.nodesList[ninner], vals)
                                 this.adjacencyList.set(this.nodesList[nouter], vals)  //put edge between niodes
-
-                               console.log("added edge between ", this.nodesList[nouter].value.coordinate, " and ", this.nodesList[ninner].value.coordinate)
+                            //    console.log("added edge between ", this.nodesList[nouter].value.coordinate, " and ", this.nodesList[ninner].value.coordinate)
                                 //console.log("adjacenecylist[nouter] ", this.adjacencyList.get(this.nodesList[nouter])) //the adjacenecy list value for nouter should be updataded to include ninner in the list
                             
                             } 
                         }
-                        console.log("\nthis.nodesList[nouter] with edges", this.nodesList[nouter])
+                        this.myEdges.push(vals)
+                        console.log("\nthis.nodesList[nouter] with edges", this.adjacencyList.get[this.nodesList[nouter]])
                 }
                 catch(error){
                     console.log("Error connecting grid: --> ", error)
                 }
+                console.log("this.myedges--->", this.myEdges)
             }
-            console.log("done")
+            // console.log("EdgeList", edgeList)
+            // console.log("done")
+
             var v = new Node({ lat: 53.63138613476558, lng:-7.775040162129355 })
-            var e =  new Node({lat: 53.58138613476557, lng: -7.8750401621293555})
+            var e =  new Node({lat: 53.58138613476557, lng: -7.975040162129355})
             this.dijkstra(v, e)
             //this.BFS({lat: 53.531386134765576, lng: -7.925040162129355}, {lat: 53.431386134765575, lng: -8.075040162129355})
+            //this.viewGrid()
+            console.log(edgeList)
+        return edgeList
+    }
 
-            return this.adjacencyList
+    viewGrid() {
+        console.log("nodesList", this.nodesList)
+        for (var v in this.nodesList) {
+            console.log("nodesList edges", this.nodesList[v].edges)
+            var node = ""
+            node += this.nodesList[v].value.id
+            node += "---"
+            for (var n in this.nodesList[v]) {
+                if (typeof this.nodesList[v][n] !== "undefined") {
+                    var child = this.nodesList[v][n]
+                    console.log("child", this.nodesList[v][n])
+                    node += child.id
+                    node += "---"
+                }
+
+            }
+            console.log(node)
+        }
     }
 
     getCoordDistance(c1, c2) {
@@ -118,6 +145,7 @@ export class Graph {
     }
 
     getAdjacencyList() {
+        console.log("this.adjacencyList", this.adjacencyList)
         return this.adjacencyList
     }
 
@@ -166,17 +194,21 @@ export class Graph {
 
         var distances = new Map()
         var previous = new Map();
+        var visited = new Map();
         const pq = new PQ();
-        console.log("\n*this.nodesList*\n", this.nodesList)
+        console.log("\n*this.adjacencyList*\n", this.adjacencyList)
 
-        for (var v of this.nodesList) {
-            console.log("Setting ", v , "to be infinity")
+        for (var v of this.nodesList) {   
             distances.set(v, Infinity)
             previous.set(v, null)
+            // pq.enqueue(v, Infinity)
         }
+
 
         start =  this.getCoord(start)
         end = this.getCoord(end)
+
+      
         // start.weight = 0
         console.log("start-->", start)
 
@@ -184,26 +216,47 @@ export class Graph {
         start.weight = 0
         pq.enqueue(start, 0)
 
-
+        var enqueuedList = [start]
+        var dequeuedList = []
         while (!pq.isEmpty()) {
             const currentVertex = pq.dequeue()
-            console.log("currentVertex", currentVertex.value)
-            // console.log("Should return list of vertexs connected to it", this.adjacencyList)
-            console.log("this.adjacencyList.get(currentVertex)", this.adjacencyList.get(currentVertex.value))
+            dequeuedList.push(currentVertex.value.value)
+            // console.log("\ncurrentVertex.value.value.id\n", currentVertex.value.value.id)
+            // if (currentVertex.value.value.id === "32") {
+            //     alert("32")
+            //     console.log("edges-->",currentVertex.value)
+            // }
+            //console.log("currentVertex", currentVertex.value)
+            //maybe check if visited?
+            if (visited.get(currentVertex.value)) {
+                continue
+            }
+            visited.set(currentVertex.value, true)
 
-            for (const n of this.adjacencyList.get(currentVertex.value)){
-                if (typeof n !== "undefined") {
+            for (const n of this.adjacencyList.get(currentVertex.value)){ //n.value is the edges
+                console.log("***this.adjacencyList.get List of edges---->",currentVertex.value, this.adjacencyList.get(currentVertex.value))
+                console.log("***this.adjacencyList***", this.adjacencyList)
+                
+                    //console.log("this.adjacencyList.get(currentVertex)", this.adjacencyList.get(currentVertex.value)) //use nodeslist instead of this
                     console.log("n", n)
-                    console.log("distances(should be list of nodes and each distance eg Infinity):", distances)
+                    enqueuedList.push(n.value.id)
+                     //USE NODES LIST INSTEAD OF ADJACENCY LIST
+                    //console.log("distances(should be list of nodes and each distance eg Infinity):", distances)
                     const distance =  distances.get(currentVertex.value) + n.weight
                     console.log("distance & n.weight: ", distance, n.weight)
                     if (distance < distances.get(n)) {
                         distances.set(n, distance)
                         previous.set(n, currentVertex.value)
-                        pq.enqueue(n, distance);
-                    }
-                }
+                        pq.enqueue(n, distance)
+                        console.log("distances:", distances)
+                    } 
+                    // ELSE?????? meaybe there not be updated therefore remain INFINITY
+                
+                 
+    
             }
+
+            //So its adding all of the neighbours to the PQ but is only dequeueing the first one neighbour of each set of neighbours added. Its as if its being reset each time
             
 
         }
@@ -213,6 +266,8 @@ export class Graph {
             path.unshift(current)
             current = previous.get(current)
         }
+        console.log("enqueued nodes-->", enqueuedList)
+        console.log("dequeued nodes-->", dequeuedList)
         console.log(path)
         return{
             path: path, 
@@ -262,24 +317,37 @@ export class PQ {
             value: element, // Eleement is type Node
             priority: priority
         }
-        console.log("Enqueueing: ", pn)
-        if (this.itemsList.length === 0) {
-            this.itemsList.push(pn)
+        console.log("Enqueueing and itemsList: ", pn, this.itemsList)
+        let added = false;
+        for (let i = 0; i < this.itemsList.length; i++) {
+          if (pn.priority < this.itemsList[i].priority) {
+            this.itemsList.splice(i, 0, pn);
+            added = true;
+            break;
+          }
         }
-        else {
-            var size = this.itemsList.length-1
-            size++
-            for (var i = 0; i < size; i++) {
-                if (this.itemsList[i].priority > pn.priority) {
-                    this.itemsList.splice(i, 0, pn);
-                    break
-                } 
-                if (this.itemsList[i].priority < pn.priority) {
-                    this.itemsList.splice(i+1, 0, pn);
-                    break
-                } 
-            }
+        if (!added) {
+          this.itemsList.push(pn);
         }
+        
+
+        // if (this.itemsList.length === 0) {
+        //     this.itemsList.push(pn)
+        // }
+        // else {
+        //     var size = this.itemsList.length-1
+        //     size++
+        //     for (var i = 0; i < size; i++) {
+        //         if (this.itemsList[i].priority > pn.priority) {
+        //             this.itemsList.splice(i, 0, pn);
+        //             break
+        //         } 
+        //         if (this.itemsList[i].priority < pn.priority) {
+        //             this.itemsList.splice(i+1, 0, pn);
+        //             break
+        //         } 
+        //     }
+        // }
 
     
     }
