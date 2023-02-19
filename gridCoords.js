@@ -1,7 +1,7 @@
  /* eslint-disable no-unused-vars */ 
 import {ref} from 'vue'
 import axios from 'axios'
-import { Graph } from './graph'
+import { Graph, Node } from './graph'
 
 export class Grid {
     constructor(size) {
@@ -12,6 +12,7 @@ export class Grid {
         this.wlist = []
         this.gap = 0.05
         this.size = size
+        this.al = []
     }
 
     //generate the coordinates then store them in a database collection "grids"
@@ -103,14 +104,25 @@ export class Grid {
         
         
         // DO NOT DELETE THIS //
-
+        var al;
         axios
         .post("/storeGridCoordinates", coordMsg)
         .then((response) => {
           const data = response.data;
           console.log("STORED GRID SUCCESSFUL: ",data);
-          var graph = new Graph();
-          var al = graph.getCoordinates();
+          //al = this.getC()
+          this.getC();
+          console.log("al after wait", data)
+          return al;
+        //   while(typeof al === "undefined") {
+        //     al = graph.getAdjacencyList();
+        //     if (typeof al !== "undefined") {
+        //         console.log("returning al --->" ,al)
+        //         this.al = al
+        //         return [finalList, al]
+        //     }
+          
+        //   }
         })
         .catch (function (error) {
             console.log("ERROR:", error);    
@@ -118,8 +130,25 @@ export class Grid {
 
         //add a function that drops the grid collection first  so then this can be left commented in
 
-        return finalList
+        
  
+    }
+
+    getC() {
+        var graph = new Graph();
+        // var al = graph.getCoordinates()
+        graph.getCoordinates().then(data => {
+            console.log("Received In grid coords--->", data); 
+          })
+          .catch(error => {
+            console.error(error);
+          });
+        // console.log("al after return? --->", al)
+        // return al
+    }
+
+    getAl() {
+        return this.al
     }
 }
 

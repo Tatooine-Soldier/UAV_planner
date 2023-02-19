@@ -8,6 +8,7 @@ export class Graph {
         this.adjacencyList = new Map(); //adjacency list contains keys are nodes and value is list of edges fron that node
         this.edges = new Map();
         this.myEdges = []
+        this.returned = []
     }
 
     add(v) {
@@ -29,7 +30,7 @@ export class Graph {
         e.edges[v] = w;
     }
 
-    getCoordinates() {
+    async getCoordinates() {
         axios
         .post("/fetchGridCoordinates")
         .then((response) => {
@@ -58,16 +59,37 @@ export class Graph {
         //     this.nodesList.push(n)
 
         //   }
-          var al = this.linkEdges()
-          while(typeof al !== "undefined") {
-            console.log("returning al")
-            return al
-          }
+
+        //var al = this.linkEdges()
+        this.linkEdges().then(data => {
+            console.log("Received after Timeout--->", data)
+            this.returned = data
+            return this.getReturned()
+        }).catch(error =>{
+            console.log(error)
+        })
+
+        
+          
+        //   while(typeof al !== "undefined") {
+        //     console.log("returning al", al)
+        //     return al
+        //   }
           
           //write function here that loops through the adjacency list and add edges to nodes that are less than .5 away from eachother
         })
         .catch (function (error) {
             console.log("ERROR:", error);    
+        })
+    }
+    
+    getReturned() {
+        return new Promise((resolve, reject) => {
+            var data = this.returned
+            setTimeout(() => {
+                resolve(data)
+                console.log("Returned", data)
+            }, 1000)
         })
     }
     //for each node in the graph, create a edge between any node thats less than .5 away 
@@ -82,7 +104,7 @@ export class Graph {
                 try {
                     //console.log("nouter this.nodesList[nouter]", this.nodesList[nouter].coordinate.lat) 
                     for (var ninner in this.nodesList) {
-                        console.log("nouter this.nodesList[nouter], ninner this.nodesList[ninner]", this.nodesList[nouter].value.id, this.nodesList[ninner].value.id)
+                        //console.log("nouter this.nodesList[nouter], ninner this.nodesList[ninner]", this.nodesList[nouter].value.id, this.nodesList[ninner].value.id)
                             //console.log("ninner this.nodesList[ninner]", this.nodesList[ninner])
                             //console.log(typeof this.nodesList[nouter].value.coordinate.lat, this.nodesList[ninner].value.coordinate.lat, this.getCoordDistance(this.nodesList[nouter].value.lat, this.nodesList[ninner].value.lat))
                             if ( ( this.getCoordDistance(this.nodesList[nouter].value.coordinate.lat, this.nodesList[ninner].value.coordinate.lat) < 0.06) && (this.getCoordDistance(this.nodesList[nouter].value.coordinate.lng, this.nodesList[ninner].value.coordinate.lng) < 0.06) && this.nodesList[nouter].value.coordinate !== this.nodesList[ninner].value.coordinate ) {
@@ -104,18 +126,25 @@ export class Graph {
                 catch(error){
                     console.log("Error connecting grid: --> ", error)
                 }
-                console.log("this.myedges--->", this.myEdges)
+                
             }
             // console.log("EdgeList", edgeList)
             // console.log("done")
 
             var v = new Node({ lat: 53.63138613476558, lng:-7.775040162129355 })
             var e =  new Node({lat: 53.58138613476557, lng: -7.975040162129355})
-            this.dijkstra(v, e)
+            //edgeList = this.dijkstra(v, e)
             //this.BFS({lat: 53.531386134765576, lng: -7.925040162129355}, {lat: 53.431386134765575, lng: -8.075040162129355})
             //this.viewGrid()
-            console.log(edgeList)
-        return edgeList
+            console.log("EdgeList--->", edgeList)
+            return new Promise((resolve, reject) => {
+                var data = this.dijkstra(e, v)
+                setTimeout(() => {
+                    resolve(data)
+                    console.log("data in promise", data)
+                }, 4000)
+            })
+        //return edgeList
     }
 
     viewGrid() {
@@ -234,8 +263,8 @@ export class Graph {
             visited.set(currentVertex.value, true)
 
             for (const n of this.adjacencyList.get(currentVertex.value)){ //n.value is the edges
-                console.log("***this.adjacencyList.get List of edges---->",currentVertex.value, this.adjacencyList.get(currentVertex.value))
-                console.log("***this.adjacencyList***", this.adjacencyList)
+                //console.log("***this.adjacencyList.get List of edges---->",currentVertex.value, this.adjacencyList.get(currentVertex.value))
+                //console.log("***this.adjacencyList***", this.adjacencyList)
                 
                     //console.log("this.adjacencyList.get(currentVertex)", this.adjacencyList.get(currentVertex.value)) //use nodeslist instead of this
                     console.log("n", n)
