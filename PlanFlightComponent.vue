@@ -99,7 +99,7 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
                                         <section>
                                             <div class="check-time-db" @click="getDates()">Check availablility</div>
                                             <!-- <button>Add</button> -->
-                                            <MyCalendarComponent :propdates="bookedDates"></MyCalendarComponent>
+                                            <MyCalendarComponent @selectedTimeEvent="logTime" :propdates="bookedDates"></MyCalendarComponent>
                                         </section>
                                     <!-- </form> -->
                                 </section>
@@ -284,7 +284,7 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
         width: 2%;
         position: absolute;
         top: 15%;
-        right: 7%;
+        right: 5%;
         border: solid black 1px;
         background-color: rgb(117, 115, 115);
     }
@@ -595,6 +595,7 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
  // import * as geolib from 'geolib';
 import axios from 'axios';
 
+
 export default {
     data() {
       return {
@@ -629,12 +630,17 @@ export default {
         altitude: 0,
         orientation: '',
         time: 0,
-        displayCounter: 0
+        displayCounter: 0,
+        endTime: "00"
       }
     },
+    props: ['propsettings'],
     components: {
         MyGoogleMapComponent,
         FinalGoogleMapComponent
+    },
+    setup(props) {
+        console.log("Props--->", props.propsettings)
     },
     methods: {
       handleSubmit() {
@@ -730,6 +736,7 @@ export default {
         ex.style.display = "none"
       },
       showFinalMap() {
+        
         const drone  = {
             name: this.droneSpec.name,
             model: this.droneSpec.model,
@@ -743,6 +750,7 @@ export default {
             hour: this.date.hour,
             minute: this.date.minute,
             date: this.date.day,
+            endtime: this.endTime,
             speed: this.speed.velocity,
             corridor: this.speed.description,
             waypoint: this.waypoints,
@@ -750,7 +758,7 @@ export default {
             orientation: this.orientation,
             drone: drone
         }
-
+        console.log("FLIGHT---> ", flight)
         //this needs to be in a seperate function. 
         //if user selects "confirm", call this function
         axios
@@ -762,7 +770,6 @@ export default {
         .catch (function (error) {
             console.log("ERROR:", error);    
         })
-
 
         var map = document.getElementById("final-map-container")
         map.style.display = "block"
@@ -792,8 +799,8 @@ export default {
             i ++;
         }
       }, 
-      logme({c, d, distance, w}) { // data received from map component 
-        console.log("RECEIVED IN PARENT",c.lat, c.lng, d.lat, d.lng);
+      logme({c, d, distance, w, t}) { // data received from map component 
+        console.log("RECEIVED IN PARENT",c.lat, c.lng, d.lat, d.lng, t);
         this.$refs.mysourcelat.value = c.lat.toString();
         this.$refs.mysourcelong.value = c.lng.toString();
         this.$refs.mydestlat.value = d.lat.toString();
@@ -802,6 +809,27 @@ export default {
         this.$refs.mywaylng.value =  w.lng.toString();
 
         this.distance = distance;
+
+        var end =  ""
+        console.log(t.length)
+        if (t.length < 13) {
+            end = "0" + t.slice(0,1)
+        } else {
+            end = t.slice(0,2)
+            var endF = ""
+            if (t.length === 21) {
+                endF = t.slice(9, 11) 
+            } 
+            // else if (t.length === 20) {
+            //     endF = "00"
+            // }
+            else {
+                endF =  t.slice(10, 12)
+            }
+            end = end+":"+endF
+        }
+        console.log("END===>", end)
+        this.endTime = end
 
         var map = document.getElementById("details-map-container")
         map.style.display = "none"
@@ -812,6 +840,19 @@ export default {
         this.time = c
         var s = document.getElementById("speed")
         s.value = c
+      },
+      logTime(t) {
+        console.log("Received fulltime: ", t)
+        var arr =  t.split(",")
+        this.date.day = arr[0]
+        var time =  arr[1]
+        var hour =  time.slice(0,2)
+        this.date.hour = hour
+        var minute = time.slice(3,5)
+        this.date.minute = minute
+        console.log("this.date", this.date)
+
+        //console.log("hour + minute", hour, minute)
       },
       setWaypoint() {
         var w = document.getElementById("waypoint-container")

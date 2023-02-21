@@ -87,7 +87,7 @@ export class Graph {
             setTimeout(() => {
                 resolve(this.returned)
                 console.log("Returned from graph", this.returned)
-            }, 6000);
+            }, 5000);
         })
     }
 

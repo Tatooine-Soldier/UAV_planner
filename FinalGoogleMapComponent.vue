@@ -3,6 +3,7 @@ import { Loader } from '@googlemaps/js-api-loader'
     /* eslint-disable no-undef*/
     import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
     import { Graph, Node } from '../graph'
+    import { Grid } from '../gridCoords'
     //import { useGeolocation } from '../useGeolocation'
     // import haversineDistance from './calculateDistance'
     const GOOGLE_MAPS_API_KEY = 'AIzaSyDTNOMjJP2zMMEHcGy2wMNae1JnHkGVvn0'
@@ -127,6 +128,8 @@ import { Loader } from '@googlemaps/js-api-loader'
             })
         })
 
+        
+
         const haversineDistance = (pos1, pos2) => {
         const R = 3958.8 // Radius of the Earth in miles
         const rlat1 = pos1.lat * (Math.PI / 180) // Convert degrees to radians
@@ -155,11 +158,11 @@ import { Loader } from '@googlemaps/js-api-loader'
         const t = (distance, speed) => {
           const tme = distance/speed
           const remainder = tme%1
-          console.log("REMAINDER",remainder)
+          //console.log("REMAINDER",remainder)
           const minutes = 60*remainder
-          console.log("MINUTES",minutes)
+          //console.log("MINUTES",minutes)
           var hours = tme/1
-          console.log("HOURS",hours)
+          //console.log("HOURS",hours)
           if (hours < 1) {
             hours = 0
             const time = minutes.toFixed(2).toString()+" minutes"
@@ -173,6 +176,34 @@ import { Loader } from '@googlemaps/js-api-loader'
           ? 0
           : t(distance.value, parseFloat(props.propspeed.velocity))
         )
+        var grid  = new Grid(3);
+        var psos = grid.generateCoords([[{lat: 53.531386134765576, lng: -7.925040162129355}]], true).then(data => { 
+        console.log("Received In FINAL map coords--->", data.path); 
+        var l = data.path
+        console.log("path--> ", l, typeof l)
+        for (var i = 1; i < l.length; i++) {
+          var latN = parseFloat(l[i].value.coordinate.lat)
+          var lngN = parseFloat(l[i].value.coordinate.lng)
+          var latS = parseFloat(l[i-1].value.coordinate.lat)
+          var lngS = parseFloat(l[i-1].value.coordinate.lng)
+          var north = {lat: latN, lng: lngN}
+          var south = {lat: latS, lng: lngS}
+          console.log("Pairs as floats : ",latN, lngN, latS, lngS )
+          var line = null;
+          if (line) line.setMap(null)
+          if (north && south != null)
+            line = new google.maps.Polyline({
+              path: [north, south],
+              map: map.value
+            })
+        }
+        // need to check where data is being sent to Final Map component, do i just pass path as a Prop up to planner like all the other data?
+        })
+          .catch(error => {
+          console.error(error);
+        }); //centerPoint for Ireland grid
+
+        console.log("psos: ", psos)
         return { currPos, otherLoc, distance, mapDivHere, calculatedTime }
       }
     }
