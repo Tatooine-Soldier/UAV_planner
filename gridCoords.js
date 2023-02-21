@@ -115,8 +115,13 @@ export class Grid {
           console.log("STORED GRID SUCCESSFUL: ",data);
           //al = this.getC()
           this.getC();
-          console.log("al after wait", data)
-          return al;
+        //   return new Promise((resolve, reject) => {
+        //     setTimeout(() => {
+        //         resolve(this.returned)
+        //         console.log("Returned to map", this.returned)
+        //     }, 5100);
+        //   })
+
         //   while(typeof al === "undefined") {
         //     al = graph.getAdjacencyList();
         //     if (typeof al !== "undefined") {
@@ -131,9 +136,13 @@ export class Grid {
             console.log("ERROR:", error);    
         })
 
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                resolve(this.returned)
+                console.log("Returned to map", this.returned)
+            }, 6200);
+          })
         //add a function that drops the grid collection first  so then this can be left commented in
-
-        
  
     }
 
@@ -142,7 +151,7 @@ export class Grid {
         // var al = graph.getCoordinates()
         // console.log("al", al)
         graph.getCoordinates().then(data => {
-
+            this.returned = data
             console.log("Received In grid coords--->", data); 
           })
           .catch(error => {
@@ -150,6 +159,7 @@ export class Grid {
           });
         // console.log("al after return? --->", al)
         // return al
+        
     }
 
     getAl() {

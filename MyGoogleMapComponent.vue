@@ -33,7 +33,7 @@
       </div>
     </div>
     <!-- <button id="coords-confirm-button" @click="$emit('someEvent', {c:currPos, d:otherLoc} )">Confirm</button> -->
-    <div class="submit-div" @click="$emit('someEvent', {c:currPos, d:otherLoc, distance:distance, w:waypointLoc} )">CONFIRM</div>
+    <div class="submit-div" @click="$emit('someEvent', {c:currPos, d:otherLoc, distance:distance, w:waypointLoc, t:calculatedTime} )">CONFIRM</div>
     <div ref="mapDivHere" style="width:100%; height:80vh;"/>
     <div id="airportClicked"></div>
     <div id="addWaypoint">Add Waypoint</div>
@@ -184,10 +184,11 @@ import { Loader } from '@googlemaps/js-api-loader'
     import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
     import { useGeolocation } from '../useGeolocation'
     import { airports, getAirports } from '../airports'
-    import { LinkedList, Node } from '../linkedList'
+    import { LinkedList } from '../linkedList'
     import { checkD } from '@/withinAirspace';
     import { getLineSegments } from '../lineSegments'
     import { Grid } from '../gridCoords';
+    import {PQ, Node} from '../graph';
     
     // import haversineDistance from './calculateDistance'
     const GOOGLE_MAPS_API_KEY = 'AIzaSyDTNOMjJP2zMMEHcGy2wMNae1JnHkGVvn0'
@@ -339,45 +340,71 @@ import { Loader } from '@googlemaps/js-api-loader'
             )
           )
 
+          
           var grid  = new Grid(3);
-          var psos = grid.generateCoords([[{lat: 53.531386134765576, lng: -7.925040162129355}]]) //centerPoint for Ireland grid
-          var ps = psos[0]
-          for (var plist in ps) {  //for list in listOfLists
-            for (var j=0;j<ps[plist].length;j++) {
-                const gridCircle = new google.maps.Circle({
-                  strokeColor: "#220088",
-                  strokeOpacity: 0.8,
-                  strokeWeight: 1,
-                  fillColor: "#110066",
-                  fillOpacity: 0.7,
-                  map: map.value,
-                  center: ps[plist][j],
-                  radius: 400
-              });
-            }
-          }
-          var vr = psos[1]
-          console.log("doing this", vr)
-          for (var i=1;i<vr.length;i++) {
-              for(var k=0;k<vr.length;k++) {
-                var lat = vr[i].lat 
-                var lng = vr[i].lng
-                var latnext = vr[k].lat
-                var lngnext = vr[k].lng
-                if (Math.abs(lat - latnext) < 0.06 && Math.abs(lng - lngnext) < 0.06) {                  
-                  var coord1 = {lat: lat, lng: lng}
-                  var coord2 = {lat: latnext, lng: lngnext}
-                  console.log("coord1, coord2", coord1.lat, coord2.lat)
-                  var line;
-                  line = new google.maps.Polyline({
-                    path: [coord1, coord2],
-                    map: map.value
-                  })
-                  // line.setMap(null)
-                }
-              }
+
+          // grid.generateCoords().then(data => {
+          //   console.log("Received In Map--->", data); 
+          //   this.returned = data
+          //   return this.getReturned()
+          // })
+          // .catch(error => {
+          //   console.error(error);
+          // });
+          
+          var psos = grid.generateCoords([[{lat: 53.531386134765576, lng: -7.925040162129355}]]).then(data => {
+            console.log("Received In map coords--->", data); 
+          })
+          .catch(error => {
+            console.error(error);
+          }); //centerPoint for Ireland grid
+          console.log("psos: ", psos)
+          
+          // while (typeof psos === "undefined") {
+          //   var pl = grid.getAl()
+          //   if (typeof pl !== "undefined") {
+          //     console.log("psos, pl", psos, pl)
+          //     psos = pl
+          //     break
+          //   }
+          // }
+          // console.log("psos", psos)
+          // var ps = psos[0]
+          // var vr = psos[1]
+          // for (var i=1;i<vr.length;i++) {
+          //     for(var k=0;k<vr.length;k++) {
+          //       var lat = vr[i].lat 
+          //       var lng = vr[i].lng
+          //       var latnext = vr[k].lat
+          //       var lngnext = vr[k].lng
+          //       if (Math.abs(lat - latnext) < 0.06 && Math.abs(lng - lngnext) < 0.06) {                  
+          //         var coord1 = {lat: lat, lng: lng}
+          //         var coord2 = {lat: latnext, lng: lngnext}
+          //         console.log("coord1, coord2", coord1.lat, coord2.lat)
+          //         var line;
+          //         line = new google.maps.Polyline({
+          //           path: [coord1, coord2],
+          //           map: map.value
+          //         })
+          //         // line.setMap(null)
+          //       }
+          //     }
               
-          }
+          // }
+          // for (var plist in ps) {  //for list in listOfLists
+          //   for (var j=0;j<ps[plist].length;j++) {
+          //       const gridCircle = new google.maps.Circle({
+          //         strokeColor: "#220088",
+          //         strokeOpacity: 0.8,
+          //         strokeWeight: 1,
+          //         fillColor: "#110066",
+          //         fillOpacity: 0.7,
+          //         map: map.value,
+          //         center: ps[plist][j],
+          //         radius: 400
+          //     });
+          //   }
+          // }
 
 
           waypointDiv = document.getElementById("addWaypoint");
@@ -634,7 +661,6 @@ import { Loader } from '@googlemaps/js-api-loader'
         }) 
 
         function displayWarning() { 
-              
               if (circleRef.value.result) {
                 var doc = document.getElementById("locationWarning");
                 doc.style.display = "block"; 
