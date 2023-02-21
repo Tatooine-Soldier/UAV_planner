@@ -3,6 +3,8 @@ import {ref} from 'vue'
 import axios from 'axios'
 import { Graph, Node } from './graph'
 
+const getCoordinates = require('./graph.js');
+
 export class Grid {
     constructor(size) {
         this.counter = ref(0)
@@ -13,6 +15,7 @@ export class Grid {
         this.gap = 0.05
         this.size = size
         this.al = []
+        this.returned = []
     }
 
     //generate the coordinates then store them in a database collection "grids"
@@ -134,10 +137,12 @@ export class Grid {
  
     }
 
-    getC() {
+    async getC() {
         var graph = new Graph();
         // var al = graph.getCoordinates()
+        // console.log("al", al)
         graph.getCoordinates().then(data => {
+
             console.log("Received In grid coords--->", data); 
           })
           .catch(error => {
@@ -150,6 +155,14 @@ export class Grid {
     getAl() {
         return this.al
     }
+
+    // returnProm() {
+    //     return new Promise((resolve, reject) => {
+    //         setTimeout(() => {
+    //             resolve(data)
+    //         }, 1000)
+    //     })
+    // }
 }
 
 

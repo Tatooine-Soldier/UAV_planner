@@ -30,10 +30,10 @@ export class Graph {
         e.edges[v] = w;
     }
 
-    async getCoordinates() {
+    getCoordinates(){
         axios
         .post("/fetchGridCoordinates")
-        .then((response) => {
+        .then(async (response) => {
           const data = response.data;
           for (var val in data) {
             var c =  {
@@ -64,12 +64,13 @@ export class Graph {
         this.linkEdges().then(data => {
             console.log("Received after Timeout--->", data)
             this.returned = data
-            return this.getReturned()
+            // var a = this.getReturned()
+            // return a
         }).catch(error =>{
             console.log(error)
         })
 
-        
+        // return this.getReturned()
           
         //   while(typeof al !== "undefined") {
         //     console.log("returning al", al)
@@ -81,19 +82,35 @@ export class Graph {
         .catch (function (error) {
             console.log("ERROR:", error);    
         })
-    }
-    
-    getReturned() {
+
         return new Promise((resolve, reject) => {
-            var data = this.returned
             setTimeout(() => {
-                resolve(data)
-                console.log("Returned", data)
-            }, 1000)
+                resolve(this.returned)
+                console.log("Returned from graph", this.returned)
+            }, 6000);
         })
     }
+
+    // getReturned() {
+    //     return new Promise((resolve, reject) => {
+    //         setTimeout(() => {
+    //             resolve(this.returned)
+    //             console.log("Returned from graph", this.returned)
+    //         }, 100);
+    //     })
+    // }
+    
+    // getReturned() {
+    //     return new Promise((resolve, reject) => {
+    //         var data = this.returned
+    //         setTimeout(() => {
+    //             resolve(data)
+    //             console.log("Returned", data)
+    //         }, 100);
+    //     })
+    // }
     //for each node in the graph, create a edge between any node thats less than .5 away 
-    linkEdges() {
+    async linkEdges() {
         var edgeList = []
         console.log("Calling link edges")
         var counter = 0;
@@ -298,6 +315,7 @@ export class Graph {
         console.log("enqueued nodes-->", enqueuedList)
         console.log("dequeued nodes-->", dequeuedList)
         console.log(path)
+        this.returned = path
         return{
             path: path, 
             distance: distances.get(end)
