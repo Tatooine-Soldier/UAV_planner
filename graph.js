@@ -130,7 +130,7 @@ export class Graph {
                                 //this.edges.set(nodesList[nouter], this.edges.get(this.nodesList).push(this.nodesList[ninner]))
                                 var vals = this.adjacencyList.get(this.nodesList[nouter])
                                 vals.push(this.nodesList[ninner])
-                                console.log("Added edges here for ",this.nodesList[nouter], this.nodesList[ninner], vals)
+                                //console.log("Added edges here for ",this.nodesList[nouter], this.nodesList[ninner], vals)
                                 this.adjacencyList.set(this.nodesList[nouter], vals)  //put edge between niodes
                             //    console.log("added edge between ", this.nodesList[nouter].value.coordinate, " and ", this.nodesList[ninner].value.coordinate)
                                 //console.log("adjacenecylist[nouter] ", this.adjacencyList.get(this.nodesList[nouter])) //the adjacenecy list value for nouter should be updataded to include ninner in the list
@@ -138,7 +138,7 @@ export class Graph {
                             } 
                         }
                         this.myEdges.push(vals)
-                        console.log("\nthis.nodesList[nouter] with edges", this.adjacencyList.get[this.nodesList[nouter]])
+                        //console.log("\nthis.nodesList[nouter] with edges", this.adjacencyList.get[this.nodesList[nouter]])
                 }
                 catch(error){
                     console.log("Error connecting grid: --> ", error)
@@ -289,7 +289,7 @@ export class Graph {
                      //USE NODES LIST INSTEAD OF ADJACENCY LIST
                     //console.log("distances(should be list of nodes and each distance eg Infinity):", distances)
                     const distance =  distances.get(currentVertex.value) + n.weight
-                    console.log("distance & n.weight: ", distance, n.weight)
+                    //console.log("distance & n.weight: ", distance, n.weight)
                     if (distance < distances.get(n)) {
                         distances.set(n, distance)
                         previous.set(n, currentVertex.value)

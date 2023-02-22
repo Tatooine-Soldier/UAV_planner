@@ -22,7 +22,7 @@ export class Grid {
     // .05 change in coordinate value is roughly a 6km change in distance
     //centerList param is the coordinate which will be the centerpoint of the grid
     // formula for number of nodes in the grid is ((n*2)+1)^2 where n is the size passed into the grid
-    generateCoords(centerList) {  
+    generateCoords(centerList, full, anchors={} ) {  
         for (var i = 0; i < this.size; i++) { //creates a "crucifix" pattern, n e s w
 
             for (var center in centerList) {
@@ -103,8 +103,10 @@ export class Grid {
             }
         }
 
+        console.warn("COORDLIST", coordsList)
+       
         var coordMsg = {coordinates: coordsList}
-        
+        var nearest =  this.getNearestCoord(coordsList, anchors)
         
         // DO NOT DELETE THIS //
         var al;
@@ -114,7 +116,11 @@ export class Grid {
           const data = response.data;
           console.log("STORED GRID SUCCESSFUL: ",data);
           //al = this.getC()
-          this.getC();
+          console.log("full--->", full)
+          if (full === true ) {
+            
+            this.getC();
+          }
         //   return new Promise((resolve, reject) => {
         //     setTimeout(() => {
         //         resolve(this.returned)
@@ -128,7 +134,7 @@ export class Grid {
         //         console.log("returning al --->" ,al)
         //         this.al = al
         //         return [finalList, al]
-        //     }
+        //     }    
           
         //   }
         })
@@ -140,11 +146,57 @@ export class Grid {
             setTimeout(() => {
                 resolve(this.returned)
                 console.log("Returned to map", this.returned)
-            }, 6200);
+            }, 6200); //might need to make this bigger
           })
         //add a function that drops the grid collection first  so then this can be left commented in
  
     }
+
+    getNearestCoord(clist, anchors) {
+        if (Object.keys(anchors).length !== 0) {
+            console.log("anchors", anchors)
+            var startCoord = {lat: anchors.startLat, lng: anchors.startLng} 
+            var endCoord = {lat: anchors.endLat, lng: anchors.endLng} 
+            var smallestStart = Infinity
+            var smallestEnd = Infinity
+            var smallestS = ""
+            var smallestE = ""
+            for (var i=0; i<clist.length; i++) {
+                console.log("anchors", anchors)
+                if (this.getCoordDistance(startCoord, clist[i]) < smallestStart) {
+                    smallestStart = this.getCoordDistance(startCoord, clist[i])
+                    smallestS = clist[i]
+                }
+                if (this.getCoordDistance(endCoord, clist[i]) < smallestEnd) {
+                    smallestEnd = this.getCoordDistance(endCoord, clist[i])
+                    smallestE = clist[i]
+                }
+            }
+            console.log("Closest grid coord to start is: ", smallestS, "\nClosest grid coord to start is: ", smallestE)
+            return {start: smallestStart, end: smallestEnd}
+        }
+        else {
+            return {}
+        }
+        
+    }
+
+    getCoordDistance(c1, c2) {
+        console.log("c1", c1, c2)
+        var c1Lat = parseFloat(c1.lat)
+        var c1Lng = parseFloat(c1.lng)
+        var c2Lat = parseFloat(c2.lat)
+        var c2Lng = parseFloat(c2.lng)
+
+        if (c1Lat !== c2Lat && c1Lng !== c2Lng) {
+            var lat = Math.abs(c1Lat - c2Lat)
+            var lng = Math.abs(c1Lng - c2Lng)
+            console.log("lat+lng", lat+lng)
+           
+        }
+        return lat + lng
+    }
+
 
     async getC() {
         var graph = new Graph();
