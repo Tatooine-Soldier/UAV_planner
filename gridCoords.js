@@ -16,6 +16,7 @@ export class Grid {
         this.size = size
         this.al = []
         this.returned = []
+        this.nearest = {}
     }
 
     //generate the coordinates then store them in a database collection "grids"
@@ -106,7 +107,8 @@ export class Grid {
         console.warn("COORDLIST", coordsList)
        
         var coordMsg = {coordinates: coordsList}
-        var nearest =  this.getNearestCoord(coordsList, anchors)
+        this.nearest =  this.getNearestCoord(coordsList, anchors) // return this with this.returned???
+        console.log("this.nearest", this.nearest)
         
         // DO NOT DELETE THIS //
         var al;
@@ -119,7 +121,7 @@ export class Grid {
           console.log("full--->", full)
           if (full === true ) {
             
-            this.getC();
+            this.getC(this.nearest);
           }
         //   return new Promise((resolve, reject) => {
         //     setTimeout(() => {
@@ -144,8 +146,8 @@ export class Grid {
 
         return new Promise((resolve, reject) => {
             setTimeout(() => {
-                resolve(this.returned)
-                console.log("Returned to map", this.returned)
+                resolve([this.returned, this.nearest])
+                console.log("Returned to map", this.returned, this.nearest)
             }, 6200); //might need to make this bigger
           })
         //add a function that drops the grid collection first  so then this can be left commented in
@@ -173,7 +175,7 @@ export class Grid {
                 }
             }
             console.log("Closest grid coord to start is: ", smallestS, "\nClosest grid coord to start is: ", smallestE)
-            return {start: smallestStart, end: smallestEnd}
+            return {start: smallestS, end: smallestE}
         }
         else {
             return {}
@@ -198,11 +200,11 @@ export class Grid {
     }
 
 
-    async getC() {
+    async getC(nearest) {
         var graph = new Graph();
         // var al = graph.getCoordinates()
         // console.log("al", al)
-        graph.getCoordinates().then(data => {
+        graph.getCoordinates(nearest).then(data => {
             this.returned = data
             console.log("Received In grid coords--->", data); 
           })

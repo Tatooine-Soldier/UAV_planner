@@ -9,6 +9,7 @@ export class Graph {
         this.edges = new Map();
         this.myEdges = []
         this.returned = []
+        this.nearest = {}
     }
 
     add(v) {
@@ -30,7 +31,14 @@ export class Graph {
         e.edges[v] = w;
     }
 
-    getCoordinates(){
+    getCoordinates(nearest){
+        console.log("nearest", nearest)
+        var slat = parseFloat(nearest.start.lat)
+        var slng = parseFloat(nearest.start.lng)
+        var elat = parseFloat(nearest.end.lat)
+        var elng = parseFloat(nearest.end.lng)
+        this.nearest = {start: {lat:slat, lng:slng}, end: {lat: elat, lng:elng}}
+        console.log("nearest", this.nearest)
         axios
         .post("/fetchGridCoordinates")
         .then(async (response) => {
@@ -51,16 +59,7 @@ export class Graph {
             console.log("Adjacency List:", this.adjacencyList, "\nthis.nodesList:", this.nodesList)
             
           }
-          //console.log("this.adjacencyList:", this.adjacencyList)
-        //   for (let [key, val] of this.adjacencyList) {
-        //     let n = new Node()
-        //     n.value =  key
-        //     n.edges = val 
-        //     this.nodesList.push(n)
-
-        //   }
-
-        //var al = this.linkEdges()
+          
         this.linkEdges().then(data => {
             console.log("Received after Timeout--->", data)
             this.returned = data
@@ -148,8 +147,8 @@ export class Graph {
             // console.log("EdgeList", edgeList)
             // console.log("done")
 
-            var v = new Node({ lat: 53.63138613476558, lng:-7.775040162129355 })
-            var e =  new Node({lat: 53.58138613476557, lng: -7.975040162129355})
+            var v = new Node({ lat: this.nearest.start.lat, lng: this.nearest.start.lng })
+            var e =  new Node({lat: this.nearest.end.lat, lng: this.nearest.end.lng})
             //edgeList = this.dijkstra(v, e)
             //this.BFS({lat: 53.531386134765576, lng: -7.925040162129355}, {lat: 53.431386134765575, lng: -8.075040162129355})
             //this.viewGrid()
@@ -285,6 +284,7 @@ export class Graph {
                 
                     //console.log("this.adjacencyList.get(currentVertex)", this.adjacencyList.get(currentVertex.value)) //use nodeslist instead of this
                     console.log("n", n)
+                    
                     enqueuedList.push(n.value.id)
                      //USE NODES LIST INSTEAD OF ADJACENCY LIST
                     //console.log("distances(should be list of nodes and each distance eg Infinity):", distances)

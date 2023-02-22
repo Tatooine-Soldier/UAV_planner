@@ -181,10 +181,10 @@ import { Loader } from '@googlemaps/js-api-loader'
           : t(distance.value, parseFloat(props.propspeed.velocity))
         )
 
-        var cpos = {lat: currPos.value.lat, lng: currPos.value.lng}
-        var opos = {lat: otherLoc.value.lat, lng: otherLoc.value.lng}
+        var cpos = {lat: anchors.startLat, lng: anchors.startLng}
+        var opos = {lat: anchors.endLat, lng: anchors.endLng}
         var grid  = new Grid(3); //pass currPos and otherLoc down to grid, get nearest nodes in graph for both and then use those nodes in Dijkstra
-        var psos = grid.generateCoords([[{lat: 53.531386134765576, lng: -7.925040162129355}]], true, anchors, cpos, opos).then(data => { 
+        var psos = grid.generateCoords([[{lat: 53.531386134765576, lng: -7.925040162129355}]], true, anchors).then(data => { 
         console.log("Received In FINAL map coords--->", data); 
         var l = data[0].path
         console.log("path--> ", l, typeof l)
@@ -220,7 +220,6 @@ import { Loader } from '@googlemaps/js-api-loader'
           var entry =  {lat: parseFloat(data[1].start.lat), lng: parseFloat(data[1].start.lng)}
           var exit = {lat: parseFloat(data[1].end.lat), lng: parseFloat(data[1].end.lng)}
           console.log("start and entry", entry, exit)
-          console.log("currPos and otherLoc", currPos, otherLoc)
 
           line = null;
           if (line) line.setMap(null)
