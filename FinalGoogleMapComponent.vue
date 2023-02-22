@@ -1,6 +1,7 @@
 <script>
 import { Loader } from '@googlemaps/js-api-loader'
     /* eslint-disable no-undef*/
+     /* eslint-disable no-unused-vars*/
     import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
     import { Graph, Node } from '../graph'
     import { Grid } from '../gridCoords'
@@ -37,6 +38,8 @@ import { Loader } from '@googlemaps/js-api-loader'
         var destNode;
         var sourceNode;
 
+        var anchors = {startLat: parseFloat(props.propcoords.sourcelatitude) , startLng: parseFloat(props.propcoords.sourcelongitude), endLat: parseFloat(props.propcoords.destlatitude), endLng: parseFloat(props.propcoords.destlongitude)}
+
         onMounted(async () => {
           await loader.load() 
           console.log("PROPS props.propcoords--->", props.propcoords)
@@ -48,6 +51,7 @@ import { Loader } from '@googlemaps/js-api-loader'
 
           currPos.value = {lat: parseFloat(props.propcoords.sourcelatitude) ,lng: parseFloat(props.propcoords.sourcelongitude)} 
           otherLoc.value = {lat: parseFloat(props.propcoords.destlatitude), lng: parseFloat(props.propcoords.destlongitude)}
+          
           sourceNode.value = currPos.value
           destNode.value =  otherLoc.value
           graph.add(sourceNode)
@@ -176,8 +180,10 @@ import { Loader } from '@googlemaps/js-api-loader'
           ? 0
           : t(distance.value, parseFloat(props.propspeed.velocity))
         )
-        var grid  = new Grid(3);
-        var psos = grid.generateCoords([[{lat: 53.531386134765576, lng: -7.925040162129355}]], true).then(data => { 
+
+
+        var grid  = new Grid(3); //pass currPos and otherLoc down to grid, get nearest nodes in graph for both and then use those nodes in Dijkstra
+        var psos = grid.generateCoords([[{lat: 53.531386134765576, lng: -7.925040162129355}]], true, anchors).then(data => { 
         console.log("Received In FINAL map coords--->", data.path); 
         var l = data.path
         console.log("path--> ", l, typeof l)
@@ -189,14 +195,26 @@ import { Loader } from '@googlemaps/js-api-loader'
           var north = {lat: latN, lng: lngN}
           var south = {lat: latS, lng: lngS}
           console.log("Pairs as floats : ",latN, lngN, latS, lngS )
+          console.log("source lats: ", currPos.value.lat) //want to find the nearest node in th graph and connect it to the starting point 
           var line = null;
           if (line) line.setMap(null)
           if (north && south != null)
             line = new google.maps.Polyline({
               path: [north, south],
-              map: map.value
+              map: map.value,
+              strokeColor: "#FF0000"
             })
         }
+        const gridCircle = new google.maps.Circle({
+                  strokeColor: "#FF1122",
+                  strokeOpacity: 0.8,
+                  strokeWeight: 1,
+                  fillColor: "#FF1122",
+                  fillOpacity: 0.7,
+                  map: map.value,
+                  center: {lat: parseFloat(l[0].value.coordinate.lat), lng: parseFloat(l[0].value.coordinate.lng)},
+                  radius: 500
+              });
         // need to check where data is being sent to Final Map component, do i just pass path as a Prop up to planner like all the other data?
         })
           .catch(error => {
