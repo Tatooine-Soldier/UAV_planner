@@ -181,11 +181,12 @@ import { Loader } from '@googlemaps/js-api-loader'
           : t(distance.value, parseFloat(props.propspeed.velocity))
         )
 
-
+        var cpos = {lat: currPos.value.lat, lng: currPos.value.lng}
+        var opos = {lat: otherLoc.value.lat, lng: otherLoc.value.lng}
         var grid  = new Grid(3); //pass currPos and otherLoc down to grid, get nearest nodes in graph for both and then use those nodes in Dijkstra
-        var psos = grid.generateCoords([[{lat: 53.531386134765576, lng: -7.925040162129355}]], true, anchors).then(data => { 
-        console.log("Received In FINAL map coords--->", data.path); 
-        var l = data.path
+        var psos = grid.generateCoords([[{lat: 53.531386134765576, lng: -7.925040162129355}]], true, anchors, cpos, opos).then(data => { 
+        console.log("Received In FINAL map coords--->", data); 
+        var l = data[0].path
         console.log("path--> ", l, typeof l)
         for (var i = 1; i < l.length; i++) {
           var latN = parseFloat(l[i].value.coordinate.lat)
@@ -215,6 +216,31 @@ import { Loader } from '@googlemaps/js-api-loader'
                   center: {lat: parseFloat(l[0].value.coordinate.lat), lng: parseFloat(l[0].value.coordinate.lng)},
                   radius: 500
               });
+
+          var entry =  {lat: parseFloat(data[1].start.lat), lng: parseFloat(data[1].start.lng)}
+          var exit = {lat: parseFloat(data[1].end.lat), lng: parseFloat(data[1].end.lng)}
+          console.log("start and entry", entry, exit)
+          console.log("currPos and otherLoc", currPos, otherLoc)
+
+          line = null;
+          if (line) line.setMap(null)
+          if (data[1].start != null)
+            line = new google.maps.Polyline({
+              path: [entry, cpos],
+              map: map.value,
+              strokeColor: "#1133FF"
+            })
+
+          line = null;
+          if (line) line.setMap(null)
+          if (data[1].start != null)
+            line = new google.maps.Polyline({
+              path: [exit, opos],
+              map: map.value,
+              strokeColor: "#1133FF"
+            })
+
+
         // need to check where data is being sent to Final Map component, do i just pass path as a Prop up to planner like all the other data?
         })
           .catch(error => {
