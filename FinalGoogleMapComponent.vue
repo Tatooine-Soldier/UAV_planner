@@ -206,7 +206,7 @@ import { Loader } from '@googlemaps/js-api-loader'
               strokeColor: "#FF0000"
             })
         }
-        const gridCircle = new google.maps.Circle({
+        const gridEntryCircle = new google.maps.Circle({
                   strokeColor: "#FF1122",
                   strokeOpacity: 0.8,
                   strokeWeight: 1,
@@ -214,6 +214,16 @@ import { Loader } from '@googlemaps/js-api-loader'
                   fillOpacity: 0.7,
                   map: map.value,
                   center: {lat: parseFloat(l[0].value.coordinate.lat), lng: parseFloat(l[0].value.coordinate.lng)},
+                  radius: 500
+              });
+        const gridExitCircle = new google.maps.Circle({
+                  strokeColor: "#FF1122",
+                  strokeOpacity: 0.8,
+                  strokeWeight: 1,
+                  fillColor: "#FF1122",
+                  fillOpacity: 0.7,
+                  map: map.value,
+                  center: {lat: parseFloat(l[l.length-1].value.coordinate.lat), lng: parseFloat(l[l.length-1].value.coordinate.lng)},
                   radius: 500
               });
 
