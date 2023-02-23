@@ -10,7 +10,7 @@ import { Loader } from '@googlemaps/js-api-loader'
     const GOOGLE_MAPS_API_KEY = 'AIzaSyDTNOMjJP2zMMEHcGy2wMNae1JnHkGVvn0'
     export default {
       name: 'App',
-      props: ['propcoords', 'propspeed', 'propdate', 'propway'],
+      props: ['propcoords', 'propspeed', 'propdate', 'propway', 'propEndTime', 'propDuration'],
       data: function() {
         var myData = {
             myProp: this.propcoords
@@ -159,26 +159,16 @@ import { Loader } from '@googlemaps/js-api-loader'
           ? 0
           : haversineDistance(currPos.value, otherLoc.value)
         )
-        const t = (distance, speed) => {
-          const tme = distance/speed
-          const remainder = tme%1
-          //console.log("REMAINDER",remainder)
-          const minutes = 60*remainder
-          //console.log("MINUTES",minutes)
-          var hours = tme/1
-          //console.log("HOURS",hours)
-          if (hours < 1) {
-            hours = 0
-            const time = minutes.toFixed(2).toString()+" minutes"
-            return time 
-          }
-          const time = hours.toFixed(0).toString() + " hours " + minutes.toFixed(2).toString() + " minutes"
+        const t = (duration) => {
+          duration = Math.round(duration)
+          var hours = duration / 1
+          var remainder =  duration % hours
+          var minutes = remainder * 60
+          var time = hours.toString() + " hours " + minutes.toString() + " minutes"
           return time
         }
         const calculatedTime = computed(() =>
-        distance.value === null 
-          ? 0
-          : t(distance.value, parseFloat(props.propspeed.velocity))
+            t(props.propDuration)
         )
 
         var cpos = {lat: anchors.startLat, lng: anchors.startLng}
@@ -267,13 +257,14 @@ import { Loader } from '@googlemaps/js-api-loader'
 <template>
   <div id="big-container">
     <div class="final-distance-caption-container">
-      <div>Distance of path(km): {{ distance }}
-        <br>Flight date and time: {{ propdate.day }} at {{ propdate.hour }}:{{ propdate.minute }}
-        <br> Estimated arrival: {{ calculatedTime }}</div>
-      <div>{{ propspeed.description }}</div>
+      <div>
+        <br>Take-off Time:: {{ propdate.day }}, {{ propdate.hour }}:{{ propdate.minute }}:00
+        <br>Arrival Time: {{ propEndTime }}
+        </div>
+      <div>Corridor: {{ propspeed.description }} <br>Distance of path(km): {{ distance }}<br>Flight Duration: {{ calculatedTime }} </div>
       <div class="detailz">
-            Source Latitude:  <i id="plat">{{ propcoords.sourcelatitude }}</i><br>Source Longitude:  <i id="plng">{{ propcoords.sourcelongitude }}<br></i>
-            Destination Latitude:  <i id="plat">{{ propcoords.destlatitude }}</i><br>Destination Longitude:  <i id="plng">{{ propcoords.destlongitude }}<br></i>
+            Starting Point:  <i id="plat">{{ propcoords.sourcelatitude }}</i> <i id="plng">{{ propcoords.sourcelongitude }}<br></i>
+            Destination Point:  <i id="plat">{{ propcoords.destlatitude }}</i> <i id="plng">{{ propcoords.destlongitude }}<br></i>
       </div>
     </div>
     <div ref="mapDivHere" style="width:100%; height:80vh;"/>
@@ -292,5 +283,17 @@ import { Loader } from '@googlemaps/js-api-loader'
   .detailsz {
     font-size: 10px;
     text-align: left;
+  }
+
+  .details i {
+    font-size: 8px;
+  }
+
+  #plng {
+    font-size: 8px;
+  }
+
+  #plat {
+    font-size: 8px;
   }
 </style>
