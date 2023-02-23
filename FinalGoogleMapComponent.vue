@@ -160,10 +160,12 @@ import { Loader } from '@googlemaps/js-api-loader'
           : haversineDistance(currPos.value, otherLoc.value)
         )
         const t = (duration) => {
-          duration = Math.round(duration)
+          duration = duration.toFixed(2)
           var hours = duration / 1
-          var remainder =  duration % hours
+          var remainder =  hours % 1
+          hours = Math.round(hours)
           var minutes = remainder * 60
+          minutes = Math.round(minutes)
           var time = hours.toString() + " hours " + minutes.toString() + " minutes"
           return time
         }
