@@ -90,8 +90,16 @@ export class Grid {
         lat: "",
         lng: "",
         }
-        var c = 0
+        var c = 1
         var coordsList = []
+        console.log("centerList", centerList)
+        coordsList.push( //add the center point of the grid
+            {
+                lat: String(centerList[0][0].lat),
+                lng: String(centerList[0][0].lng),
+                id: String(0)
+            }
+        )
         for (point in finalList) {
             for (var coord in finalList[point]) {
                 coordinate = {
@@ -220,17 +228,4 @@ export class Grid {
         return this.al
     }
 
-    // returnProm() {
-    //     return new Promise((resolve, reject) => {
-    //         setTimeout(() => {
-    //             resolve(data)
-    //         }, 1000)
-    //     })
-    // }
 }
-
-
-
-// const grid = { //coordinates are a grid, each coordinate has two layers above it 
-
-// }
