@@ -135,6 +135,7 @@ import { Loader } from '@googlemaps/js-api-loader'
         
 
         const haversineDistance = (pos1, pos2) => {
+          console.log("POS-->", pos1, pos2)
         const R = 3958.8 // Radius of the Earth in miles
         const rlat1 = pos1.lat * (Math.PI / 180) // Convert degrees to radians
         const rlat2 = pos2.lat * (Math.PI / 180) // Convert degrees to radians
@@ -154,11 +155,6 @@ import { Loader } from '@googlemaps/js-api-loader'
           )*1.609344  //convert to kilometres
           return d.toFixed(2)
         }
-        const distance = computed(() =>
-        otherLoc.value === null
-          ? 0
-          : haversineDistance(currPos.value, otherLoc.value)
-        )
         const t = (duration) => {
           duration = duration.toFixed(2)
           var hours = duration / 1
@@ -172,12 +168,19 @@ import { Loader } from '@googlemaps/js-api-loader'
         const calculatedTime = computed(() =>
             t(props.propDuration)
         )
+        const distance = 0;
+        // const distance = computed(() =>
+        // otherLoc.value === null && currPos.value === false
+        //   ? 0
+        //   : haversineDistance(currPos.value, otherLoc.value)
+        // )
 
         var cpos = {lat: anchors.startLat, lng: anchors.startLng}
         var opos = {lat: anchors.endLat, lng: anchors.endLng}
         var grid  = new Grid(3); //pass currPos and otherLoc down to grid, get nearest nodes in graph for both and then use those nodes in Dijkstra
         var psos = grid.generateCoords([[{lat: 53.531386134765576, lng: -7.925040162129355}]], true, anchors).then(data => { 
         console.log("Received In FINAL map coords--->", data); 
+        var totalDist = 0
         var l = data[0].path
         console.log("path--> ", l, typeof l)
         for (var i = 1; i < l.length; i++) {
@@ -197,7 +200,14 @@ import { Loader } from '@googlemaps/js-api-loader'
               map: map.value,
               strokeColor: "#FF0000"
             })
+        // const d = computed(() => haversineDistance(north, south)) //want to add up distances between each point in the grid path
+        // totalDist += parseFloat(totalDist) + parseFloat(d.value)
+        // console.log("totalDist-->", totalDist)
         }
+        totalDist = 6.46*(l.length-1)
+        console.log("total distance-->", totalDist)
+        var domDist = document.getElementById("dist")
+        domDist.innerHTML = totalDist.toString()
         const gridEntryCircle = new google.maps.Circle({
                   strokeColor: "#FF1122",
                   strokeOpacity: 0.8,
@@ -241,7 +251,7 @@ import { Loader } from '@googlemaps/js-api-loader'
               strokeColor: "#1133FF"
             })
 
-
+      
         // need to check where data is being sent to Final Map component, do i just pass path as a Prop up to planner like all the other data?
         })
           .catch(error => {
@@ -263,7 +273,7 @@ import { Loader } from '@googlemaps/js-api-loader'
         <br>Take-off Time:: {{ propdate.day }}, {{ propdate.hour }}:{{ propdate.minute }}:00
         <br>Arrival Time: {{ propEndTime }}
         </div>
-      <div>Corridor: {{ propspeed.description }} <br>Distance of path(km): {{ distance }}<br>Flight Duration: {{ calculatedTime }} </div>
+      <div>Corridor: {{ propspeed.description }} <br>Distance of path(km): <div id="dist">{{ distance }}</div><br>Flight Duration: {{ calculatedTime }} </div>
       <div class="detailz">
             Starting Point:  <i id="plat">{{ propcoords.sourcelatitude }}</i> <i id="plng">{{ propcoords.sourcelongitude }}<br></i>
             Destination Point:  <i id="plat">{{ propcoords.destlatitude }}</i> <i id="plng">{{ propcoords.destlongitude }}<br></i>
