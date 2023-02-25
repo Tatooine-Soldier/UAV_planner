@@ -184,7 +184,7 @@ import axios from 'axios'
         console.log("Received In FINAL map coords--->", data); 
         var totalDist = 0
         var l = data[0].path
-        segments.push({lat: parseFloat(l[0].value.coordinate.lat), lng: parseFloat(l[0].value.coordinate.lng)})
+        segments.push({lat: l[0].value.coordinate.lat, lng: l[0].value.coordinate.lng})
         console.log("path--> ", l, typeof l)
         for (var i = 1; i < l.length; i++) {
           var latN = parseFloat(l[i].value.coordinate.lat)
@@ -193,7 +193,7 @@ import axios from 'axios'
           var lngS = parseFloat(l[i-1].value.coordinate.lng)
           var north = {lat: latN, lng: lngN}
           var south = {lat: latS, lng: lngS}
-          segments.push(north)
+          segments.push({lat: l[i].value.coordinate.lat, lng: l[i].value.coordinate.lng})
           console.log("Pairs as floats : ",latN, lngN, latS, lngS )
           console.log("source lats: ", currPos.value.lat) //want to find the nearest node in th graph and connect it to the starting point 
           var line = null;
@@ -256,10 +256,10 @@ import axios from 'axios'
             })
 
           console.log("segments", segments)
-          for (i = 0; i < segments.length; i++) {
-            segments[i] = segments[i].toString()
-          }
-          var segementedFlight =  {
+          // for (i = 0; i < segments.length; i++) {
+          //   segments[i] = segments[i].toString()
+          // }
+          var segementedFlight =  { //need to store the times with segment each too
             segmentList: segments,
             id: props.propID
           }

@@ -41,6 +41,7 @@ type LoginSuccessObj struct {
 }
 
 type Flight struct {
+	ID          string `json:"id"`
 	Date        string `json:"date"`
 	Hour        string `json:"hour"`
 	Minute      string `json:"minute"`
@@ -64,6 +65,11 @@ type Drone struct {
 	Name   string `json:"name"`
 	Model  string `json:"model"`
 	Weight string `json:"weight"`
+}
+
+type SegmentedFlightData struct {
+	SegmentedList []interface{} `json:"segmentList"`
+	ID            string        `json:"id"`
 }
 
 type GridofCoordinates struct {
@@ -491,6 +497,8 @@ func main() {
 	http.HandleFunc("/getUsername", getUsername)
 	http.HandleFunc("/storeGridCoordinates", storeGridCoordinates)
 	http.HandleFunc("/fetchGridCoordinates", fetchGridCoordinates)
+	http.HandleFunc("/storeSegmentedFlight", storeSegmentedFlight)
+	http.HandleFunc("/getFlightsWithinRadius", getFlightsWithinRadius)
 
 	// dist := calculateDistance(3.44, 3.44)
 	listenerErr := http.ListenAndServe(":3333", nil)
@@ -501,6 +509,53 @@ func handle(w http.ResponseWriter, r *http.Request, name string) {
 	fs := http.FileServer(http.Dir("../../../dist"))
 	url := fmt.Sprintf("//%v", name)
 	http.Handle(url, fs)
+}
+
+func storeSegmentedFlight(w http.ResponseWriter, r *http.Request) {
+	//should be receiving an array of coordinates in body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+	log.Println("BODY:", string(body))
+
+	var d SegmentedFlightData
+	err = json.Unmarshal(body, &d)
+	fmt.Printf("UNMARSHAL--->%v", d)
+	slist := []Coordinate{}
+	for _, val := range d.SegmentedList {
+		//fmt.Printf("val---> %v", val)x
+		t := val.(map[string]interface{})
+		var lat = t["lat"].(string)
+		var lng = t["lng"].(string)
+		fmt.Printf("\ni--> %v\tval---> %v \n", lat, lng)
+
+		var coord Coordinate
+		coord.Latitude = lat
+		coord.Longitude = lng
+		coord.Id = d.ID
+
+		slist = append(slist, coord)
+	}
+
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		panic(err)
+	}
+
+	gridDoc := bson.D{{"id", d.ID}, {"segments", slist}}
+	err = insertDB(context.TODO(), client, gridDoc, "segmentedFlight")
+	fmt.Printf("\nERROR-->\n", err)
+
+}
+
+func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+	log.Println("BODY:", string(body))
+
 }
 
 func getUsername(w http.ResponseWriter, r *http.Request) {
@@ -727,7 +782,7 @@ func storeFlight(w http.ResponseWriter, r *http.Request) {
 	ftime := flight.Hour + ":" + flight.Minute
 	startCoord := bson.D{{"lat", flight.Srclat}, {"lng", flight.Srclng}}
 	destCoord := bson.D{{"lat", flight.Destlat}, {"lng", flight.Destlng}}
-	flightDoc := bson.D{{"date", flight.Date}, {"time", ftime}, {"startCoord", startCoord}, {"destCoord", destCoord}, {"endTime", flight.EndTime}, {"speed", flight.Speed}, {"corridor", flight.Corridor}, {"altitude", flight.Altitude}, {"orientation", flight.Orientation}, {"drone", flight.Drone.Name}}
+	flightDoc := bson.D{{"id", flight.ID}, {"date", flight.Date}, {"time", ftime}, {"startCoord", startCoord}, {"destCoord", destCoord}, {"endTime", flight.EndTime}, {"speed", flight.Speed}, {"corridor", flight.Corridor}, {"altitude", flight.Altitude}, {"orientation", flight.Orientation}, {"drone", flight.Drone.Name}}
 	err = insertDB(context.TODO(), client, flightDoc, "flights")
 
 	droneDoc := bson.D{{"name", flight.Drone.Name}, {"model", flight.Drone.Model}, {"weight", flight.Drone.Weight}}
