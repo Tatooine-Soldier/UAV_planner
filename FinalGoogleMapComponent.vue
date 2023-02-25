@@ -1,5 +1,6 @@
 <script>
 import { Loader } from '@googlemaps/js-api-loader'
+import axios from 'axios'
     /* eslint-disable no-undef*/
      /* eslint-disable no-unused-vars*/
     import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
@@ -10,7 +11,7 @@ import { Loader } from '@googlemaps/js-api-loader'
     const GOOGLE_MAPS_API_KEY = 'AIzaSyDTNOMjJP2zMMEHcGy2wMNae1JnHkGVvn0'
     export default {
       name: 'App',
-      props: ['propcoords', 'propspeed', 'propdate', 'propway', 'propEndTime', 'propDuration'],
+      props: ['propcoords', 'propspeed', 'propdate', 'propway', 'propEndTime', 'propDuration', 'propID'],
       data: function() {
         var myData = {
             myProp: this.propcoords
@@ -175,6 +176,7 @@ import { Loader } from '@googlemaps/js-api-loader'
         //   : haversineDistance(currPos.value, otherLoc.value)
         // )
 
+        var segments = [] //used to capture segments(grid points) in the flight path
         var cpos = {lat: anchors.startLat, lng: anchors.startLng}
         var opos = {lat: anchors.endLat, lng: anchors.endLng}
         var grid  = new Grid(3); //pass currPos and otherLoc down to grid, get nearest nodes in graph for both and then use those nodes in Dijkstra
@@ -182,6 +184,7 @@ import { Loader } from '@googlemaps/js-api-loader'
         console.log("Received In FINAL map coords--->", data); 
         var totalDist = 0
         var l = data[0].path
+        segments.push({lat: parseFloat(l[0].value.coordinate.lat), lng: parseFloat(l[0].value.coordinate.lng)})
         console.log("path--> ", l, typeof l)
         for (var i = 1; i < l.length; i++) {
           var latN = parseFloat(l[i].value.coordinate.lat)
@@ -190,6 +193,7 @@ import { Loader } from '@googlemaps/js-api-loader'
           var lngS = parseFloat(l[i-1].value.coordinate.lng)
           var north = {lat: latN, lng: lngN}
           var south = {lat: latS, lng: lngS}
+          segments.push(north)
           console.log("Pairs as floats : ",latN, lngN, latS, lngS )
           console.log("source lats: ", currPos.value.lat) //want to find the nearest node in th graph and connect it to the starting point 
           var line = null;
@@ -251,12 +255,29 @@ import { Loader } from '@googlemaps/js-api-loader'
               strokeColor: "#1133FF"
             })
 
-      
-        // need to check where data is being sent to Final Map component, do i just pass path as a Prop up to planner like all the other data?
-        })
+          console.log("segments", segments)
+          for (i = 0; i < segments.length; i++) {
+            segments[i] = segments[i].toString()
+          }
+          var segementedFlight =  {
+            segmentList: segments,
+            id: props.propID
+          }
+          //STORE SEGMENTS LIST AS A SINGLE RECORD IN SEGMENTS COLLECTION WITH THE ID OF THE FLIGHT
+          axios
+          .post("/storeSegmentedFlight", segementedFlight)
+          .then((response) => {
+            console.log("* stored Segmented flights!!! *")
+          })
           .catch(error => {
           console.error(error);
-        }); //centerPoint for Ireland grid
+        }); 
+
+        // NEED TO SEGMENT THE FLIGHT BY GETTING THE COORDINATES AT CERTAIN POINTS AND TIME IN THE FLIGHT(PERHAPS JUST GET THE COORDINATES OF EACH GRUD POINT IN THE PATH)
+        //THEN CHECK IF THE INTENDED FLIGHT FALLS WITHIN RADIUS OF THESE POINTS AT A THAT INTENDED TIME
+      })
+
+
 
         console.log("psos: ", psos)
         return { currPos, otherLoc, distance, mapDivHere, calculatedTime }
@@ -271,7 +292,7 @@ import { Loader } from '@googlemaps/js-api-loader'
     <div class="final-distance-caption-container">
       <div>
         <br>Take-off Time:: {{ propdate.day }}, {{ propdate.hour }}:{{ propdate.minute }}:00
-        <br>Arrival Time: {{ propEndTime }}
+        <br>ETA: {{ propEndTime }}
         </div>
       <div>Corridor: {{ propspeed.description }} <br>Distance of path(km): <div id="dist">{{ distance }}</div><br>Flight Duration: {{ calculatedTime }} </div>
       <div class="detailz">
