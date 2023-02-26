@@ -255,10 +255,42 @@ import axios from 'axios'
               strokeColor: "#1133FF"
             })
 
-          console.log("segments", segments)
-          // for (i = 0; i < segments.length; i++) {
-          //   segments[i] = segments[i].toString()
-          // }
+          console.log("segments", segments, "\nlen(segments): ", l.length, "\nduration: ", props.propDuration)
+          
+          var startTime = props.propdate.hour + props.propdate.minute
+          var endTime = props.propEndTime
+          var speed =  props.propspeed
+          var duration = props.propDuration
+
+          var segmentedTime =  duration.toFixed(2) / l.length
+          console.log("SEGMENTED TIME", segmentedTime)
+          var segmentedTimeList = []
+          segmentedTimeList.push({hour: props.propdate.hour, minute: props.propdate.minute})
+          const dateObj = new Date();
+          dateObj.setHours(props.propdate.hour)
+          dateObj.setMinutes(props.propdate.minute)
+          var j = 1
+          while(j < l.length+1) {
+            var t = (segmentedTime*60) 
+            //convert t to an actual time(add it to start time )
+            //t = t * 60
+            
+            if (t < 60) {
+              console.log("adding ", t, " minutes")
+              dateObj.setMinutes(dateObj.getMinutes() + t);
+            } else {
+              dateObj.setHours(dateObj.getHours() + 1);
+              var r = t % 60
+              dateObj.setMinutes(dateObj.getMinutes() + r);
+            }
+            console.log("dateObj", dateObj, "\nt", t) 
+            segmentedTimeList.push({hour: dateObj.getHours(), minute: dateObj.getMinutes()})
+            j++
+          }
+          var e = props.propEndTime.toString()
+          segmentedTimeList.push({hour:  e.slice(12, 14), minute:e.slice(15, 17)})
+          console.log("segmentedTimeList", segmentedTimeList)
+          
           var segementedFlight =  { //need to store the times with segment each too
             segmentList: segments,
             id: props.propID
