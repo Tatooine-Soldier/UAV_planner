@@ -68,8 +68,9 @@ type Drone struct {
 }
 
 type SegmentedFlightData struct {
-	SegmentedList []interface{} `json:"segmentList"`
-	ID            string        `json:"id"`
+	SegmentedTimes []interface{} `json:"segmentTimes"`
+	SegmentedList  []interface{} `json:"segmentList"`
+	ID             string        `json:"id"`
 }
 
 type GridofCoordinates struct {
@@ -85,6 +86,12 @@ type Coordinate struct {
 	Latitude  string `json:"lat"`
 	Longitude string `json:"lng"`
 	//Corridor  string `json:"corridor"`
+}
+
+type TimeRecord struct {
+	Id     string `json:"id"`
+	Hour   string `json:"hour"`
+	Minute string `json:"minute"`
 }
 
 type QueryDate struct {
@@ -537,6 +544,22 @@ func storeSegmentedFlight(w http.ResponseWriter, r *http.Request) {
 
 		slist = append(slist, coord)
 	}
+
+	timesList := []TimeRecord{}
+	for _, val := range d.SegmentedTimes {
+		t := val.(map[string]interface{})
+		var hour = t["hour"].(string)
+		var minute = t["minute"].(string)
+		fmt.Printf("\ni--> %v\tval---> %v \n", hour, minute)
+		//TODO:
+		var timeRecord TimeRecord
+		timeRecord.Id = d.ID
+		timeRecord.Hour = hour
+		timeRecord.Minute = minute
+
+		timesList = append(timesList, timeRecord)
+	}
+	fmt.Printf("TIMESLIST--->%v", timesList)
 
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
