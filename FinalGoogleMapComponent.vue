@@ -284,7 +284,11 @@ import axios from 'axios'
               dateObj.setMinutes(dateObj.getMinutes() + r);
             }
             console.log("dateObj", dateObj, "\nt", t) 
-            segmentedTimeList.push({hour: dateObj.getHours(), minute: dateObj.getMinutes()})
+            if (dateObj.getHours().toString().length < 2) {
+              segmentedTimeList.push({hour: "0"+dateObj.getHours().toString(), minute: dateObj.getMinutes().toString()})
+            } else {
+              segmentedTimeList.push({hour: dateObj.getHours().toString(), minute: dateObj.getMinutes().toString()})
+            }
             j++
           }
           var e = props.propEndTime.toString()
@@ -293,6 +297,7 @@ import axios from 'axios'
           
           var segementedFlight =  { //need to store the times with segment each too
             segmentList: segments,
+            segmentTimes: segmentedTimeList,
             id: props.propID
           }
           //STORE SEGMENTS LIST AS A SINGLE RECORD IN SEGMENTS COLLECTION WITH THE ID OF THE FLIGHT
