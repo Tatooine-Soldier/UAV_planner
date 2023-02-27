@@ -24,13 +24,14 @@
     </section>
     <!-- <div id="results">{{ bookedDates }}</div> -->
     <div id="ts"><TimeSlotsComponent @timeEvent="logTime" :proptimes="timeslots" ></TimeSlotsComponent></div>
+    <div id="time-confirmed">Time confirmed</div>
     <div><img src="../assets/ex-sign.png" id="ex-sign-bookings" v-on:click="disappearEx()"/></div>
 </template>
 
 <style>
     .calendar-container {
         width: 99.4%;
-        border: red solid 1px;
+        border: rgb(120, 255, 36) solid 1px;
         background-color: rgb(100, 100, 100);
 
     }
@@ -63,7 +64,7 @@
     }
 
     .date:nth-child(7n) {
-          color: #D43541;
+          color: rgb(120, 255, 36);
     }
 
     .dates {
@@ -77,7 +78,7 @@
       }
     
     .day-hidden:nth-child(7n) {
-          color: #D43541;
+          color: rgb(120, 255, 36);
     }
 
       
@@ -89,9 +90,31 @@
         display: none;
     }
 
+    #time-confirmed {
+        display: none;
+        background-color: rgb(100, 100, 100);
+        color: white;
+        padding: 10px;
+        position: absolute;
+        top: 80%;
+        right: 35%;
+        z-index: 1;
+        border: solid rgb(100, 100, 100) 1px;
+        border-radius: 15px;
+
+        animation-name: fadeOut;
+        animation-duration: 3s;
+
+    }
+
+    @keyframes fadeOut {
+        from {display: block;}
+        to {display: none;}
+      }
+
     #results {
       display: none;
-      border: solid 1px red;
+      border: solid 1px rgb(120, 255, 36);
       background-color: grey;
       padding: 5px;
       position: relative;
@@ -115,6 +138,7 @@
 
 <script>
     import axios from 'axios';
+// import { resolve } from 'path';
     import TimeSlotsComponent from './TimeSlotsComponent.vue';
     export default {
     data: function () {
@@ -146,6 +170,7 @@
             },
             bookedDates: null,
             timeslots: [],
+            fullDate: ""
         };
     },
     props: ["propdates"],
@@ -194,52 +219,65 @@
             }
             let year = this.currentDate.year;
             let fullDate = year + "-" + month + "-" + date;
+            this.fullDate = fullDate
             const queryDate = {
                 date: fullDate,
             };
             
-            axios
-                .post("/getDateFlight", queryDate)
-                .then((response) => {
-                const data = response.data;
-                console.log("FETCHED FLIGHTS FOR THIS DATE: ", data);
-                if (data.length === 0) {
-                    this.bookedDates = "Available";
-                }
-                else {
-                    const myArray = data.split(",");
-                    var datesDisplay = null;
-                    var item;
-                    var timeList = [];
-                    for (item in myArray) {
-                        console.log("\nitem:" + typeof item + "\tdatesDisplay:" + datesDisplay);
-                        if (item === "0") {
-                            datesDisplay = myArray[item] + "\n";
-                        }
-                        else {
+            // axios
+            //     .post("/getDateFlight", queryDate)
+            //     // query will fetch all flights on this date and checks which one has timestamps at this time and has coords within a certain radius
+            //     // might need to move the timeslot selector to after the route has been calculated
+            //     .then((response) => {
+            //     const data = response.data;
+            //     console.log("FETCHED FLIGHTS FOR THIS DATE: ", data);
+            //     if (data.length === 0) {
+            //         this.bookedDates = "Available";
+            //     }
+            //     else {
+            //         const myArray = data.split(",");
+            //         var datesDisplay = null;
+            //         var item;
+            //         var timeList = [];
+            //         for (item in myArray) {
+            //             console.log("\nitem:" + typeof item + "\tdatesDisplay:" + datesDisplay);
+            //             if (item === "0") {
+            //                 datesDisplay = myArray[item] + "\n";
+            //             }
+            //             else {
 
-                            datesDisplay = datesDisplay + "\n" + myArray[item];
-                            console.log("typeof:", typeof myArray[item])
-                            if (myArray[item] !== "") {
-                              var time = myArray[item].slice(0,5)
-                              timeList.push(time)
-                            }
-                        }
-                    }
-                    this.timeslots = timeList
-                    this.bookedDates = datesDisplay;
-                }
+            //                 datesDisplay = datesDisplay + "\n" + myArray[item];
+            //                 console.log("typeof:", typeof myArray[item])
+            //                 if (myArray[item] !== "") {
+            //                   var time = myArray[item].slice(0,5)
+            //                   timeList.push(time)
+            //                 }
+            //             }
+            //         }
+            //         this.timeslots = timeList
+            //         this.bookedDates = datesDisplay;
+            //     }
                 
-                // var times = document.getElementById("results");
-                // times.style.display = "block";
-                var t = document.getElementById('ts')
-                t.style.display = 'block'
-                var e = document.getElementById("ex-sign-bookings")
-                e.style.display = "block";
+            //     // var times = document.getElementById("results");
+            //     // times.style.display = "block";
+            //     var t = document.getElementById('ts')
+            //     t.style.display = 'block'
+            //     var e = document.getElementById("ex-sign-bookings")
+            //     e.style.display = "block";
+            // })
+            //     .catch(function (error) {
+            //     console.log("ERROR:", error);
+            // });
+            axios 
+            .post("/getFlightsWithinRadius", queryDate)
+            .then((response) => {
+                //store flight date in each flight segment
+                console.log(response)
             })
-                .catch(function (error) {
-                console.log("ERROR:", error);
-            });
+            var t = document.getElementById('ts')
+            t.style.display = 'block'
+            var e = document.getElementById("ex-sign-bookings")
+            e.style.display = "block";
         },
         disappearEx() {
             var t = document.getElementById("ts");
@@ -249,6 +287,11 @@
         },
         logTime(t) {
             console.log("Received in parent-->", t)
+            t = this.fullDate + "," + String(t)
+            this.$emit('selectedTimeEvent', t)
+
+            // var c = document.getElementById("time-confirmed")
+            // c.style.display = "block"
         }
     },
     computed: {

@@ -70,6 +70,7 @@ type Drone struct {
 type SegmentedFlightData struct {
 	SegmentedTimes []interface{} `json:"segmentTimes"`
 	SegmentedList  []interface{} `json:"segmentList"`
+	Date           string        `json:"date"`
 	ID             string        `json:"id"`
 }
 
@@ -566,7 +567,7 @@ func storeSegmentedFlight(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	gridDoc := bson.D{{"id", d.ID}, {"segments", slist}}
+	gridDoc := bson.D{{"id", d.ID}, {"date", d.Date}, {"segments", slist}, {"times", timesList}}
 	err = insertDB(context.TODO(), client, gridDoc, "segmentedFlight")
 	fmt.Printf("\nERROR-->\n", err)
 
@@ -579,6 +580,26 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Println("BODY:", string(body))
 
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		panic(err)
+	}
+
+	var queryDate QueryDate
+	err = json.Unmarshal(body, &queryDate)
+	fmt.Printf("UNMARSHAL--->%v", queryDate)
+
+	ctx := context.TODO()
+	usersCollection := client.Database("fyp_test").Collection("segmentedFlight")
+	filter := bson.D{{"date", bson.D{{"$eq", queryDate.Date}}}}
+
+	result, err := usersCollection.Find(ctx, filter)
+	var results []bson.M
+	if err = result.All(context.TODO(), &results); err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("\n'%v' matching docs found\n", len(results))
 }
 
 func getUsername(w http.ResponseWriter, r *http.Request) {
