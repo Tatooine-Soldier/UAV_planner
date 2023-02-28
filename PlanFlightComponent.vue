@@ -3,6 +3,7 @@
 import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
 import MyCalendarComponent from "../components/MyCalendarComponent.vue";
 import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
+import LoaderComponent from "@/components/LoaderComponent.vue";
 //import FinalGoogleMapComponentVue from "@/components/FinalGoogleMapComponent.vue";
 //   const props = defineProps(['title'])
 </script>
@@ -11,6 +12,7 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
     <section class="flight-planner" id="flight-planner">
             <!-- <form action="/planner" method="post"> -->
         <form @submit.prevent="handleSubmit()">
+            <section id="loadingScreen"><LoaderComponent></LoaderComponent></section>
             <section class="flight-details-container" id="flight-details-container">
                 <section class="flight-details" id="flight-details">
                     <section class="flight-details-content">
@@ -28,13 +30,59 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
                     </section>
                 </section>
             </section>
+
             <section id="details-map-container">
                 <!-- <MyGoogleMapComponent @someEvent="logme" :propspeed="time"></MyGoogleMapComponent> -->
                 <!-- <SpeedSelectorComponent @speedEvent="logspeed"></SpeedSelectorComponent> -->
             </section>
             <section id="final-map-container">
-                <FinalGoogleMapComponent :propcoords="coords" :propspeed="speed" :propdate="date" :propway="waypoints" :key="componentKey"></FinalGoogleMapComponent>
+                <FinalGoogleMapComponent @loadedMap="logLoaded" :propcoords="coords" :propspeed="speed" :propdate="date" :propway="waypoints" :propEndTime="endTime" :propDuration="duration" :propID="flightID" :key="componentKey"></FinalGoogleMapComponent>
             </section>
+            
+            <section id="calendar-display-afterwards" >
+                <section class="time-selection">
+                    <div>
+                        <label for="hour">Select hour: </label>
+                        <select id="hour" name="hour" v-model="date.hour">
+                            <option value="00">00</option>
+                            <option value="01">01</option>
+                            <option value="02">02</option>
+                            <option value="03">03</option>
+                            <option value="04">04</option>
+                            <option value="05">05</option>
+                            <option value="06">06</option>
+                            <option value="07">07</option>
+                            <option value="08">08</option>
+                            <option value="09">09</option>
+                            <option value="10">10</option>
+                            <option value="11">11</option>
+                            <option value="12">12</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="minute">Select minute: </label>
+                        <select id="minute" name="minute" v-model="date.minute">
+                            <option value="00">00</option>
+                            <option value="15">15</option>
+                            <option value="30">30</option>
+                            <option value="45">45</option>
+                        </select>
+                    </div>
+                    <div id="last-div">
+                        <label for="day">Select day: </label>
+                        <input type="date" name="date" v-model="date.day"/>
+                    </div>
+                </section>
+                <section>
+                    <div class="check-time-db" @click="getDates()">Check availablility</div>
+                    <!-- <button>Add</button> -->
+                    <MyCalendarComponent @selectedTimeEvent="logTime" :propdates="bookedDates" :propID="flightID"></MyCalendarComponent>
+                </section>
+                <section>
+                    <input type="button" @click="getDates()" value="Confirm"/>
+                </section>
+            </section>
+
             <section class="waypoint-submit-container" id="waypoint-container">
                 Enter desired waypoints:
                 <section>
@@ -507,6 +555,18 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
         padding: 10px;
     }
 
+    #calendar-display-afterwards {
+        position: absolute;
+        display: none;
+        z-index: 1;
+        top: 20%;
+        left: 10%;
+        right: 10%;
+        background-color: grey;
+        border: solid 1px grey;
+    }
+
+
     #details-map-container {
         position: absolute;
         display: none;
@@ -586,6 +646,17 @@ import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
     .map-conatiner {
         z-index: 1;
     }
+
+    #loadingScreen {
+        display: none;
+        height: 100%;
+        width: 100%;
+        text-align: center;
+        font-size: 60pt;
+        color: white;
+        padding-top: 20%;
+        margin-top: 1%;
+    }
   
 
 </style>
@@ -631,7 +702,10 @@ export default {
         orientation: '',
         time: 0,
         displayCounter: 0,
-        endTime: "00"
+        endTime: "00",
+        duration: 0,
+        flightID: "",
+        loadedFMap: false,
       }
     },
     props: ['propsettings'],
@@ -666,7 +740,13 @@ export default {
         } 
         console.log("waypoints:", this.$refs.mywaylng.value, this.$refs.mywaylat.value)
 
-       
+        // var myTime =  this.hour +"-"+this.minute
+        // var input_date = new Date(this.date)
+        // input_date.setMinutes(input_date.getMinutes())
+
+
+
+
         // var details = document.getElementById('flight-details-container');
         // details.style.display = 'block';
 
@@ -736,13 +816,33 @@ export default {
         ex.style.display = "none"
       },
       showFinalMap() {
+        var tl = this.date.day + " " + this.date.hour +":"+this.date.minute+":"+"00" 
+        console.log("full date--> ", tl)
+        var duration = Math.round(this.duration*60)
+        console.log("DURATION", duration) //duration in minutes
         
+        let input_date_str = tl;
+        let input_date = new Date(input_date_str);  
+        console.log("input_date-->", input_date)
+        input_date.setMinutes(input_date.getMinutes() + duration)
+
+        let options = {year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false};
+        let result_date_str = input_date.toLocaleString("en-US", options);
+        console.log("ENDTIME RESULT: ", result_date_str);
+        this.endTime = result_date_str
+        
+        let max = 100000
+        let min = 1
+        const randomInteger = (Math.floor(Math.random() * (max - min + 1)) + min).toString();
+        this.flightID = randomInteger
+
         const drone  = {
             name: this.droneSpec.name,
             model: this.droneSpec.model,
             weight: this.droneSpec.weight
         }
         const flight = { 
+            id: randomInteger,
             srclat: this.coords.sourcelatitude, 
             srclng: this.coords.sourcelongitude, 
             destlat: this.coords.destlatitude, 
@@ -759,6 +859,8 @@ export default {
             drone: drone
         }
         console.log("FLIGHT---> ", flight)
+
+
         //this needs to be in a seperate function. 
         //if user selects "confirm", call this function
         axios
@@ -771,12 +873,23 @@ export default {
             console.log("ERROR:", error);    
         })
 
-        var map = document.getElementById("final-map-container")
-        map.style.display = "block"
-        var con = document.getElementById("ex-sign")
-        con.style.display = "block"
-        var details = document.getElementById('flight-details');
-        details.style.display = 'None';
+
+        // * COMMENTED OUT DO THAT THE FINAL MAP DOESNT APPEAR EXACTLY AFTER PRESSING SUBMIT, SHOW CALENDAR FIRST **
+
+        // var map = document.getElementById("final-map-container")
+        // map.style.display = "block"
+        // var con = document.getElementById("ex-sign")
+        // con.style.display = "block"
+        // var details = document.getElementById('flight-details');
+        // details.style.display = 'None';
+        var c = document.getElementById("splitContainer")
+        c.style.display = "none"
+        var m = document.getElementById("flight-details-container")
+        m.style.display = "none"
+        var footer = document.getElementById("footerApp")
+        footer.style.display = "none"
+        var f = document.getElementById("loadingScreen")
+        f.style.display = "block"
         this.forceRenderer();
       },
       lowInfo() {
@@ -799,7 +912,7 @@ export default {
             i ++;
         }
       }, 
-      logme({c, d, distance, w, t}) { // data received from map component 
+      logme({c, d, distance, w, t, r}) { // data received from map component 
         console.log("RECEIVED IN PARENT",c.lat, c.lng, d.lat, d.lng, t);
         this.$refs.mysourcelat.value = c.lat.toString();
         this.$refs.mysourcelong.value = c.lng.toString();
@@ -809,6 +922,8 @@ export default {
         this.$refs.mywaylng.value =  w.lng.toString();
 
         this.distance = distance;
+        this.duration = r
+        console.log("\nRAW TIME \n", r)
 
         var end =  ""
         console.log(t.length)
@@ -829,12 +944,16 @@ export default {
             end = end+":"+endF
         }
         console.log("END===>", end)
-        this.endTime = end
+       
 
         var map = document.getElementById("details-map-container")
         map.style.display = "none"
         var con = document.getElementById("ex-sign")
         con.style.display = "none"
+      },
+      logLoaded() {
+        this.loadedFMap = true
+        console.log("LOADED FMAP IN PLANNER")
       },
       logspeed(c) {
         this.time = c
@@ -842,14 +961,25 @@ export default {
         s.value = c
       },
       logTime(t) {
-        console.log("Received fulltime: ", t)
-        var arr =  t.split(",")
-        this.date.day = arr[0]
-        var time =  arr[1]
-        var hour =  time.slice(0,2)
-        this.date.hour = hour
-        var minute = time.slice(3,5)
-        this.date.minute = minute
+        console.log("Received fulltime: ", t, "len(fulltime)", t.length)
+        if (t.length > 15) {
+            var arr =  t.split(",")
+            this.date.day = arr[0]
+            var time =  arr[1]
+            var hour =  time.slice(0,2)
+            this.date.hour = hour
+            var minute = time.slice(3,5)
+            this.date.minute = minute
+        } else {
+            arr =  t.split(",")
+            this.date.day = arr[0]
+            this.date.day =  this.date.day.slice(0,8) + "0" + this.date.day.slice(8,9)
+            time =  arr[1]
+            hour =  time.slice(0,2)
+            this.date.hour = hour
+            minute = time.slice(3,5)
+            this.date.minute = minute
+        }
         console.log("this.date", this.date)
 
         //console.log("hour + minute", hour, minute)
