@@ -170,10 +170,11 @@
             },
             bookedDates: null,
             timeslots: [],
-            fullDate: ""
+            fullDate: "",
+            flightID: ""
         };
     },
-    props: ["propdates"],
+    props: ["propdates", "propID"],
     methods: {
         getCurrentDate() {
             let today = new Date();
@@ -220,8 +221,18 @@
             let year = this.currentDate.year;
             let fullDate = year + "-" + month + "-" + date;
             this.fullDate = fullDate
+
+            this.flightID = this.propID
+            console.log("propID-->", this.flightID)
+            console.log("", this.fullDate.length)
+    
+            if (this.fullDate.length === 9) {
+                this.fullDate = this.fullDate.slice(0,8) + "0" +  this.fullDate.slice(8,9)
+            }
+
             const queryDate = {
-                date: fullDate,
+                date: this.fullDate,
+                id: this.flightID //handle this in backend
             };
             
             // axios
