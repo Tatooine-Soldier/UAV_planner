@@ -711,12 +711,17 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 			if checkCoordinatesRadius(g, val) {
 				t := intendedFlight.Times
 				fmt.Printf("\nReturned True\n")
-				checkTimeCollisions(t, val) {
-
+				for _, intendedTime := range t {
+					if checkTimeCollisions(intendedTime, val) {
+						fmt.Printf("COLLISION POSSIBLE ON THIS PATH AT THIS TIME!")
+					}
 				}
+			} else {
+				fmt.Printf("NO COLLISIONS PREDICTED!")
 			}
 		}
 	}
+
 }
 
 //returns true if one of the reserved coordinates is within 120m of one of the indended coordinate
@@ -771,8 +776,17 @@ func calculateCoordDistance(lat1 float64, lng1 float64, lat2 float64, lng2 float
 	return dist
 }
 
-
-
+//need to convert the string times into actual time objects and see if theres a collision 5 minutes on either side(before and after)
+func checkTimeCollisions(intendedTime string, reserved FlightSegmented) bool {
+	reservedTimes := reserved.Times
+	for _, time := range reservedTimes {
+		if time == intendedTime {
+			fmt.Printf("Collision at this time: %v %v", time, intendedTime)
+			return true
+		}
+	}
+	return false
+}
 
 func dateTimeCheck(hour string, minute string) {
 	if len(minute) < 2 {
