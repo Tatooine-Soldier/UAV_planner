@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 	"strconv"
 	"text/template"
@@ -675,6 +676,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 
 	var intendedTimesList []string
 	var intendedCoordsList []Coordinate
+	var intendedFlight FlightSegmented
 	for _, d := range resultsIntendedFlight {
 		//fmt.Printf("MATCHING DOC: %v\n", d)
 		t := d["times"]
@@ -693,7 +695,6 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 			intendedCoordsList = append(intendedCoordsList, c)
 		}
 
-		var intendedFlight FlightSegmented
 		intendedFlight.Id = d["id"].(string)
 		intendedFlight.Coordinates = intendedCoordsList
 		intendedFlight.Times = intendedTimesList
@@ -702,9 +703,76 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//##########################################################################################################################
-	//Now loop through both times lists
+	//For each segmented coordinate of intended flight, check all other segmented flights coordinates to see if one is within 120m
+	//If a reserved flight has a coordinate within 120m of a intended flight coordinate, check what time both those coordinates are within that distance at
+	for i := 0; i < len(intendedFlight.Coordinates); i++ {
+		for _, val := range reservedFlightsOnThisDate {
+			g := intendedFlight.Coordinates[i]
+			if checkCoordinatesRadius(g, val) {
+				t := intendedFlight.Times
+				fmt.Printf("\nReturned True\n")
+				checkTimeCollisions(t, val) {
 
+				}
+			}
+		}
+	}
 }
+
+//returns true if one of the reserved coordinates is within 120m of one of the indended coordinate
+func checkCoordinatesRadius(intended Coordinate, reserved FlightSegmented) bool {
+	intendedLat, err := strconv.ParseFloat(intended.Latitude, 64)
+	if err != nil {
+		fmt.Println("can't convert")
+	}
+	intendedLng, err := strconv.ParseFloat(intended.Longitude, 64)
+	if err == nil {
+		fmt.Println("can't convert")
+	}
+	for _, flightCoord := range reserved.Coordinates {
+		reservedLat, err := strconv.ParseFloat(flightCoord.Latitude, 64)
+		if err == nil {
+			fmt.Println("can't convert")
+		}
+		reservedLng, err := strconv.ParseFloat(flightCoord.Longitude, 64)
+		if err == nil {
+			fmt.Println("can't convert")
+		}
+		if calculateCoordDistance(intendedLat, intendedLng, reservedLat, reservedLng) < .120 { //if two coordinates are within 120 metres of eachother
+			fmt.Printf("\nReturned True for these values (%v %v)\t(%v %v) \n", intendedLat, intendedLng, reservedLat, reservedLng)
+			return true
+		}
+	}
+	return false
+}
+
+// *THIS FUNCTION IS FREELY AVAILABLE AND HAS BEEN TAKEN FROM https://www.geodatasource.com/developers/go	*
+func calculateCoordDistance(lat1 float64, lng1 float64, lat2 float64, lng2 float64) float64 {
+	const PI float64 = 3.141592653589793
+
+	radlat1 := float64(PI * lat1 / 180)
+	radlat2 := float64(PI * lat2 / 180)
+
+	theta := float64(lng1 - lng2)
+	radtheta := float64(PI * theta / 180)
+
+	dist := math.Sin(radlat1)*math.Sin(radlat2) + math.Cos(radlat1)*math.Cos(radlat2)*math.Cos(radtheta)
+
+	if dist > 1 {
+		dist = 1
+	}
+
+	dist = math.Acos(dist)
+	dist = dist * 180 / PI
+	dist = dist * 60 * 1.1515
+	dist = dist * 1.609344 //Convert to km
+
+	fmt.Printf("\nDist: %v\n", dist)
+	return dist
+}
+
+
+
 
 func dateTimeCheck(hour string, minute string) {
 	if len(minute) < 2 {
