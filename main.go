@@ -74,6 +74,11 @@ type SegmentedFlightData struct {
 	ID             string        `json:"id"`
 }
 
+type TimeComparisonObj struct {
+	SegmentedTimes  []string
+	SegmentedCoords []Coordinate
+}
+
 type GridofCoordinates struct {
 	Coordinates []interface{} `json:"coordinates"`
 }
@@ -95,8 +100,15 @@ type TimeRecord struct {
 	Minute string `json:"minute"`
 }
 
+type FlightSegmented struct {
+	Id          string
+	Coordinates []Coordinate
+	Times       []string
+}
+
 type QueryDate struct {
 	Date string `json:"date"`
+	ID   string `json:"id"`
 }
 
 type ResponseData struct {
@@ -589,17 +601,106 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(body, &queryDate)
 	fmt.Printf("UNMARSHAL--->%v", queryDate)
 
+	//Query data and id are passed into the function, query date is used to find all other flights(segmented) that occur on this date
+	//#############################################################################################################################
+	//THIS SECTION FOCUSES ON SEGMENTED FLIGHTS ALREADY IN THE DATABASE FOR THIS DATE WHICH I WILL BE COMPARING AGAINST
 	ctx := context.TODO()
 	usersCollection := client.Database("fyp_test").Collection("segmentedFlight")
-	filter := bson.D{{"date", bson.D{{"$eq", queryDate.Date}}}}
+	filterForAllFlights := bson.D{{"date", bson.D{{"$eq", queryDate.Date}}}}
 
-	result, err := usersCollection.Find(ctx, filter)
+	result, err := usersCollection.Find(ctx, filterForAllFlights)
 	var results []bson.M
 	if err = result.All(context.TODO(), &results); err != nil {
 		panic(err)
 	}
 
 	fmt.Printf("\n'%v' matching docs found\n", len(results))
+	if len(results) == 0 {
+		fmt.Fprintf(w, "ALL AVAILABLE")
+	}
+
+	var segs interface{} // for the dates
+	var times interface{}
+	var reservedFlightsOnThisDate []FlightSegmented
+	// var totalList []FlightSegmented
+	//var coordStringList []string
+	//mapCoordinates := make(map[string][]Coordinate)
+
+	for _, doc := range results {
+		var timesStringList []string
+		var coordStringList []Coordinate
+		fmt.Printf("\ndoc:===:=== %v", doc)
+		times = doc["times"]
+		for _, x := range times.(primitive.A) {
+			f := x.(primitive.M)
+			fmt.Printf("\n%v %v %v\n", f["hour"], f["id"], f["minute"])
+			var timeStr = f["hour"].(string) + ":" + f["minute"].(string)
+			timesStringList = append(timesStringList, timeStr)
+		}
+		segs = doc["segments"]
+		for _, y := range segs.(primitive.A) {
+			f := y.(primitive.M)
+			fmt.Printf("\n%v %v %v\n", f["id"], f["latitude"], f["longitude"])
+			var c Coordinate
+			c.Id = f["id"].(string)
+			c.Latitude = f["latitude"].(string)
+			c.Longitude = f["longitude"].(string)
+			coordStringList = append(coordStringList, c)
+			// var timeStr = f["hour"].(string) + ":" + f["minute"].(string)
+			// timesStringList = append(timesStringList, timeStr)
+		}
+		var c FlightSegmented
+		c.Id = doc["id"].(string)
+		c.Coordinates = coordStringList
+		c.Times = timesStringList
+		reservedFlightsOnThisDate = append(reservedFlightsOnThisDate, c)
+		// fmt.Printf("\ntimes per flight-->%v\n", timesStringList)
+		// fmt.Printf("\ncoords per flight-->%v\n", coordStringList)
+		//loop for same index length(both lists have same length) and create an object eg. key is time and value is coordinate. Then stick these in a new list
+	}
+	//fmt.Printf("\ntimes-->%v\n", timesStringList) //all times that a uav is within the grid on this date
+	fmt.Printf("LISTED RESERVED ALREADY --> %v", reservedFlightsOnThisDate)
+
+	//################################################################################################################################
+	//THIS SECTION BELOW FOCUSES ON THE INTENDED FLIGHT DATA, GETS THE INTENDED FLIGHT
+	filterIntendedFlight := bson.D{{"id", bson.D{{"$eq", queryDate.ID}}}}
+	resultIntendedFlight, err := usersCollection.Find(ctx, filterIntendedFlight)
+	var resultsIntendedFlight []bson.M
+	if err = resultIntendedFlight.All(context.TODO(), &resultsIntendedFlight); err != nil {
+		panic(err)
+	}
+
+	var intendedTimesList []string
+	var intendedCoordsList []Coordinate
+	for _, d := range resultsIntendedFlight {
+		fmt.Printf("MATCHING DOC: %v\n", d)
+		t := d["times"]
+		for _, a := range (t).(primitive.A) {
+			f := a.(primitive.M)
+			var timeStr = f["hour"].(string) + ":" + f["minute"].(string)
+			intendedTimesList = append(intendedTimesList, timeStr)
+		}
+		s := d["segments"]
+		for _, b := range (s).(primitive.A) {
+			f := b.(primitive.M)
+			var c Coordinate
+			c.Id = f["id"].(string)
+			c.Latitude = f["latitude"].(string)
+			c.Longitude = f["longitude"].(string)
+			intendedCoordsList = append(intendedCoordsList, c)
+		}
+	}
+
+	//##########################################################################################################################
+	//Now loop through both times lists
+
+}
+
+func dateTimeCheck(hour string, minute string) {
+	if len(minute) < 2 {
+		minute = "0" + minute
+	}
+
 }
 
 func getUsername(w http.ResponseWriter, r *http.Request) {
