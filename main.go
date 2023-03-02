@@ -633,14 +633,14 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 		times = doc["times"]
 		for _, x := range times.(primitive.A) {
 			f := x.(primitive.M)
-			fmt.Printf("\n%v %v %v\n", f["hour"], f["id"], f["minute"])
+			//fmt.Printf("\n%v %v %v\n", f["hour"], f["id"], f["minute"])
 			var timeStr = f["hour"].(string) + ":" + f["minute"].(string)
 			timesStringList = append(timesStringList, timeStr)
 		}
 		segs = doc["segments"]
 		for _, y := range segs.(primitive.A) {
 			f := y.(primitive.M)
-			fmt.Printf("\n%v %v %v\n", f["id"], f["latitude"], f["longitude"])
+			//fmt.Printf("\n%v %v %v\n", f["id"], f["latitude"], f["longitude"])
 			var c Coordinate
 			c.Id = f["id"].(string)
 			c.Latitude = f["latitude"].(string)
@@ -658,8 +658,11 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 		// fmt.Printf("\ncoords per flight-->%v\n", coordStringList)
 		//loop for same index length(both lists have same length) and create an object eg. key is time and value is coordinate. Then stick these in a new list
 	}
-	//fmt.Printf("\ntimes-->%v\n", timesStringList) //all times that a uav is within the grid on this date
-	fmt.Printf("LISTED RESERVED ALREADY --> %v", reservedFlightsOnThisDate)
+
+	for _, n := range reservedFlightsOnThisDate { //list of FlightSegmented structs{id, []Coordinate, []string}
+		fmt.Printf("\n--> n: %v", n)
+	}
+	// i loop through reserved flights, check if the starting time(1st eleemtn in .times is in the intended time-->if not then move on to next flight else check coordinates)
 
 	//################################################################################################################################
 	//THIS SECTION BELOW FOCUSES ON THE INTENDED FLIGHT DATA, GETS THE INTENDED FLIGHT
@@ -673,7 +676,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	var intendedTimesList []string
 	var intendedCoordsList []Coordinate
 	for _, d := range resultsIntendedFlight {
-		fmt.Printf("MATCHING DOC: %v\n", d)
+		//fmt.Printf("MATCHING DOC: %v\n", d)
 		t := d["times"]
 		for _, a := range (t).(primitive.A) {
 			f := a.(primitive.M)
@@ -689,6 +692,13 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 			c.Longitude = f["longitude"].(string)
 			intendedCoordsList = append(intendedCoordsList, c)
 		}
+
+		var intendedFlight FlightSegmented
+		intendedFlight.Id = d["id"].(string)
+		intendedFlight.Coordinates = intendedCoordsList
+		intendedFlight.Times = intendedTimesList
+		fmt.Printf("\nIntended Object-->%v", intendedFlight)
+
 	}
 
 	//##########################################################################################################################
