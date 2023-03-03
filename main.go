@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strconv"
 	"text/template"
+	"time"
 
 	"crypto/sha256"
 
@@ -559,6 +560,7 @@ func storeSegmentedFlight(w http.ResponseWriter, r *http.Request) {
 
 		slist = append(slist, coord)
 	}
+	slist = reverseSegments(slist)
 
 	timesList := []TimeRecord{}
 	for _, val := range d.SegmentedTimes {
@@ -708,30 +710,46 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	//##########################################################################################################################
 	//For each segmented coordinate of intended flight, check all other segmented flights coordinates to see if one is within 120m
 	//If a reserved flight has a coordinate within 120m of a intended flight coordinate, check what time both those coordinates are within that distance at
+	var unavailableTimes []string
 	for i := 0; i < len(intendedFlight.Coordinates); i++ {
 		for _, val := range reservedFlightsOnThisDate {
 			if intendedFlight.Id != val.Id {
 				g := intendedFlight.Coordinates[i]
-				if checkCoordinatesRadius(g, val) {
-					t := intendedFlight.Times
-					fmt.Printf("\nReturned True\n")
-					for _, intendedTime := range t {
-						if checkTimeCollisions(intendedTime, val) {
-							fmt.Printf("COLLISION POSSIBLE ON THIS PATH AT THIS TIME! Between flights  %v and %v\n", val.Id, intendedFlight.Id)
-							return
-						}
+				ifCollisions := checkCoordinatesRadius(g, val) //index, times at which coordinate collisions should occur
+				if ifCollisions != 0.0 {
+					//old way using the intended dlights time only
+					collisionTimeOfIntendedFlight := intendedFlight.Times[i]
+					collisionTimeOfResrvedFlight := val.Times[ifCollisions]
+					if checkTimeCollisions(collisionTimeOfIntendedFlight, collisionTimeOfResrvedFlight, intendedFlight.Date) {
+						unavailableTimes = append(unavailableTimes, collisionTimeOfIntendedFlight)
+						fmt.Printf("POSSIBLE COLLISION AT THIS TIME %v", intendedFlight.Times[ifCollisions])
+
+					} else {
+						fmt.Printf("Coordinate collision but no time collison")
 					}
+					//check if these times are within a certain range, as these will be the times that both flights are at this coordinate
+
+					// t := intendedFlight.Times
+					// fmt.Printf("\nReturned True\n")
+					// for _, intendedTime := range t {
+					// 	if checkTimeCollisions(intendedTime, val) {
+					// 		fmt.Printf("COLLISION POSSIBLE ON THIS PATH AT THIS TIME! Between flights  %v and %v\n", val.Id, intendedFlight.Id)
+					// 		unavailableTimes = append(unavailableTimes, intendedTime)
+					// 		return
+					// 	}
+					// }
 				} else {
 					fmt.Printf("NO COLLISIONS PREDICTED!")
 				}
 			}
 		}
 	}
+	fmt.Printf("Collision times--> %v", unavailableTimes)
 
 }
 
 //returns true if one of the reserved coordinates is within 120m of one of the indended coordinate
-func checkCoordinatesRadius(intended Coordinate, reserved FlightSegmented) bool {
+func checkCoordinatesRadius(intended Coordinate, reserved FlightSegmented) int {
 	intendedLat, err := strconv.ParseFloat(intended.Latitude, 64)
 	if err != nil {
 		fmt.Println("can't convert")
@@ -740,7 +758,7 @@ func checkCoordinatesRadius(intended Coordinate, reserved FlightSegmented) bool 
 	if err != nil {
 		fmt.Println("can't convert")
 	}
-	for _, flightCoord := range reserved.Coordinates {
+	for j, flightCoord := range reserved.Coordinates {
 		reservedLat, err := strconv.ParseFloat(flightCoord.Latitude, 64)
 		if err != nil {
 			fmt.Println("can't convert")
@@ -750,11 +768,12 @@ func checkCoordinatesRadius(intended Coordinate, reserved FlightSegmented) bool 
 			fmt.Println("can't convert")
 		}
 		if calculateCoordDistance(intendedLat, intendedLng, reservedLat, reservedLng) < .120 { //if two coordinates are within 120 metres of eachother
-			fmt.Printf("\nReturned True for these values (%v %v)\t(%v %v) \n", intendedLat, intendedLng, reservedLat, reservedLng)
-			return true
+			fmt.Printf("\n\nReturned True for these values (%v %v)\t(%v %v) \n", intendedLat, intendedLng, reservedLat, reservedLng)
+			return j //return time that the collision occured at
+
 		}
 	}
-	return false
+	return 0.0
 }
 
 // *THIS FUNCTION IS FREELY AVAILABLE AND HAS BEEN TAKEN FROM https://www.geodatasource.com/developers/go	*
@@ -778,20 +797,64 @@ func calculateCoordDistance(lat1 float64, lng1 float64, lat2 float64, lng2 float
 	dist = dist * 60 * 1.1515
 	dist = dist * 1.609344 //Convert to km
 
-	fmt.Printf("\nDist: %v\n", dist)
+	//fmt.Printf("\nDist: %v\n", dist)
 	return dist
 }
 
 //need to convert the string times into actual time objects and see if theres a collision 5 minutes on either side(before and after)
-func checkTimeCollisions(intendedTime string, reserved FlightSegmented) bool {
-	reservedTimes := reserved.Times
-	for _, time := range reservedTimes {
-		if time == intendedTime {
-			fmt.Printf("Collision at this time: %v %v", time, intendedTime)
-			return true
-		}
+func checkTimeCollisions(intendedTime string, reservedTime string, date string) bool {
+	//need to add "0" before time with only one minute digit
+	if len(intendedTime) < 5 {
+		intendedTime = intendedTime[0:3] + "0" + intendedTime[3:4]
 	}
+	if len(reservedTime) < 5 {
+		reservedTime = reservedTime[0:3] + "0" + reservedTime[3:4]
+	}
+
+	fullIntended := date + " " + intendedTime + ":00"
+	layout := "2006-01-02 15:04:05" // Example layout string
+	t, err := time.Parse(layout, fullIntended)
+	if err != nil {
+		fmt.Println("Error parsing time:", err)
+	}
+	intendedEpochTime := t.Unix()
+	// fiveMinutesBefore := (intendedEpochTime - 5*60*1000)
+	// fiveMinutesAfter := (intendedEpochTime + 5*60*1000)
+
+	fullReserved := date + " " + reservedTime + ":00"
+	f, err := time.Parse(layout, fullReserved)
+	if err != nil {
+		fmt.Println("Error parsing time:", err)
+	}
+	reservedEpochTime := f.Unix()
+
+	fmt.Printf("Checking %v %v", fullIntended, fullReserved)
+
+	//check if UAV passes through this coordinate five five minutes befor or after the intended flight, this ensures no collision if there is an unexpected delay
+	if math.Abs(float64(reservedEpochTime-intendedEpochTime)) < 245 {
+		fmt.Printf("Gap ahead of 5 minutes %v %v %v\n", reservedTime, intendedTime, math.Abs(float64(reservedEpochTime-intendedEpochTime)))
+		return true
+	}
+	if math.Abs(float64(intendedEpochTime-reservedEpochTime)) < 245 {
+		fmt.Printf("Gap behind of 5 minutes %v %v %v\n", reservedTime, intendedTime, math.Abs(float64(intendedEpochTime-reservedEpochTime)))
+		return true
+	}
+
+	if intendedTime == reservedTime { //need to expand this 5 minutes either side(before and after)
+		return true
+	}
+
+	fmt.Printf("\nNO TIME COLLISION --> %v\n", math.Abs(float64(reservedEpochTime-intendedEpochTime)))
 	return false
+
+	// reservedTimes := reserved.Times
+	// for _, time := range reservedTimes {
+	// 	if time == intendedTime {
+	// 		fmt.Printf("Collision at this time: %v %v", time, intendedTime)
+	// 		return true
+	// 	}
+	// }
+	// return false
 }
 
 func dateTimeCheck(hour string, minute string) {
@@ -799,6 +862,13 @@ func dateTimeCheck(hour string, minute string) {
 		minute = "0" + minute
 	}
 
+}
+
+func reverseSegments(s []Coordinate) []Coordinate {
+	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+		s[i], s[j] = s[j], s[i]
+	}
+	return s
 }
 
 func getUsername(w http.ResponseWriter, r *http.Request) {
