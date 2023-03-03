@@ -103,6 +103,7 @@ type TimeRecord struct {
 
 type FlightSegmented struct {
 	Id          string
+	Date        string
 	Coordinates []Coordinate
 	Times       []string
 }
@@ -652,6 +653,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 		}
 		var c FlightSegmented
 		c.Id = doc["id"].(string)
+		c.Date = doc["date"].(string)
 		c.Coordinates = coordStringList
 		c.Times = timesStringList
 		reservedFlightsOnThisDate = append(reservedFlightsOnThisDate, c)
@@ -696,6 +698,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 		}
 
 		intendedFlight.Id = d["id"].(string)
+		intendedFlight.Date = d["date"].(string)
 		intendedFlight.Coordinates = intendedCoordsList
 		intendedFlight.Times = intendedTimesList
 		fmt.Printf("\nIntended Object-->%v", intendedFlight)
@@ -707,17 +710,20 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	//If a reserved flight has a coordinate within 120m of a intended flight coordinate, check what time both those coordinates are within that distance at
 	for i := 0; i < len(intendedFlight.Coordinates); i++ {
 		for _, val := range reservedFlightsOnThisDate {
-			g := intendedFlight.Coordinates[i]
-			if checkCoordinatesRadius(g, val) {
-				t := intendedFlight.Times
-				fmt.Printf("\nReturned True\n")
-				for _, intendedTime := range t {
-					if checkTimeCollisions(intendedTime, val) {
-						fmt.Printf("COLLISION POSSIBLE ON THIS PATH AT THIS TIME!")
+			if intendedFlight.Id != val.Id {
+				g := intendedFlight.Coordinates[i]
+				if checkCoordinatesRadius(g, val) {
+					t := intendedFlight.Times
+					fmt.Printf("\nReturned True\n")
+					for _, intendedTime := range t {
+						if checkTimeCollisions(intendedTime, val) {
+							fmt.Printf("COLLISION POSSIBLE ON THIS PATH AT THIS TIME! Between flights  %v and %v\n", val.Id, intendedFlight.Id)
+							return
+						}
 					}
+				} else {
+					fmt.Printf("NO COLLISIONS PREDICTED!")
 				}
-			} else {
-				fmt.Printf("NO COLLISIONS PREDICTED!")
 			}
 		}
 	}
@@ -731,16 +737,16 @@ func checkCoordinatesRadius(intended Coordinate, reserved FlightSegmented) bool 
 		fmt.Println("can't convert")
 	}
 	intendedLng, err := strconv.ParseFloat(intended.Longitude, 64)
-	if err == nil {
+	if err != nil {
 		fmt.Println("can't convert")
 	}
 	for _, flightCoord := range reserved.Coordinates {
 		reservedLat, err := strconv.ParseFloat(flightCoord.Latitude, 64)
-		if err == nil {
+		if err != nil {
 			fmt.Println("can't convert")
 		}
 		reservedLng, err := strconv.ParseFloat(flightCoord.Longitude, 64)
-		if err == nil {
+		if err != nil {
 			fmt.Println("can't convert")
 		}
 		if calculateCoordDistance(intendedLat, intendedLng, reservedLat, reservedLng) < .120 { //if two coordinates are within 120 metres of eachother
