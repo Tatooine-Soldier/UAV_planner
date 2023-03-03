@@ -16,8 +16,8 @@
                 <div class="settings-row">
                     <label for="units">Select Measurement Units: </label>
                     <select name="units" id="units" ref="units">
-                        <option value="km">Kilometres</option>
-                        <option value="m">Metres</option>
+                        <option value="km">Metric</option>
+                        <option value="m">Imperial</option>
                     </select>
                 </div>
             </section>
@@ -40,6 +40,11 @@ export default {
             this.theme =  this.$refs.theme.value
             this.units = this.$refs.units.value
             console.log(this.$refs.units.value, this.$refs.theme.value, this.$refs.font.value)
+            this.$emit('settingsEvent', {s:this.size, t:this.theme, u:this.units})
+            var d = document.getElementById("app")
+            var s = document.getElementById("link-text")
+            d.style.fontSize = this.size+"px"
+            s.style.fontSize = this.size+"px"
         }
     }
 }
@@ -50,6 +55,7 @@ export default {
         background-color: rgb(117, 115, 115);
         color: white;
         padding: 5px;
+        border: solid rgb(184, 255, 36) 2px;
     }
 
     .settings-form {
