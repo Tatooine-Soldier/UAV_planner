@@ -283,12 +283,36 @@
             .post("/getFlightsWithinRadius", queryDate)
             .then((response) => {
                 //store flight date in each flight segment
-                console.log(response)
+                var data = response.data
+                console.log("RAW: Unavailable Time--> ", data)
+                var itemsList = [];
+                var fullMinuteDisplayed;
+
+                const myArray = data.split(",");
+                console.log("RAW List---> ", myArray)
+                for (var item in myArray) {
+                    if (myArray[item].length === 4) {
+                        console.log("myArray[item].slice(0,3) => ", myArray[item].slice(0,3))
+                        fullMinuteDisplayed = myArray[item].slice(0,3) + "0" + myArray[item].slice(3,4)
+                        itemsList.push(fullMinuteDisplayed)
+                    }
+                    else if (myArray[item].length === 0)  {
+                        continue
+                    }
+                    else {
+                        itemsList.push(myArray[item])
+                    }
+                }
+                this.timeslots = itemsList
+                console.log("Unavailable Time--> ", itemsList)
             })
             var t = document.getElementById('ts')
             t.style.display = 'block'
             var e = document.getElementById("ex-sign-bookings")
             e.style.display = "block";
+        },
+        quantiseTimeList() {
+
         },
         disappearEx() {
             var t = document.getElementById("ts");
