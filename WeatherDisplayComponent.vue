@@ -8,20 +8,37 @@
         <div class="displayWindValues">
             <div class="weather-cols">
                 <div class="weather-heading">Date and time:</div>
-                <div v-for="(date, index) in windDates" v-bind:key="index" >
-                    {{ date }}
+                <div v-for="(date, index) in windDates" v-bind:key="index">
+                    <div v-if="index % 24 !== 0">
+                        {{ date }}
+                    </div>
+                    <div v-else :style="{padding: '10px'}">
+                        New Date
+                    </div>
+                        
                 </div>
             </div>
             <div class="weather-cols">
                 <div class="weather-heading">Estimated wind speed:</div>
                 <div v-for="(wind, index) in windValues" v-bind:key="index">
-                    {{ wind }}
+                    <div v-if="index % 24 !== 0">
+                        {{ wind }}
+                    </div>
+                    <div v-else :style="{padding: '10px'}">
+                        New Date
+                    </div>
                 </div>
+                
             </div>
             <div class="weather-cols">
                 <div class="weather-heading">Status:</div>
-                <div v-for="(c, index) in colorList" v-bind:key="index" :style="{ backgroundColor: c }">
-                    <div style="visibility: hidden;">WARN</div>
+                <div v-for="(c, index) in colorList" v-bind:key="index" >
+                    <div v-if="index % 24 !== 0" :style="{ backgroundColor: c }">
+                        <div style="visibility: hidden;">WARN</div>
+                    </div>
+                    <div v-else :style="{ display: none, padding: '10px'}">
+                        <div style="visibility: hidden;">WARN</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -67,6 +84,7 @@ export default {
         windData: 0,
         windValues: [],
         windDates: [],
+        windDatesDay: [],
         colorList: []
       }
     },
@@ -85,8 +103,22 @@ export default {
             console.log("final", final)
             this.windData = final
             this.windValues = this.windData.hourly.windspeed_80m
-            this.windDates = this.windData.hourly.time
+            var tempDates = this.windData.hourly.time
             this.getColors()
+
+            var cursor;
+            for (var val in tempDates) {
+                this.windDates.push(tempDates[val].slice(11,16))
+                
+                if (cursor != tempDates[val].slice(0, 10)) {
+                    cursor =  tempDates[val].slice(0, 10)
+                    this.windDatesDay.push(cursor)
+                }
+                
+                
+            }
+            console.log("DAYS", this.windDatesDay)
+
         },
         getColors() {
             for (var val in this.windValues) {
