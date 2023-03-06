@@ -3,19 +3,25 @@
 
 <template>
     <section class="weather-container">
-        <div>5 day forecast: </div>
-        <div @="getWind()">Click</div>
+        <div class="weather-header"><h1>5 day forecast: </h1></div>
+        <div @click="getWind()">Click</div>
         <div class="displayWindValues">
             <div class="weather-cols">
-                Date and time:
-                <div v-for="(date, index) in windDates" v-bind:key="index">
+                <div class="weather-heading">Date and time:</div>
+                <div v-for="(date, index) in windDates" v-bind:key="index" >
                     {{ date }}
                 </div>
             </div>
             <div class="weather-cols">
-                Estimated wind speed:
+                <div class="weather-heading">Estimated wind speed:</div>
                 <div v-for="(wind, index) in windValues" v-bind:key="index">
                     {{ wind }}
+                </div>
+            </div>
+            <div class="weather-cols">
+                <div class="weather-heading">Status:</div>
+                <div v-for="(c, index) in colorList" v-bind:key="index" :style="{ backgroundColor: c }">
+                    <div style="visibility: hidden;">WARN</div>
                 </div>
             </div>
         </div>
@@ -25,7 +31,7 @@
 <style>
 .displayWindValues {
     display: grid;
-    grid-template-columns: 50% 50%;
+    grid-template-columns: 30% 30% 40%;
 }
 
 .weather-container {
@@ -34,6 +40,21 @@
 
 .weather-cols {
     text-align: center;
+}
+
+.weather-header {
+    text-align: center;
+    font-size: 20pt;;
+}
+
+h1 {
+    margin-top: 10px;
+    margin-bottom: 0px;
+}
+
+.weather-heading {
+    padding: 10px;
+    font-size: 16pt;
 }
 </style>
 
@@ -45,7 +66,8 @@ export default {
       return {
         windData: 0,
         windValues: [],
-        windDates: []
+        windDates: [],
+        colorList: []
       }
     },
     name: "WeatherComponent",
@@ -64,6 +86,29 @@ export default {
             this.windData = final
             this.windValues = this.windData.hourly.windspeed_80m
             this.windDates = this.windData.hourly.time
+            this.getColors()
+        },
+        getColors() {
+            for (var val in this.windValues) {
+                var intWindVal = parseInt(this.windValues[val])
+                console.log(intWindVal)
+                if (intWindVal >= 40) {      
+                    this.colorList.push("#c00000")
+                } else if (intWindVal < 40 && intWindVal >= 35) {
+                    this.colorList.push("#f30606")
+                } else if (intWindVal < 35 && intWindVal >= 29) {
+                    this.colorList.push("#ff5700")
+                } else if (intWindVal < 29 && intWindVal >= 25) {
+                    this.colorList.push("#f79a35")
+                } else if (intWindVal < 25 && intWindVal >= 19) {
+                    this.colorList.push("#ffd027")
+                } else if (intWindVal < 19 && intWindVal >= 14) {
+                    this.colorList.push("#ffee37")
+                } else {
+                    this.colorList.push("#83a7f9")
+                }
+            }
+            console.log("colours", this.colorList)
         }
     }
 }
