@@ -81,6 +81,13 @@ type TimeComparisonObj struct {
 	SegmentedCoords []Coordinate
 }
 
+type TimeUpdate struct {
+	Id     string `json:"id"`
+	Date   string `json:"date"`
+	Hour   string `json:"hour"`
+	Minute string `json:minute"`
+}
+
 type GridofCoordinates struct {
 	Coordinates []interface{} `json:"coordinates"`
 }
@@ -522,6 +529,7 @@ func main() {
 	http.HandleFunc("/fetchGridCoordinates", fetchGridCoordinates)
 	http.HandleFunc("/storeSegmentedFlight", storeSegmentedFlight)
 	http.HandleFunc("/getFlightsWithinRadius", getFlightsWithinRadius)
+	http.HandleFunc("/updateFlightTime", updateFlightTime)
 
 	// dist := calculateDistance(3.44, 3.44)
 	listenerErr := http.ListenAndServe(":3333", nil)
@@ -589,6 +597,45 @@ func storeSegmentedFlight(w http.ResponseWriter, r *http.Request) {
 
 }
 
+//want to update the date of the flight that is stored when the date is selected in the timeslot picker
+//need to call the segment function after setting the new time
+func updateFlightTime(w http.ResponseWriter, r *http.Request) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+	log.Println("BODY:", string(body))
+
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		panic(err)
+	}
+
+	var updateTime TimeUpdate
+	err = json.Unmarshal(body, &updateTime)
+	fmt.Printf("UNMARSHAL UPDATE--->%v", updateTime)
+
+	ctx := context.TODO()
+	usersCollection := client.Database("fyp_test").Collection("flights")
+	filter := bson.D{{"id", bson.D{{"$eq", updateTime.Id}}}}
+
+	fullTime := updateTime.Hour + ":" + updateTime.Minute
+	update := bson.D{{"$set", bson.D{{"date", updateTime.Date}, {"time", fullTime}}}}
+
+	result, err := usersCollection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Matched %v documents and updated %v documents.\n", result.MatchedCount, result.ModifiedCount)
+
+	// fmt.Printf("\n'%v' matching docs found\n", len(results))
+	// if len(results) == 0 {
+	// 	fmt.Fprintf(w, "ALL AVAILABLE")
+	// 	return
+	// }
+
+}
+
 func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -621,6 +668,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("\n'%v' matching docs found\n", len(results))
 	if len(results) == 0 {
 		fmt.Fprintf(w, "ALL AVAILABLE")
+		return
 	}
 
 	var segs interface{} // for the dates
@@ -665,7 +713,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, n := range reservedFlightsOnThisDate { //list of FlightSegmented structs{id, []Coordinate, []string}
-		fmt.Printf("\n--> n: %v", n)
+		fmt.Printf("\n--> flights on this date: %v", n)
 	}
 	// i loop through reserved flights, check if the starting time(1st eleemtn in .times is in the intended time-->if not then move on to next flight else check coordinates)
 
@@ -711,8 +759,9 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	//For each segmented coordinate of intended flight, check all other segmented flights coordinates to see if one is within 120m
 	//If a reserved flight has a coordinate within 120m of a intended flight coordinate, check what time both those coordinates are within that distance at
 	var unavailableTimes []string
-	for i := 0; i < len(intendedFlight.Coordinates); i++ {
-		for _, val := range reservedFlightsOnThisDate {
+	for i := 0; i < len(intendedFlight.Coordinates); i++ { //for segmented coord in intended flight path
+		var collisionsOnThisDate string
+		for _, val := range reservedFlightsOnThisDate { //for reserved flight on this date
 			if intendedFlight.Id != val.Id {
 				g := intendedFlight.Coordinates[i]
 				ifCollisions := checkCoordinatesRadius(g, val) //index, times at which coordinate collisions should occur
@@ -722,8 +771,9 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 					collisionTimeOfResrvedFlight := val.Times[ifCollisions]
 					if checkTimeCollisions(collisionTimeOfIntendedFlight, collisionTimeOfResrvedFlight, intendedFlight.Date) {
 						unavailableTimes = append(unavailableTimes, collisionTimeOfIntendedFlight)
+						collisionsOnThisDate += collisionTimeOfIntendedFlight
+						fmt.Fprintf(w, collisionTimeOfIntendedFlight+",")
 						fmt.Printf("POSSIBLE COLLISION AT THIS TIME %v", intendedFlight.Times[ifCollisions])
-
 					} else {
 						fmt.Printf("Coordinate collision but no time collison")
 					}
@@ -743,6 +793,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
+		fmt.Printf("\nAny Collisions for (%v %v) --> %v\n", intendedFlight.Coordinates[i].Latitude, intendedFlight.Coordinates[i].Longitude, collisionsOnThisDate)
 	}
 	fmt.Printf("Collision times--> %v", unavailableTimes)
 
@@ -768,7 +819,7 @@ func checkCoordinatesRadius(intended Coordinate, reserved FlightSegmented) int {
 			fmt.Println("can't convert")
 		}
 		if calculateCoordDistance(intendedLat, intendedLng, reservedLat, reservedLng) < .120 { //if two coordinates are within 120 metres of eachother
-			fmt.Printf("\n\nReturned True for these values (%v %v)\t(%v %v) \n", intendedLat, intendedLng, reservedLat, reservedLng)
+			fmt.Printf("\n\nReturned True for these values, flight IDs (%v %v) \tcoords: (%v %v)\t(%v %v) \n", intended.Id, reserved.Id, intendedLat, intendedLng, reservedLat, reservedLng)
 			return j //return time that the collision occured at
 
 		}
@@ -831,11 +882,11 @@ func checkTimeCollisions(intendedTime string, reservedTime string, date string) 
 	fmt.Printf("Checking %v %v", fullIntended, fullReserved)
 
 	//check if UAV passes through this coordinate five five minutes befor or after the intended flight, this ensures no collision if there is an unexpected delay
-	if math.Abs(float64(reservedEpochTime-intendedEpochTime)) < 245 {
+	if math.Abs(float64(reservedEpochTime-intendedEpochTime)) <= 300 {
 		fmt.Printf("Gap ahead of 5 minutes %v %v %v\n", reservedTime, intendedTime, math.Abs(float64(reservedEpochTime-intendedEpochTime)))
 		return true
 	}
-	if math.Abs(float64(intendedEpochTime-reservedEpochTime)) < 245 {
+	if math.Abs(float64(intendedEpochTime-reservedEpochTime)) <= 300 {
 		fmt.Printf("Gap behind of 5 minutes %v %v %v\n", reservedTime, intendedTime, math.Abs(float64(intendedEpochTime-reservedEpochTime)))
 		return true
 	}

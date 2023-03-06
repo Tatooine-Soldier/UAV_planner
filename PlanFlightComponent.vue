@@ -25,7 +25,7 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                         </section>
                         <section class="flight-details-buttons">
                             <input id="cancel-but" name="but" type="button" value="Cancel" v-on:click="disappear()"/>
-                            <button id="confirm-but" v-on:click="showFinalMap()">Confirm</button>
+                            <button id="confirm-but" v-on:click="showFinalMap(false)">Confirm</button>
                         </section>
                     </section>
                 </section>
@@ -43,7 +43,7 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                 <section class="time-selection">
                     <div>
                         <label for="hour">Select hour: </label>
-                        <select id="hour" name="hour" v-model="date.hour">
+                        <select id="hour" name="hour" v-model="date.hour" >
                             <option value="00">00</option>
                             <option value="01">01</option>
                             <option value="02">02</option>
@@ -61,7 +61,7 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                     </div>
                     <div>
                         <label for="minute">Select minute: </label>
-                        <select id="minute" name="minute" v-model="date.minute">
+                        <select id="minute" name="minute" v-model="date.minute" >
                             <option value="00">00</option>
                             <option value="15">15</option>
                             <option value="30">30</option>
@@ -70,7 +70,7 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                     </div>
                     <div id="last-div">
                         <label for="day">Select day: </label>
-                        <input type="date" name="date" v-model="date.day"/>
+                        <input type="date" name="date" v-model="date.day" />
                     </div>
                 </section>
                 <section>
@@ -79,7 +79,8 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                     <MyCalendarComponent @selectedTimeEvent="logTime" :propdates="bookedDates" :propID="flightID"></MyCalendarComponent>
                 </section>
                 <section>
-                    <input type="button" @click="getDates()" value="Confirm"/>
+                    <!-- <input type="button" @click="showFinalMap(true)" value="Confirm"/> -->
+                    <input type="button" @click="updateDate()" value="Confirm"/>
                 </section>
             </section>
 
@@ -105,12 +106,12 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                 </section>
                 <section class="side-container">
                     <section class="four-rows">
-                        <section class="fp-info-container">
+                        <!-- <section class="fp-info-container">
                             <section class="fp-sub-info">
                                 
                                 <section class="border-decor">
                                     <p class="fp-subtitle">Select your time to fly:</p>
-                                    <!-- <form @submit.prevent="handleSubmit()"> -->
+                                   
                                         <section class="time-selection">
                                             <div>
                                                 <label for="hour">Select hour: </label>
@@ -146,13 +147,13 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                                         </section>
                                         <section>
                                             <div class="check-time-db" @click="getDates()">Check availablility</div>
-                                            <!-- <button>Add</button> -->
+                                            
                                             <MyCalendarComponent @selectedTimeEvent="logTime" :propdates="bookedDates"></MyCalendarComponent>
                                         </section>
-                                    <!-- </form> -->
+                                    
                                 </section>
                             </section>
-                        </section>
+                        </section> -->
                         <section class="fp-info-container">
                         
                             <section class="fp-sub-info">
@@ -277,6 +278,7 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                                     <!-- <input id="submit" name="submit" type="submit" value="Add"/> -->
                             
                         </section>
+                      
                     </section>
                 </section>
                 
@@ -308,7 +310,8 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
 
     .four-rows {
         display: grid;
-        grid-template-rows: 25% 25% 25% 25%;
+        grid-template-rows: 42% 42% 16%;
+
         color: white;
         
     }
@@ -400,7 +403,7 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
     }
 
     .fp-info-container:last-of-type {
-        margin-top: 50%;
+        margin-top: 140px;
 
     }
 
@@ -631,12 +634,15 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
         padding: 3px;
         transition: 0.4s;
         color: black;
+        bottom: 1%;
+        
      
       }
     
       .check-time-db:hover {
         background-color: rgb(101, 100, 100);
         color: white;
+        cursor: pointer;
       }
 
     .date-flights-container {
@@ -654,7 +660,7 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
         text-align: center;
         font-size: 60pt;
         color: white;
-        padding-top: 20%;
+        padding-top: 10%;
         margin-top: 1%;
     }
   
@@ -731,6 +737,9 @@ export default {
         this.droneSpec.name = this.$refs.mydronename.value;
         this.droneSpec.model = this.$refs.mydronemodel.value;
         this.droneSpec.weight = this.$refs.mydroneweight.value;
+        // this.date.day = this.$refs.date.value;
+        // this.date.hour = this.$refs.hour.value;
+        // this.date.minute = this.$refs.minute.value;
         if (this.speed.velocity < 20) {
             this.speed.description = "low-speed";
         } else if (21 <= this.speed.velocity < 46 ) {
@@ -815,7 +824,7 @@ export default {
         var ex = document.getElementById("ex-sign")
         ex.style.display = "none"
       },
-      showFinalMap() {
+      showFinalMap(storeDate) {
         var tl = this.date.day + " " + this.date.hour +":"+this.date.minute+":"+"00" 
         console.log("full date--> ", tl)
         var duration = Math.round(this.duration*60)
@@ -841,22 +850,41 @@ export default {
             model: this.droneSpec.model,
             weight: this.droneSpec.weight
         }
-        const flight = { 
-            id: randomInteger,
-            srclat: this.coords.sourcelatitude, 
-            srclng: this.coords.sourcelongitude, 
-            destlat: this.coords.destlatitude, 
-            destlng: this.coords.destlongitude,
-            hour: this.date.hour,
-            minute: this.date.minute,
-            date: this.date.day,
-            endtime: this.endTime,
-            speed: this.speed.velocity,
-            corridor: this.speed.description,
-            waypoint: this.waypoints,
-            altitude: this.altitude,
-            orientation: this.orientation,
-            drone: drone
+        var flight = {};
+        if (storeDate) {
+            flight = { 
+                id: randomInteger,
+                srclat: this.coords.sourcelatitude, 
+                srclng: this.coords.sourcelongitude, 
+                destlat: this.coords.destlatitude, 
+                destlng: this.coords.destlongitude,
+                hour: this.date.hour,
+                minute: this.date.minute,
+                date: this.date.day,
+                endtime: this.endTime,
+                speed: this.speed.velocity,
+                corridor: this.speed.description,
+                waypoint: this.waypoints,
+                altitude: this.altitude,
+                orientation: this.orientation,
+                drone: drone
+            }
+        } else {
+            flight = { 
+                id: randomInteger,
+                srclat: this.coords.sourcelatitude, 
+                srclng: this.coords.sourcelongitude, 
+                destlat: this.coords.destlatitude, 
+                destlng: this.coords.destlongitude,
+                endtime: this.endTime,
+                speed: this.speed.velocity,
+                corridor: this.speed.description,
+                waypoint: this.waypoints,
+                altitude: this.altitude,
+                orientation: this.orientation,
+                drone: drone
+            }
+
         }
         console.log("FLIGHT---> ", flight)
 
@@ -892,6 +920,24 @@ export default {
         f.style.display = "block"
         this.forceRenderer();
       },
+      updateDate() {
+        const flightData = {
+            id: this.flightID,
+            date: this.date.day,
+            hour: this.date.hour,
+            minute: this.date.minute
+        }
+
+        axios
+        .post("/updateFlightTime", flightData)
+        .then((response) => {
+          const data = response.data;
+          console.log("UPDATED FLIGHT TIME: ",data);
+        })
+        .catch (function (error) {
+            console.log("ERROR:", error);    
+        })
+      }, 
       lowInfo() {
         var c = document.getElementById('lowc');
         c.style.display = 'block';
@@ -981,6 +1027,8 @@ export default {
             this.date.minute = minute
         }
         console.log("this.date", this.date)
+
+        
 
         //console.log("hour + minute", hour, minute)
       },
