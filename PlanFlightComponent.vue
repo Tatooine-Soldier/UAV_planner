@@ -933,11 +933,35 @@ export default {
         .then((response) => {
           const data = response.data;
           console.log("UPDATED FLIGHT TIME: ",data);
+          this.forceRenderer();
+          this.checkRadius()
         })
         .catch (function (error) {
             console.log("ERROR:", error);    
         })
+
       }, 
+      checkRadius() {
+        setTimeout(() => {
+        // code to be executed after 3 seconds
+            var fullDate = this.date.day //might be wrong format eg / instead of -
+            console.log("sending fulldate: ", fullDate) 
+            const queryDate = {
+                date: fullDate,
+                id: this.flightID,//handle this in backend
+                reset: true
+            };
+            axios 
+                .post("/getFlightsWithinRadius", queryDate)
+                .then((response) => {
+                    var data =  response
+                    console.log("response from radius function--> ", data)
+                })
+                .catch (function (error) {
+                    console.log("ERROR:", error);    
+                })
+        }, 7000);
+      },
       lowInfo() {
         var c = document.getElementById('lowc');
         c.style.display = 'block';
