@@ -4,6 +4,9 @@ import axios from 'axios'
 import { Graph, Node } from './graph'
 
 const getCoordinates = require('./graph.js');
+const LAYER_ONE = "60" //altitude of sub grids in metres
+const LAYER_TWO = "90"
+const LAYER_THREE = "120"
 
 export class Grid {
     constructor(size) {
@@ -92,7 +95,7 @@ export class Grid {
         }
         var c = 1
         var coordsList = []
-        console.log("centerList", centerList)
+       // console.log("centerList", centerList)
         coordsList.push( //add the center point of the grid
             {
                 lat: String(centerList[0][0].lat),
@@ -112,11 +115,11 @@ export class Grid {
             }
         }
 
-        console.warn("COORDLIST", coordsList)
-       
-        var coordMsg = {coordinates: coordsList}
+        
+        var layers = [LAYER_ONE, LAYER_TWO, LAYER_THREE] //sub grids
+        var coordMsg = {coordinates: coordsList, layers: layers}
         this.nearest =  this.getNearestCoord(coordsList, anchors) // return this with this.returned???
-        console.log("this.nearest", this.nearest)
+       // console.log("this.nearest", this.nearest)
         
         // DO NOT DELETE THIS //
         var al;
@@ -192,7 +195,7 @@ export class Grid {
     }
 
     getCoordDistance(c1, c2) {
-        console.log("c1", c1, c2)
+        //console.log("c1", c1, c2)
         var c1Lat = parseFloat(c1.lat)
         var c1Lng = parseFloat(c1.lng)
         var c2Lat = parseFloat(c2.lat)
@@ -201,7 +204,7 @@ export class Grid {
         if (c1Lat !== c2Lat && c1Lng !== c2Lng) {
             var lat = Math.abs(c1Lat - c2Lat)
             var lng = Math.abs(c1Lng - c2Lng)
-            console.log("lat+lng", lat+lng)
+           // console.log("lat+lng", lat+lng)
            
         }
         return lat + lng

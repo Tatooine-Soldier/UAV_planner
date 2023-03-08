@@ -90,6 +90,7 @@ type TimeUpdate struct {
 
 type GridofCoordinates struct {
 	Coordinates []interface{} `json:"coordinates"`
+	Layers      []string      `json:"layers"` //layers are confined to only 3 due to height restrictions imposed by the IAA at 120metres maximum
 }
 
 type MidCoord interface {
@@ -117,8 +118,9 @@ type FlightSegmented struct {
 }
 
 type QueryDate struct {
-	Date string `json:"date"`
-	ID   string `json:"id"`
+	Date  string `json:"date"`
+	ID    string `json:"id"`
+	Reset bool   `json:"reset"`
 }
 
 type ResponseData struct {
@@ -139,6 +141,8 @@ type UserSignobj struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
+
+var GRID_INCREMENT int
 
 func getRoot(w http.ResponseWriter, r *http.Request) {
 	_, err := fmt.Fprintf(w, "Welcome to the homepage")
@@ -553,6 +557,28 @@ func storeSegmentedFlight(w http.ResponseWriter, r *http.Request) {
 	var d SegmentedFlightData
 	err = json.Unmarshal(body, &d)
 	fmt.Printf("UNMARSHAL--->%v", d)
+
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		panic(err)
+	}
+
+	//###########################################################
+	//if a flight with same id already exists then delete and replace with this current flight
+	// collection := client.Database("fyp_test").Collection("segmentedFlight")
+	// filter := bson.M{"id": d.ID}
+
+	// docExists, err := documentExists(collection, filter)
+	// if docExists {
+	// 	_, err := collection.DeleteOne(context.Background(), filter)
+	// 	if err != nil {
+	// 		fmt.Printf("err %v", err)
+	// 		return
+	// 	}
+	// 	fmt.Printf("deleted %v", d.ID)
+	// }
+
+	//############################################################
 	slist := []Coordinate{}
 	for _, val := range d.SegmentedList {
 		//fmt.Printf("val---> %v", val)x
@@ -586,15 +612,22 @@ func storeSegmentedFlight(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Printf("TIMESLIST--->%v", timesList)
 
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
-	if err != nil {
-		panic(err)
-	}
-
 	gridDoc := bson.D{{"id", d.ID}, {"date", d.Date}, {"segments", slist}, {"times", timesList}}
 	err = insertDB(context.TODO(), client, gridDoc, "segmentedFlight")
 	fmt.Printf("\nERROR-->\n", err)
 
+}
+
+func documentExists(collection *mongo.Collection, filter bson.M) (bool, error) {
+	var result bson.M
+	err := collection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 //want to update the date of the flight that is stored when the date is selected in the timeslot picker
@@ -627,7 +660,8 @@ func updateFlightTime(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 	fmt.Printf("Matched %v documents and updated %v documents.\n", result.MatchedCount, result.ModifiedCount)
-
+	returnTime := fullTime + "," + updateTime.Date
+	fmt.Fprintf(w, returnTime)
 	// fmt.Printf("\n'%v' matching docs found\n", len(results))
 	// if len(results) == 0 {
 	// 	fmt.Fprintf(w, "ALL AVAILABLE")
@@ -651,6 +685,19 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	var queryDate QueryDate
 	err = json.Unmarshal(body, &queryDate)
 	fmt.Printf("UNMARSHAL--->%v", queryDate)
+	//####################################################
+	//reset the segments list after time has been selected
+	if queryDate.Reset {
+		//var myA primitive.A = primitive.A{}
+
+		collection := client.Database("fyp_test").Collection("segmentedFlight")
+		filter := bson.M{"id": queryDate.ID}
+		result, err := collection.DeleteOne(context.Background(), filter)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("Deleted %v documents.\n", result.DeletedCount)
+	}
 
 	//Query data and id are passed into the function, query date is used to find all other flights(segmented) that occur on this date
 	//#############################################################################################################################
@@ -1025,21 +1072,26 @@ func storeGridCoordinates(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(body, &grid)
 	fmt.Printf("COORDSLIST: %vFINISHED", grid.Coordinates)
 
-	var coord Coordinate
-	for _, val := range grid.Coordinates {
-		//convert from interface to map[string]interface{}
-		t := val.(map[string]interface{})
-		coord.Id = t["id"].(string)
-		coord.Latitude = t["lat"].(string)
-		coord.Longitude = t["lng"].(string)
-		fmt.Printf("coord: %v\t %v\t %v\n", coord.Id, coord.Latitude, coord.Longitude)
+	GRID_INCREMENT++
+	var gridID = fmt.Sprintf("%d", GRID_INCREMENT)
 
-		//build mongo record
-		gridCoord := bson.D{{"lat", coord.Latitude}, {"lng", coord.Longitude}}
-		gridDoc := bson.D{{"id", coord.Id}, {"coordinate", gridCoord}}
-		err = insertDB(context.TODO(), client, gridDoc, "grid")
-		fmt.Printf("\nERROR-->\n", err)
+	for _, layer := range grid.Layers {
+		var coord Coordinate
+		for _, val := range grid.Coordinates {
+			//convert from interface to map[string]interface{}
+			t := val.(map[string]interface{})
+			coord.Id = t["id"].(string)
+			coord.Latitude = t["lat"].(string)
+			coord.Longitude = t["lng"].(string)
+			fmt.Printf("coord: %v\t %v\t %v\n", coord.Id, coord.Latitude, coord.Longitude)
 
+			//build mongo record
+			gridCoord := bson.D{{"lat", coord.Latitude}, {"lng", coord.Longitude}}
+			gridDoc := bson.D{{"id", coord.Id}, {"coordinate", gridCoord}, {"layer", layer}, {"gridID", gridID}}
+			err = insertDB(context.TODO(), client, gridDoc, "grid")
+			fmt.Printf("\nERROR-->\n", err)
+
+		}
 	}
 	fmt.Print("done")
 
