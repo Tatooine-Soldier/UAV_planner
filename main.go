@@ -57,6 +57,7 @@ type Flight struct {
 	Orientation string `json:"orientation"`
 	Corridor    string `json:"corridor"`
 	Drone       Drone  `json:"drone"`
+	Subgrid     string `json:"subgrid"`
 	// UserID     int64 `json:"userID"`
 	// FlightTime int64 `json:"flightTime"`
 	// Altitude   int64 `json:"altitude"`
@@ -73,6 +74,7 @@ type SegmentedFlightData struct {
 	SegmentedTimes []interface{} `json:"segmentTimes"`
 	SegmentedList  []interface{} `json:"segmentList"`
 	Date           string        `json:"date"`
+	SubGrid        string        `json:"subGrid"`
 	ID             string        `json:"id"`
 }
 
@@ -612,7 +614,7 @@ func storeSegmentedFlight(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Printf("TIMESLIST--->%v", timesList)
 
-	gridDoc := bson.D{{"id", d.ID}, {"date", d.Date}, {"segments", slist}, {"times", timesList}}
+	gridDoc := bson.D{{"id", d.ID}, {"date", d.Date}, {"subGrid", d.SubGrid}, {"segments", slist}, {"times", timesList}}
 	err = insertDB(context.TODO(), client, gridDoc, "segmentedFlight")
 	fmt.Printf("\nERROR-->\n", err)
 
@@ -810,33 +812,35 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 		var collisionsOnThisDate string
 		for _, val := range reservedFlightsOnThisDate { //for reserved flight on this date
 			if intendedFlight.Id != val.Id {
-				g := intendedFlight.Coordinates[i]
-				ifCollisions := checkCoordinatesRadius(g, val) //index, times at which coordinate collisions should occur
-				if ifCollisions != 0.0 {
-					//old way using the intended dlights time only
-					collisionTimeOfIntendedFlight := intendedFlight.Times[i]
-					collisionTimeOfResrvedFlight := val.Times[ifCollisions]
-					if checkTimeCollisions(collisionTimeOfIntendedFlight, collisionTimeOfResrvedFlight, intendedFlight.Date) {
-						unavailableTimes = append(unavailableTimes, collisionTimeOfIntendedFlight)
-						collisionsOnThisDate += collisionTimeOfIntendedFlight
-						fmt.Fprintf(w, collisionTimeOfIntendedFlight+",")
-						fmt.Printf("POSSIBLE COLLISION AT THIS TIME %v", intendedFlight.Times[ifCollisions])
-					} else {
-						fmt.Printf("Coordinate collision but no time collison")
-					}
-					//check if these times are within a certain range, as these will be the times that both flights are at this coordinate
+				if checkSubGridLevel(intendedFlight.Id, val.Id) { //check that both flights are on the same grid level
+					g := intendedFlight.Coordinates[i]
+					ifCollisions := checkCoordinatesRadius(g, val) //index, times at which coordinate collisions should occur
+					if ifCollisions != 0.0 {
+						//old way using the intended dlights time only
+						collisionTimeOfIntendedFlight := intendedFlight.Times[i]
+						collisionTimeOfResrvedFlight := val.Times[ifCollisions]
+						if checkTimeCollisions(collisionTimeOfIntendedFlight, collisionTimeOfResrvedFlight, intendedFlight.Date) {
+							unavailableTimes = append(unavailableTimes, collisionTimeOfIntendedFlight)
+							collisionsOnThisDate += collisionTimeOfIntendedFlight
+							fmt.Fprintf(w, collisionTimeOfIntendedFlight+",")
+							fmt.Printf("POSSIBLE COLLISION AT THIS TIME %v", intendedFlight.Times[ifCollisions])
+						} else {
+							fmt.Printf("Coordinate collision but no time collison")
+						}
+						//check if these times are within a certain range, as these will be the times that both flights are at this coordinate
 
-					// t := intendedFlight.Times
-					// fmt.Printf("\nReturned True\n")
-					// for _, intendedTime := range t {
-					// 	if checkTimeCollisions(intendedTime, val) {
-					// 		fmt.Printf("COLLISION POSSIBLE ON THIS PATH AT THIS TIME! Between flights  %v and %v\n", val.Id, intendedFlight.Id)
-					// 		unavailableTimes = append(unavailableTimes, intendedTime)
-					// 		return
-					// 	}
-					// }
-				} else {
-					fmt.Printf("NO COLLISIONS PREDICTED!")
+						// t := intendedFlight.Times
+						// fmt.Printf("\nReturned True\n")
+						// for _, intendedTime := range t {
+						// 	if checkTimeCollisions(intendedTime, val) {
+						// 		fmt.Printf("COLLISION POSSIBLE ON THIS PATH AT THIS TIME! Between flights  %v and %v\n", val.Id, intendedFlight.Id)
+						// 		unavailableTimes = append(unavailableTimes, intendedTime)
+						// 		return
+						// 	}
+						// }
+					} else {
+						fmt.Printf("NO COLLISIONS PREDICTED!")
+					}
 				}
 			}
 		}
@@ -953,6 +957,36 @@ func checkTimeCollisions(intendedTime string, reservedTime string, date string) 
 	// 	}
 	// }
 	// return false
+}
+
+func checkSubGridLevel(intendedID string, reservedID string) bool {
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		panic(err)
+	}
+
+	collection := client.Database("fyp_test").Collection("flights")
+	filter := bson.M{"id": intendedID}
+	var flight bson.M
+	err = collection.FindOne(context.Background(), filter).Decode(&flight)
+	if err != nil {
+		log.Fatal(err)
+	}
+	intendedSubGrid := flight["subGridLayer"].(string)
+
+	filter = bson.M{"id": reservedID}
+	err = collection.FindOne(context.Background(), filter).Decode(&flight)
+	if err != nil {
+		log.Fatal(err)
+	}
+	reservedSubGrid := flight["subGridLayer"].(string)
+
+	if intendedSubGrid == reservedSubGrid {
+		fmt.Println("same sub grid level")
+		return true
+	}
+	fmt.Println("disfferent sub grids")
+	return false
 }
 
 func dateTimeCheck(hour string, minute string) {
@@ -1198,7 +1232,7 @@ func storeFlight(w http.ResponseWriter, r *http.Request) {
 	ftime := flight.Hour + ":" + flight.Minute
 	startCoord := bson.D{{"lat", flight.Srclat}, {"lng", flight.Srclng}}
 	destCoord := bson.D{{"lat", flight.Destlat}, {"lng", flight.Destlng}}
-	flightDoc := bson.D{{"id", flight.ID}, {"date", flight.Date}, {"time", ftime}, {"startCoord", startCoord}, {"destCoord", destCoord}, {"endTime", flight.EndTime}, {"speed", flight.Speed}, {"corridor", flight.Corridor}, {"altitude", flight.Altitude}, {"orientation", flight.Orientation}, {"drone", flight.Drone.Name}}
+	flightDoc := bson.D{{"id", flight.ID}, {"date", flight.Date}, {"time", ftime}, {"startCoord", startCoord}, {"destCoord", destCoord}, {"endTime", flight.EndTime}, {"speed", flight.Speed}, {"corridor", flight.Corridor}, {"subGridLayer", flight.Subgrid}, {"altitude", flight.Altitude}, {"orientation", flight.Orientation}, {"drone", flight.Drone.Name}}
 	err = insertDB(context.TODO(), client, flightDoc, "flights")
 
 	droneDoc := bson.D{{"name", flight.Drone.Name}, {"model", flight.Drone.Model}, {"weight", flight.Drone.Weight}}

@@ -1,6 +1,7 @@
 <script>
 import { Loader } from '@googlemaps/js-api-loader'
 import axios from 'axios'
+
     /* eslint-disable no-undef*/
      /* eslint-disable no-unused-vars*/
     import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
@@ -11,7 +12,7 @@ import axios from 'axios'
     const GOOGLE_MAPS_API_KEY = 'AIzaSyDTNOMjJP2zMMEHcGy2wMNae1JnHkGVvn0'
     export default {
       name: 'App',
-      props: ['propcoords', 'propspeed', 'propdate', 'propway', 'propEndTime', 'propDuration', 'propID'],
+      props: ['propcoords', 'propspeed', 'propdate', 'propway', 'propEndTime', 'propSubgrid', 'propDuration', 'propID'],
       data: function() {
         var myData = {
             myProp: this.propcoords
@@ -176,6 +177,10 @@ import axios from 'axios'
         //   : haversineDistance(currPos.value, otherLoc.value)
         // )
 
+        var calendarContainer = document.getElementById("calendar-display-afterwards")
+        var footer = document.getElementById("footerApp")
+        var loadingScreen = document.getElementById("loadingScreen")
+
         var segments = [] //used to capture segments(grid points) in the flight path
         var cpos = {lat: anchors.startLat, lng: anchors.startLng}
         var opos = {lat: anchors.endLat, lng: anchors.endLng}
@@ -184,6 +189,8 @@ import axios from 'axios'
         console.log("Received In FINAL map coords--->", data); 
         var totalDist = 0
         var l = data[0].path
+        console.log("propcoords===>", props.propcoords) //need to add start and end points to segments
+        segments.push({lat: props.propcoords.destlatitude, lng: props.propcoords.destlongitude})
         segments.push({lat: l[0].value.coordinate.lat, lng: l[0].value.coordinate.lng})
         console.log("path--> ", l, typeof l)
         for (var i = 1; i < l.length; i++) {
@@ -208,6 +215,7 @@ import axios from 'axios'
         // totalDist += parseFloat(totalDist) + parseFloat(d.value)
         // console.log("totalDist-->", totalDist)
         }
+        segments.push({lat: props.propcoords.sourcelatitude, lng: props.propcoords.sourcelongitude})
         totalDist = 6.46*(l.length-1)
         console.log("total distance-->", totalDist)
         var domDist = document.getElementById("dist")
@@ -231,8 +239,8 @@ import axios from 'axios'
                   map: map.value,
                   center: {lat: parseFloat(l[l.length-1].value.coordinate.lat), lng: parseFloat(l[l.length-1].value.coordinate.lng)},
                   radius: 500
-              });
-
+                });
+              
           var entry =  {lat: parseFloat(data[1].start.lat), lng: parseFloat(data[1].start.lng)}
           var exit = {lat: parseFloat(data[1].end.lat), lng: parseFloat(data[1].end.lng)}
           console.log("start and entry", entry, exit)
@@ -294,10 +302,12 @@ import axios from 'axios'
           var e = props.propEndTime.toString()
           segmentedTimeList.push({hour:  e.slice(12, 14), minute:e.slice(15, 17)})
           console.log("segmentedTimeList", segmentedTimeList)
-          
+      
           var segementedFlight =  { //need to store the times with segment each too
+            date: props.propdate.day, 
             segmentList: segments,
             segmentTimes: segmentedTimeList,
+            subGrid: props.propSubgrid, 
             id: props.propID
           }
           //STORE SEGMENTS LIST AS A SINGLE RECORD IN SEGMENTS COLLECTION WITH THE ID OF THE FLIGHT
@@ -309,6 +319,19 @@ import axios from 'axios'
           .catch(error => {
           console.error(error);
         }); 
+       calendarContainer.style.display = "block"; //UNCOMMENT THIS
+      //  footer.style.display = "inline-block";
+       loadingScreen.style.display = "none"
+        var fmap = document.getElementById("final-map-container")
+        fmap.style.display = "block"
+        var con = document.getElementById("ex-sign")
+        con.style.display = "block"
+        var details = document.getElementById('flight-details');
+        details.style.display = 'None';
+
+
+
+        
 
         // NEED TO SEGMENT THE FLIGHT BY GETTING THE COORDINATES AT CERTAIN POINTS AND TIME IN THE FLIGHT(PERHAPS JUST GET THE COORDINATES OF EACH GRUD POINT IN THE PATH)
         //THEN CHECK IF THE INTENDED FLIGHT FALLS WITHIN RADIUS OF THESE POINTS AT A THAT INTENDED TIME
@@ -338,6 +361,7 @@ import axios from 'axios'
       </div>
     </div>
     <div ref="mapDivHere" style="width:100%; height:80vh;"/>
+    
   </div>
 
 </template>
