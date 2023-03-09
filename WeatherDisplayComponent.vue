@@ -9,23 +9,44 @@
             <div class="weather-cols">
                 <div class="weather-heading">Date and time:</div>
                 <div v-for="(date, index) in windDates" v-bind:key="index">
-                    <div v-if="index % 24 !== 0">
+                    <div v-if="index % 24 !== 0" :style="{backgroundColor: 'grey', border: 'solid 1px white', padding: '5px'}">
                         {{ date }}
                     </div>
-                    <div v-else :style="{padding: '10px'}">
-                        New Date
+                    <div v-else :style="{padding: '8.35px', fontSize: '14pt', borderRight: 'solid 1px white', paddingBottom:'3.4px'}">
+                        
+                        <div v-if="index < 2">
+                            {{ windDatesDay[0] }}
+                        </div>
+                        <div v-else-if="2 < index && index < 25">
+                            {{ windDatesDay[1] }}
+                        </div>
+                        <div v-else-if="25 < index && index < 49">
+                            {{ windDatesDay[2] }}
+                        </div>
+                        <div v-else-if="49 < index && index < 73">
+                            {{ windDatesDay[3] }}
+                        </div>
+                        <div v-else-if="73 < index && index < 97">
+                            {{ windDatesDay[4] }}
+                        </div>
+                        <div v-else-if="97 < index && index < 123">
+                            {{ windDatesDay[5] }}
+                        </div>
+                        <div v-else-if="121 < index && index < 150">
+                            {{ windDatesDay[6] }}
+                        </div>
                     </div>
                         
                 </div>
             </div>
             <div class="weather-cols">
-                <div class="weather-heading">Estimated wind speed:</div>
+                <div class="weather-heading">Estimated wind speed(km/h):</div>
                 <div v-for="(wind, index) in windValues" v-bind:key="index">
-                    <div v-if="index % 24 !== 0">
+                    <div v-if="index % 24 !== 0" :style="{backgroundColor: 'grey', border: 'solid 1px white', padding: '5px'}">
                         {{ wind }}
                     </div>
-                    <div v-else :style="{padding: '10px'}">
-                        New Date
+                    <div v-else :style="{padding: '10px', paddingTop:'5px', borderLeft: 'solid 1px white'}">
+                        <div style="visibility: hidden;">WARN</div>
                     </div>
                 </div>
                 
@@ -33,10 +54,10 @@
             <div class="weather-cols">
                 <div class="weather-heading">Status:</div>
                 <div v-for="(c, index) in colorList" v-bind:key="index" >
-                    <div v-if="index % 24 !== 0" :style="{ backgroundColor: c }">
+                    <div v-if="index % 24 !== 0" :style="{ backgroundColor: c, border: 'solid 1px white', padding: '5px' }">
                         <div style="visibility: hidden;">WARN</div>
                     </div>
-                    <div v-else :style="{ display: none, padding: '10px'}">
+                    <div v-else :style="{ display: none, padding: '10px', paddingTop:'5px'}">
                         <div style="visibility: hidden;">WARN</div>
                     </div>
                 </div>
@@ -48,7 +69,7 @@
 <style>
 .displayWindValues {
     display: grid;
-    grid-template-columns: 30% 30% 40%;
+    grid-template-columns: 27% 27% 46%;
 }
 
 .weather-container {
@@ -72,6 +93,7 @@ h1 {
 .weather-heading {
     padding: 10px;
     font-size: 16pt;
+    border: solid 1px white;
 }
 </style>
 
@@ -117,7 +139,8 @@ export default {
                 
                 
             }
-            console.log("DAYS", this.windDatesDay)
+            console.log("len(index)", this.windDates.length)
+            console.log(this.windDatesDay)
 
         },
         getColors() {
