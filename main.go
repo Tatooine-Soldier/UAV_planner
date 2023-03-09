@@ -807,46 +807,75 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	//##########################################################################################################################
 	//For each segmented coordinate of intended flight, check all other segmented flights coordinates to see if one is within 120m
 	//If a reserved flight has a coordinate within 120m of a intended flight coordinate, check what time both those coordinates are within that distance at
-	var unavailableTimes []string
-	for i := 0; i < len(intendedFlight.Coordinates); i++ { //for segmented coord in intended flight path
-		var collisionsOnThisDate string
-		for _, val := range reservedFlightsOnThisDate { //for reserved flight on this date
-			if intendedFlight.Id != val.Id {
-				if checkSubGridLevel(intendedFlight.Id, val.Id) { //check that both flights are on the same grid level
-					g := intendedFlight.Coordinates[i]
-					ifCollisions := checkCoordinatesRadius(g, val) //index, times at which coordinate collisions should occur
-					if ifCollisions != 0.0 {
-						//old way using the intended dlights time only
-						collisionTimeOfIntendedFlight := intendedFlight.Times[i]
-						collisionTimeOfResrvedFlight := val.Times[ifCollisions]
-						if checkTimeCollisions(collisionTimeOfIntendedFlight, collisionTimeOfResrvedFlight, intendedFlight.Date) {
-							unavailableTimes = append(unavailableTimes, collisionTimeOfIntendedFlight)
-							collisionsOnThisDate += collisionTimeOfIntendedFlight
-							fmt.Fprintf(w, collisionTimeOfIntendedFlight+",")
-							fmt.Printf("POSSIBLE COLLISION AT THIS TIME %v", intendedFlight.Times[ifCollisions])
-						} else {
-							fmt.Printf("Coordinate collision but no time collison")
-						}
-						//check if these times are within a certain range, as these will be the times that both flights are at this coordinate
-
-						// t := intendedFlight.Times
-						// fmt.Printf("\nReturned True\n")
-						// for _, intendedTime := range t {
-						// 	if checkTimeCollisions(intendedTime, val) {
-						// 		fmt.Printf("COLLISION POSSIBLE ON THIS PATH AT THIS TIME! Between flights  %v and %v\n", val.Id, intendedFlight.Id)
-						// 		unavailableTimes = append(unavailableTimes, intendedTime)
-						// 		return
-						// 	}
-						// }
-					} else {
-						fmt.Printf("NO COLLISIONS PREDICTED!")
-					}
-				}
+	var flightWatchList []FlightSegmented
+	for _, f := range reservedFlightsOnThisDate {
+		if intendedFlight.Id != f.Id {
+			if checkSubGridLevel(intendedFlight.Id, f.Id) {
+				//check these flights
+				flightWatchList = append(flightWatchList, f) //flights occuring in the same sub grid on the same date
 			}
 		}
-		fmt.Printf("\nAny Collisions for (%v %v) --> %v\n", intendedFlight.Coordinates[i].Latitude, intendedFlight.Coordinates[i].Longitude, collisionsOnThisDate)
 	}
-	fmt.Printf("Collision times--> %v", unavailableTimes)
+	var unavailableTimes []string
+	for i := 0; i < len(intendedFlight.Coordinates); i++ { //for segmented coord in intended flight path
+		for _, val := range flightWatchList {
+			g := intendedFlight.Coordinates[i]
+			ifCollisions := checkCoordinatesRadius(g, val) //index, times at which coordinate collisions will occur
+			if ifCollisions != 0.0 {
+				//old way using the intended dlights time only
+				collisionTimeOfIntendedFlight := intendedFlight.Times[i]
+				collisionTimeOfResrvedFlight := val.Times[ifCollisions]
+				if checkTimeCollisions(collisionTimeOfIntendedFlight, collisionTimeOfResrvedFlight, intendedFlight.Date) {
+					unavailableTimes = append(unavailableTimes, collisionTimeOfIntendedFlight)
+					fmt.Fprintf(w, collisionTimeOfIntendedFlight+",")
+					fmt.Printf("POSSIBLE COLLISION AT THIS TIME IN THIS GRID %v", intendedFlight.Times[ifCollisions])
+					//check when this coordinate will next be free, predict new starting time to accomodate this, append that time to a list
+					//check other subgrid for a start time that occurs before the start times contained in the list above
+					//add to queue to enter new subgrid
+				} else {
+					fmt.Printf("Coordinate collision but no time collison")
+				}
+			} else {
+				fmt.Printf("\nNO Coordinate COLLISIONS PREDICTED")
+			}
+			fmt.Printf("\nAny Collisions for (%v %v) --> \n", intendedFlight.Coordinates[i].Latitude, intendedFlight.Coordinates[i].Longitude)
+			fmt.Printf("Collision times--> %v", unavailableTimes)
+		}
+	}
+
+	// var unavailableTimes []string
+	// for i := 0; i < len(intendedFlight.Coordinates); i++ { //for segmented coord in intended flight path
+	// 	var collisionsOnThisDate string
+	// 	for _, val := range reservedFlightsOnThisDate { //for reserved flight on this date
+	// 		if intendedFlight.Id != val.Id {
+	// 			fmt.Println("\n\n#################################################below####\n")
+	// 			if checkSubGridLevel(intendedFlight.Id, val.Id) { //check that both flights are on the same grid level
+	// 				g := intendedFlight.Coordinates[i]
+	// 				ifCollisions := checkCoordinatesRadius(g, val) //index, times at which coordinate collisions should occur
+	// 				if ifCollisions != 0.0 {
+	// 					//old way using the intended dlights time only
+	// 					collisionTimeOfIntendedFlight := intendedFlight.Times[i]
+	// 					collisionTimeOfResrvedFlight := val.Times[ifCollisions]
+	// 					if checkTimeCollisions(collisionTimeOfIntendedFlight, collisionTimeOfResrvedFlight, intendedFlight.Date) {
+	// 						unavailableTimes = append(unavailableTimes, collisionTimeOfIntendedFlight)
+	// 						collisionsOnThisDate += collisionTimeOfIntendedFlight
+	// 						fmt.Fprintf(w, collisionTimeOfIntendedFlight+",")
+	// 						fmt.Printf("POSSIBLE COLLISION AT THIS TIME IN THIS GRID %v", intendedFlight.Times[ifCollisions])
+	// 						//check when this coordinate will next be free, predict new starting time to accomodate this, append that time to a list
+	// 						//check other subgrid for a start time that occurs before the start times contained in the list above
+	// 						//add to queue to enter new subgrid
+	// 					} else {
+	// 						fmt.Printf("Coordinate collision but no time collison")
+	// 					}
+	// 				} else {
+	// 					fmt.Printf("\nNO Coordinate COLLISIONS PREDICTED")
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// 	fmt.Printf("\nAny Collisions for (%v %v) --> %v\n", intendedFlight.Coordinates[i].Latitude, intendedFlight.Coordinates[i].Longitude, collisionsOnThisDate)
+	// }
+	//fmt.Printf("Collision times--> %v", unavailableTimes)
 
 }
 
@@ -981,6 +1010,7 @@ func checkSubGridLevel(intendedID string, reservedID string) bool {
 	}
 	reservedSubGrid := flight["subGridLayer"].(string)
 
+	fmt.Printf("\nComparing grid levels %v %v", intendedSubGrid, reservedSubGrid)
 	if intendedSubGrid == reservedSubGrid {
 		fmt.Println("same sub grid level")
 		return true
@@ -1047,7 +1077,7 @@ func fetchGridCoordinates(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	fmt.Printf("%v results", results)
+	//fmt.Printf("%v results", results)
 
 	// var coords []string
 	// for _, doc := range results {
