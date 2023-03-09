@@ -821,6 +821,30 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	}
 	var unavailableTimes = schedule(intendedFlight, flightWatchList)
 	fmt.Printf("\n%v", unavailableTimes)
+	if len(unavailableTimes) > 0 { //if there is a collision at this time
+		//add 5 minutes onto each of these times and then rerun the schedule function
+		var fiveMinuteWaitSegments []string
+		for _, segTime := range intendedFlight.Times {
+			if len(segTime) < 5 {
+				segTime = segTime[0:3] + "0" + segTime[3:4]
+			}
+			timePlusFive, err := time.Parse("15:04", segTime)
+			if err != nil {
+				fmt.Printf("Error parsing %v as a time: %v", timePlusFive, err)
+				return
+			}
+			timePlusFive = timePlusFive.Add(5 * time.Minute)
+			timeStr := timePlusFive.String()
+			timeStr = timeStr[10:16]
+			fiveMinuteWaitSegments = append(fiveMinuteWaitSegments, timeStr)
+		}
+		fmt.Printf("New 5 min timestamps: %v", fiveMinuteWaitSegments)
+		intendedFlight.Times = fiveMinuteWaitSegments
+		unavailableTimes = schedule(intendedFlight, flightWatchList)
+		if len(unavailableTimes) > 0 { //if there is still a delay after waiting 5 mins, check if flight can be allocated to another sub grid
+			checkOtherSubGridAvailability(intendedFlight.SubGrid)
+		}
+	}
 
 	// var unavailableTimes []string
 	// for i := 0; i < len(intendedFlight.Coordinates); i++ { //for segmented coord in intended flight path
@@ -856,6 +880,33 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	// }
 	//fmt.Printf("Collision times--> %v", unavailableTimes)
 
+}
+
+func checkOtherSubGridAvailability(gridLevel string) {
+
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		panic(err)
+	}
+
+	collection := client.Database("fyp_test").Collection("segmentedFlight")
+
+	filter := bson.M{"subGrid": gridLevel} //NO: need to get grids that are != gridLevel ie. the grids that are empty
+	cursor, err := collection.Find(context.Background(), filter)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer cursor.Close(context.Background())
+
+	if err = cursor.Err(); err != nil {
+		if err == mongo.ErrNoDocuments {
+			fmt.Println("\nGrid empty\n")
+			return
+		}
+		fmt.Println(err)
+		return
+	}
 }
 
 func schedule(intendedFlight FlightSegmented, flightWatchList []FlightSegmented) []string {
