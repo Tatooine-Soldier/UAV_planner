@@ -117,6 +117,7 @@ type FlightSegmented struct {
 	Date        string
 	Coordinates []Coordinate
 	Times       []string
+	SubGrid     string
 }
 
 type QueryDate struct {
@@ -753,6 +754,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 		var c FlightSegmented
 		c.Id = doc["id"].(string)
 		c.Date = doc["date"].(string)
+		c.SubGrid = doc["subGrid"].(string)
 		c.Coordinates = coordStringList
 		c.Times = timesStringList
 		reservedFlightsOnThisDate = append(reservedFlightsOnThisDate, c)
@@ -798,6 +800,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 
 		intendedFlight.Id = d["id"].(string)
 		intendedFlight.Date = d["date"].(string)
+		intendedFlight.SubGrid = d["subGrid"].(string)
 		intendedFlight.Coordinates = intendedCoordsList
 		intendedFlight.Times = intendedTimesList
 		fmt.Printf("\nIntended Object-->%v", intendedFlight)
@@ -810,38 +813,14 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	var flightWatchList []FlightSegmented
 	for _, f := range reservedFlightsOnThisDate {
 		if intendedFlight.Id != f.Id {
-			if checkSubGridLevel(intendedFlight.Id, f.Id) {
+			if checkSubGridLevel(intendedFlight.SubGrid, f.SubGrid) {
 				//check these flights
 				flightWatchList = append(flightWatchList, f) //flights occuring in the same sub grid on the same date
 			}
 		}
 	}
-	var unavailableTimes []string
-	for i := 0; i < len(intendedFlight.Coordinates); i++ { //for segmented coord in intended flight path
-		for _, val := range flightWatchList {
-			g := intendedFlight.Coordinates[i]
-			ifCollisions := checkCoordinatesRadius(g, val) //index, times at which coordinate collisions will occur
-			if ifCollisions != 0.0 {
-				//old way using the intended dlights time only
-				collisionTimeOfIntendedFlight := intendedFlight.Times[i]
-				collisionTimeOfResrvedFlight := val.Times[ifCollisions]
-				if checkTimeCollisions(collisionTimeOfIntendedFlight, collisionTimeOfResrvedFlight, intendedFlight.Date) {
-					unavailableTimes = append(unavailableTimes, collisionTimeOfIntendedFlight)
-					fmt.Fprintf(w, collisionTimeOfIntendedFlight+",")
-					fmt.Printf("POSSIBLE COLLISION AT THIS TIME IN THIS GRID %v", intendedFlight.Times[ifCollisions])
-					//check when this coordinate will next be free, predict new starting time to accomodate this, append that time to a list
-					//check other subgrid for a start time that occurs before the start times contained in the list above
-					//add to queue to enter new subgrid
-				} else {
-					fmt.Printf("Coordinate collision but no time collison")
-				}
-			} else {
-				fmt.Printf("\nNO Coordinate COLLISIONS PREDICTED")
-			}
-			fmt.Printf("\nAny Collisions for (%v %v) --> \n", intendedFlight.Coordinates[i].Latitude, intendedFlight.Coordinates[i].Longitude)
-			fmt.Printf("Collision times--> %v", unavailableTimes)
-		}
-	}
+	var unavailableTimes = schedule(intendedFlight, flightWatchList)
+	fmt.Printf("\n%v", unavailableTimes)
 
 	// var unavailableTimes []string
 	// for i := 0; i < len(intendedFlight.Coordinates); i++ { //for segmented coord in intended flight path
@@ -879,6 +858,35 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func schedule(intendedFlight FlightSegmented, flightWatchList []FlightSegmented) []string {
+	var unavailableTimes []string
+	for i := 0; i < len(intendedFlight.Coordinates); i++ { //for segmented coord in intended flight path
+		for _, val := range flightWatchList {
+			g := intendedFlight.Coordinates[i]
+			ifCollisions := checkCoordinatesRadius(g, val) //index, times at which coordinate collisions will occur
+			if ifCollisions != 0.0 {
+				collisionTimeOfIntendedFlight := intendedFlight.Times[i]
+				collisionTimeOfResrvedFlight := val.Times[ifCollisions]
+				if checkTimeCollisions(collisionTimeOfIntendedFlight, collisionTimeOfResrvedFlight, intendedFlight.Date) {
+					unavailableTimes = append(unavailableTimes, collisionTimeOfIntendedFlight)
+					// fmt.Fprintf(w, collisionTimeOfIntendedFlight+",")
+					fmt.Printf("POSSIBLE COLLISION AT THIS TIME IN THIS GRID %v", intendedFlight.Times[ifCollisions])
+					//check when this coordinate will next be free, predict new starting time to accomodate this, append that time to a list
+					//check other subgrid for a start time that occurs before the start times contained in the list above
+					//add to queue to enter new subgrid
+				} else {
+					fmt.Printf("Coordinate collision but no time collison")
+				}
+			} else {
+				fmt.Printf("\nNO Coordinate COLLISIONS PREDICTED")
+			}
+		}
+		fmt.Printf("\nAny Collisions for (%v %v) --> \n", intendedFlight.Coordinates[i].Latitude, intendedFlight.Coordinates[i].Longitude)
+		fmt.Printf("\nCollision times--> %v", unavailableTimes)
+	}
+	return unavailableTimes
+}
+
 //returns true if one of the reserved coordinates is within 120m of one of the indended coordinate
 func checkCoordinatesRadius(intended Coordinate, reserved FlightSegmented) int {
 	intendedLat, err := strconv.ParseFloat(intended.Latitude, 64)
@@ -899,7 +907,7 @@ func checkCoordinatesRadius(intended Coordinate, reserved FlightSegmented) int {
 			fmt.Println("can't convert")
 		}
 		if calculateCoordDistance(intendedLat, intendedLng, reservedLat, reservedLng) < .120 { //if two coordinates are within 120 metres of eachother
-			fmt.Printf("\n\nReturned True for these values, flight IDs (%v %v) \tcoords: (%v %v)\t(%v %v) \n", intended.Id, reserved.Id, intendedLat, intendedLng, reservedLat, reservedLng)
+			fmt.Printf("\n\nReturned True for these coordinates, flight IDs (%v %v) \tcoords: (%v %v)\t(%v %v) \n", intended.Id, reserved.Id, intendedLat, intendedLng, reservedLat, reservedLng)
 			return j //return time that the collision occured at
 
 		}
@@ -988,36 +996,43 @@ func checkTimeCollisions(intendedTime string, reservedTime string, date string) 
 	// return false
 }
 
-func checkSubGridLevel(intendedID string, reservedID string) bool {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
-	if err != nil {
-		panic(err)
-	}
-
-	collection := client.Database("fyp_test").Collection("flights")
-	filter := bson.M{"id": intendedID}
-	var flight bson.M
-	err = collection.FindOne(context.Background(), filter).Decode(&flight)
-	if err != nil {
-		log.Fatal(err)
-	}
-	intendedSubGrid := flight["subGridLayer"].(string)
-
-	filter = bson.M{"id": reservedID}
-	err = collection.FindOne(context.Background(), filter).Decode(&flight)
-	if err != nil {
-		log.Fatal(err)
-	}
-	reservedSubGrid := flight["subGridLayer"].(string)
-
-	fmt.Printf("\nComparing grid levels %v %v", intendedSubGrid, reservedSubGrid)
+func checkSubGridLevel(intendedSubGrid string, reservedSubGrid string) bool {
 	if intendedSubGrid == reservedSubGrid {
-		fmt.Println("same sub grid level")
 		return true
 	}
-	fmt.Println("disfferent sub grids")
 	return false
 }
+
+// func checkSubGridLevel(intendedID string, reservedID string) bool {
+// 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	collection := client.Database("fyp_test").Collection("flights")
+// 	filter := bson.M{"id": intendedID}
+// 	var flight bson.M
+// 	err = collection.FindOne(context.Background(), filter).Decode(&flight)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	intendedSubGrid := flight["subGridLayer"].(string)
+
+// 	filter = bson.M{"id": reservedID}
+// 	err = collection.FindOne(context.Background(), filter).Decode(&flight)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	reservedSubGrid := flight["subGridLayer"].(string)
+
+// 	fmt.Printf("\nComparing grid levels %v %v", intendedSubGrid, reservedSubGrid)
+// 	if intendedSubGrid == reservedSubGrid {
+// 		fmt.Println("same sub grid level")
+// 		return true
+// 	}
+// 	fmt.Println("disfferent sub grids")
+// 	return false
+// }
 
 func dateTimeCheck(hour string, minute string) {
 	if len(minute) < 2 {
