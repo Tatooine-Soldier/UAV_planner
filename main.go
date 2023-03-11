@@ -146,6 +146,9 @@ type UserSignobj struct {
 }
 
 var GRID_INCREMENT int
+var LAYER_ONE = "60"
+var LAYER_TWO = "90"
+var LAYER_THREE = "120"
 
 func getRoot(w http.ResponseWriter, r *http.Request) {
 	_, err := fmt.Fprintf(w, "Welcome to the homepage")
@@ -820,7 +823,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	var unavailableTimes = schedule(intendedFlight, flightWatchList)
-	fmt.Printf("\n%v", unavailableTimes)
+	fmt.Printf("\nOriginal time check %v", unavailableTimes)
 	if len(unavailableTimes) > 0 { //if there is a collision at this time
 		//add 5 minutes onto each of these times and then rerun the schedule function
 		var fiveMinuteWaitSegments []string
@@ -841,8 +844,13 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("New 5 min timestamps: %v", fiveMinuteWaitSegments)
 		intendedFlight.Times = fiveMinuteWaitSegments
 		unavailableTimes = schedule(intendedFlight, flightWatchList)
+
+		//this code below is reached if there is a coord&time collision in the origianl grid and if there is no colllision after waiting 5 minutes in orginial hgrid
 		if len(unavailableTimes) > 0 { //if there is still a delay after waiting 5 mins, check if flight can be allocated to another sub grid
-			checkOtherSubGridAvailability(intendedFlight.SubGrid)
+			availableGrids, gridIsEmpty := checkOtherSubGridAvailability(intendedFlight.SubGrid)
+			if gridIsEmpty {
+				fmt.Printf("Empty grids to switch to %v", availableGrids)
+			}
 		}
 	}
 
@@ -882,8 +890,8 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func checkOtherSubGridAvailability(gridLevel string) {
-
+func checkOtherSubGridAvailability(gridLevel string) ([]string, bool) {
+	fmt.Println("\n\n*Checking other grids: *")
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
 		panic(err)
@@ -891,22 +899,41 @@ func checkOtherSubGridAvailability(gridLevel string) {
 
 	collection := client.Database("fyp_test").Collection("segmentedFlight")
 
-	filter := bson.M{"subGrid": gridLevel} //NO: need to get grids that are != gridLevel ie. the grids that are empty
-	cursor, err := collection.Find(context.Background(), filter)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	defer cursor.Close(context.Background())
+	layers := [3]string{LAYER_ONE, LAYER_TWO, LAYER_THREE}
+	var availableGrids []string
+	isEmpty := false //returns true if any of the other grids is empty
+	for _, l := range layers {
+		fmt.Printf("Checking layer '%v'", l)
+		if l != gridLevel { //only check grids that haven't been checked already
+			filter := bson.M{"subGrid": l} //NO: need to get grids that are != gridLevel ie. the grids that are empty
+			cursor, err := collection.Find(context.Background(), filter)
+			if err != nil {
+				fmt.Println(err)
+			}
+			defer cursor.Close(context.Background())
 
-	if err = cursor.Err(); err != nil {
-		if err == mongo.ErrNoDocuments {
-			fmt.Println("\nGrid empty\n")
-			return
+			if cursor.Next(context.Background()) {
+				// cursor is not empty
+				fmt.Println("CURSOR CHECK-->cursor not empty")
+			} else {
+				// cursor is empty
+				fmt.Println("CURSOR CHECK-->cursor is empty")
+			}
+
+			//seems like this isn't really working, says a record exists for each of these layers
+			if err = cursor.Err(); err != nil {
+				if err == mongo.ErrNoDocuments { //if grid is empty
+					fmt.Printf("\nSubGrid empty %v\n", l)
+					availableGrids = append(availableGrids, l)
+					isEmpty = true
+				}
+				fmt.Println(err)
+			} else {
+				fmt.Println("Sub grid not empty")
+			}
 		}
-		fmt.Println(err)
-		return
 	}
+	return availableGrids, isEmpty
 }
 
 func schedule(intendedFlight FlightSegmented, flightWatchList []FlightSegmented) []string {
