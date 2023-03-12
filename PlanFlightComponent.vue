@@ -881,6 +881,7 @@ export default {
                 drone: drone
             }
             this.loaderMsg = false
+          
         } else { //generate flight path
             flight = { 
                 id: randomInteger,
@@ -941,6 +942,13 @@ export default {
             hour: this.date.hour,
             minute: this.date.minute
         }
+        this.loaderMsg = false
+        var t = document.getElementById("final-map-container")
+        t.style.display = "none"
+        var cal = document.getElementById("calendar-display-afterwards")
+        cal.style.display = "none"
+        var l = document.getElementById("loadingScreen")
+        l.style.display = "block"
 
         axios
         .post("/updateFlightTime", flightData)
