@@ -1,7 +1,11 @@
 <template>
     <div class="wavy-container">
-        <div class="wavy">
-            <span>L</span><span>o</span><span>a</span><span>d</span><span>i</span><span>n</span><span>g</span><span>.</span><span>.</span><span>.</span>
+        <div class="wavy" v-if="msg">
+            <!-- <span>L</span><span>o</span><span>a</span><span>d</span><span>i</span><span>n</span><span>g</span><span>.</span><span>.</span><span>.</span> -->
+            <span>Generating flight path...</span>
+        </div>
+        <div v-else>
+            <span>Scheduling flight...</span>
         </div>
     </div>
 </template>
@@ -34,3 +38,16 @@
         }
       }
 </style>
+<script>
+export default {
+  name: 'App',
+  props: ['propmsg'],
+  data(props) {
+    return { 
+      msg: props.propmsg
+    }
+  }, mounted() {
+    console.log("LOADER IN MSG--->", this.propmsg)
+  }
+}
+</script>

@@ -12,7 +12,7 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
     <section class="flight-planner" id="flight-planner">
             <!-- <form action="/planner" method="post"> -->
         <form @submit.prevent="handleSubmit()">
-            <section id="loadingScreen"><LoaderComponent></LoaderComponent></section>
+            <section id="loadingScreen"><LoaderComponent :propmsg="loaderMsg" :key="loaderRefresh"></LoaderComponent></section>
             <section class="flight-details-container" id="flight-details-container">
                 <section class="flight-details" id="flight-details">
                     <section class="flight-details-content">
@@ -36,7 +36,7 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                 <!-- <SpeedSelectorComponent @speedEvent="logspeed"></SpeedSelectorComponent> -->
             </section>
             <section id="final-map-container">
-                <FinalGoogleMapComponent @loadedMap="logLoaded" :propcoords="coords" :propspeed="speed" :propdate="date" :propway="waypoints" :propEndTime="endTime" :propDuration="duration" :propID="flightID" :key="componentKey"></FinalGoogleMapComponent>
+                <FinalGoogleMapComponent @loadedMap="logLoaded" :propcoords="coords" :propspeed="speed.velocity" :propdate="date" :propway="waypoints" :propSubgrid="subGrid" :propEndTime="endTime" :propDuration="duration" :propID="flightID" :key="componentKey"></FinalGoogleMapComponent>
             </section>
             
             <section id="calendar-display-afterwards" >
@@ -671,7 +671,11 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
 <script>
  // import * as geolib from 'geolib';
 import axios from 'axios';
-
+import { getWindSpeed } from "@/fetchWindSpeed";
+//import { response } from "express"; NOT SURE IF I NEED THIS
+const LAYER_ONE = "60"
+const LAYER_TWO = "90"
+const LAYER_THREE = "120"
 
 export default {
     data() {
@@ -705,6 +709,7 @@ export default {
         componentKey: 0,
         bookedDates: null,
         altitude: 0,
+        subGrid: "",
         orientation: '',
         time: 0,
         displayCounter: 0,
@@ -712,6 +717,8 @@ export default {
         duration: 0,
         flightID: "",
         loadedFMap: false,
+        loaderMsg: true,
+        loaderRefresh: 0,
       }
     },
     props: ['propsettings'],
@@ -742,10 +749,13 @@ export default {
         // this.date.minute = this.$refs.minute.value;
         if (this.speed.velocity < 20) {
             this.speed.description = "low-speed";
-        } else if (21 <= this.speed.velocity < 46 ) {
+            this.subGrid = LAYER_ONE
+        } else if (20 <= this.speed.velocity < 30 ) {
             this.speed.description = "mid-speed";
-        } else if (46 <= this.speed.velocity < 100 ) {
+            this.subGrid = LAYER_TWO
+        } else if (30 <= this.speed.velocity < 50 ) {
             this.speed.description = "high-speed";
+            this.subGrid = LAYER_THREE
         } 
         console.log("waypoints:", this.$refs.mywaylng.value, this.$refs.mywaylat.value)
 
@@ -851,7 +861,7 @@ export default {
             weight: this.droneSpec.weight
         }
         var flight = {};
-        if (storeDate) {
+        if (storeDate) {   //put grid layer in here 
             flight = { 
                 id: randomInteger,
                 srclat: this.coords.sourcelatitude, 
@@ -866,10 +876,12 @@ export default {
                 corridor: this.speed.description,
                 waypoint: this.waypoints,
                 altitude: this.altitude,
+                subgrid: this.subGrid,
                 orientation: this.orientation,
                 drone: drone
             }
-        } else {
+            this.loaderMsg = false
+        } else { //generate flight path
             flight = { 
                 id: randomInteger,
                 srclat: this.coords.sourcelatitude, 
@@ -881,14 +893,16 @@ export default {
                 corridor: this.speed.description,
                 waypoint: this.waypoints,
                 altitude: this.altitude,
+                subgrid: this.subGrid,
                 orientation: this.orientation,
                 drone: drone
             }
+            this.loaderMsg = true
+            console.log("MSG-->", this.loaderMsg)
 
         }
         console.log("FLIGHT---> ", flight)
-
-
+        this.renderLoading()
         //this needs to be in a seperate function. 
         //if user selects "confirm", call this function
         axios
@@ -956,6 +970,7 @@ export default {
                 .then((response) => {
                     var data =  response
                     console.log("response from radius function--> ", data)
+                    //var unavailableTimes = data
                 })
                 .catch (function (error) {
                     console.log("ERROR:", error);    
@@ -1063,6 +1078,9 @@ export default {
       forceRenderer() {
         this.componentKey += 1
       },
+      renderLoading() {
+        this.loaderRefresh += 1
+      },
       hidePanel() {
         var d = document.getElementById("splitContainer");
         var l = document.getElementById("lt");
@@ -1091,36 +1109,17 @@ export default {
         })
       },
 
-      // JAVASCRIPT
-	// 	fetch('http://localhost:3001')
-	//   .then(res => res.json())
-	//   .then(data => this.key = data.message)
-	//   .catch(err => console.log(err.message))
+    }, 
+    mounted() {
+        var l = getWindSpeed()
+        l.then((response) => {
+            const data = response.data
+            console.log("Result of getWind-->, ",data)
 
-
+        })
     }
-    //   initMap() {
-    //     var options = {     
-    //         zoom: 10,
-    //         center: { lat: 33.933241, lng: -84.340288 }
-    //     }
-    //     var mapContainer = document.getElementById('map-container');
-    //     var myMap = new google.maps.Map(mapContainer, options);
-    //     var marker = new google.maps.Marker({
-    //         position: { lat: 33.933241, lng: -84.340288 },
-    //         map: myMap
-    //     });
-    //     console.log(marker);
-    //   }
-    }
-    // }, mounted() {
 
-    // fetch('http://localhost:3333', {
-    //                 method: 'GET'
-    //             })
-    // .then(res => res.json())
-    // .then(data => this.info = data.message, console.log(this.info))
-    // .catch(err => console.log(err.message))
+}
 
 
 </script>
