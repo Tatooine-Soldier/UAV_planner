@@ -75,6 +75,7 @@ type SegmentedFlightData struct {
 	SegmentedList  []interface{} `json:"segmentList"`
 	Date           string        `json:"date"`
 	SubGrid        string        `json:"subGrid"`
+	Speed          string        `json:"speed"`
 	ID             string        `json:"id"`
 }
 
@@ -118,6 +119,7 @@ type FlightSegmented struct {
 	Coordinates []Coordinate
 	Times       []string
 	SubGrid     string
+	Speed       string
 }
 
 type QueryDate struct {
@@ -618,7 +620,7 @@ func storeSegmentedFlight(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Printf("TIMESLIST--->%v", timesList)
 
-	gridDoc := bson.D{{"id", d.ID}, {"date", d.Date}, {"subGrid", d.SubGrid}, {"segments", slist}, {"times", timesList}}
+	gridDoc := bson.D{{"id", d.ID}, {"date", d.Date}, {"subGrid", d.SubGrid}, {"speed", d.Speed}, {"segments", slist}, {"times", timesList}}
 	err = insertDB(context.TODO(), client, gridDoc, "segmentedFlight")
 	fmt.Printf("\nERROR-->\n", err)
 
@@ -758,6 +760,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 		c.Id = doc["id"].(string)
 		c.Date = doc["date"].(string)
 		c.SubGrid = doc["subGrid"].(string)
+		c.Speed = doc["speed"].(string)
 		c.Coordinates = coordStringList
 		c.Times = timesStringList
 		reservedFlightsOnThisDate = append(reservedFlightsOnThisDate, c)
@@ -804,6 +807,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 		intendedFlight.Id = d["id"].(string)
 		intendedFlight.Date = d["date"].(string)
 		intendedFlight.SubGrid = d["subGrid"].(string)
+		intendedFlight.Speed = d["speed"].(string)
 		intendedFlight.Coordinates = intendedCoordsList
 		intendedFlight.Times = intendedTimesList
 		fmt.Printf("\nIntended Object-->%v", intendedFlight)
@@ -842,16 +846,33 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 			fiveMinuteWaitSegments = append(fiveMinuteWaitSegments, timeStr)
 		}
 		fmt.Printf("New 5 min timestamps: %v", fiveMinuteWaitSegments)
+		tempTimes := intendedFlight.Times
 		intendedFlight.Times = fiveMinuteWaitSegments
-		unavailableTimes = schedule(intendedFlight, flightWatchList)
+		unavailableTimes = schedule(intendedFlight, flightWatchList) //need to update time stored
 
 		//this code below is reached if there is a coord&time collision in the origianl grid and if there is no colllision after waiting 5 minutes in orginial hgrid
 		if len(unavailableTimes) > 0 { //if there is still a delay after waiting 5 mins, check if flight can be allocated to another sub grid
+			intendedFlight.Times = tempTimes //reset time back to original time
 			availableGrids, gridIsEmpty := checkOtherSubGridAvailability(intendedFlight.SubGrid)
-			if gridIsEmpty {
-				fmt.Printf("Empty grids to switch to %v", availableGrids)
+			fmt.Printf("received after function call Empty grids:%v %v", availableGrids, gridIsEmpty)
+			if gridIsEmpty { //if the grid is empty schedule in the grid closest to the flights speed
+				closestGrid := getClosestGridToCurrentSpeed(availableGrids, intendedFlight.Speed)
+				fmt.Printf("Closest empty grid %v", closestGrid)
+				intendedFlight.SubGrid = closestGrid
+				updateFlight(intendedFlight)
+				fmt.Printf("Scheduled flight at %v in sub grid %v ", intendedFlight.Times[0], intendedFlight.SubGrid)
+				fmt.Fprintf(w, "%v %v", intendedFlight.Times[0], intendedFlight.SubGrid)
+			} else {
+				fmt.Printf("No times or grids available at this trajectory. Please change source or destination point")
+				fmt.Fprintf(w, "none")
 			}
+		} else {
+			fmt.Printf("Scheduled flight(5 mins) at %v in grid %v", intendedFlight.Times[0], intendedFlight.SubGrid)
+			fmt.Fprintf(w, "%v %v", intendedFlight.Times[0], intendedFlight.SubGrid)
 		}
+	} else {
+		fmt.Printf("No collisions: Scheduled flight at %v in sub grid %v", intendedFlight.Times[0], intendedFlight.SubGrid)
+		fmt.Fprintf(w, "%v %v", intendedFlight.Times[0], intendedFlight.SubGrid)
 	}
 
 	// var unavailableTimes []string
@@ -890,6 +911,25 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func updateFlight(flight FlightSegmented) { //if an emtpy grid is found, update the original flight subgrid value
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		panic(err)
+	}
+
+	ctx := context.TODO()
+	usersCollection := client.Database("fyp_test").Collection("segmentedFlight")
+	filter := bson.D{{"id", bson.D{{"$eq", flight.Id}}}}
+
+	update := bson.D{{"$set", bson.D{{"id", flight.Id}, {"subGrid", flight.SubGrid}, {"date", flight.Date}}}}
+
+	result, err := usersCollection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Updated %v", result)
+}
+
 func checkOtherSubGridAvailability(gridLevel string) ([]string, bool) {
 	fmt.Println("\n\n*Checking other grids: *")
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
@@ -918,21 +958,28 @@ func checkOtherSubGridAvailability(gridLevel string) ([]string, bool) {
 			} else {
 				// cursor is empty
 				fmt.Println("CURSOR CHECK-->cursor is empty")
+				availableGrids = append(availableGrids, l)
+				isEmpty = true
 			}
 
 			//seems like this isn't really working, says a record exists for each of these layers
 			if err = cursor.Err(); err != nil {
 				if err == mongo.ErrNoDocuments { //if grid is empty
 					fmt.Printf("\nSubGrid empty %v\n", l)
-					availableGrids = append(availableGrids, l)
 					isEmpty = true
 				}
 				fmt.Println(err)
 			} else {
-				fmt.Println("Sub grid not empty")
+				fmt.Printf("%v Sub grid not empty", availableGrids)
+				continue
+			}
+			if isEmpty {
+				availableGrids = append(availableGrids, l)
 			}
 		}
+
 	}
+	fmt.Println("done")
 	return availableGrids, isEmpty
 }
 
@@ -1079,6 +1126,33 @@ func checkSubGridLevel(intendedSubGrid string, reservedSubGrid string) bool {
 		return true
 	}
 	return false
+}
+
+func getClosestGridToCurrentSpeed(grid []string, speed string) string {
+	cursor := math.Inf(1)
+	diffGrid := ""
+	if len(grid) > 1 {
+		speedInt, err := strconv.ParseFloat(speed, 32)
+		if err != nil {
+			fmt.Println("Error converting speed to int value")
+		}
+		for i := 0; i < len(grid); i++ {
+			gridInt, err := strconv.ParseFloat(grid[i], 32)
+			if err != nil {
+				fmt.Println("Error converting grid to int value")
+			}
+			diff := math.Abs(gridInt - speedInt)
+
+			if diff < cursor {
+				cursor = diff
+				diffGrid = grid[i]
+			}
+		}
+		return diffGrid
+	} else {
+		return grid[0]
+	}
+
 }
 
 // func checkSubGridLevel(intendedID string, reservedID string) bool {
