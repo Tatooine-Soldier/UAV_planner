@@ -898,7 +898,6 @@ export default {
                 orientation: this.orientation,
                 drone: drone
             }
-            this.loaderMsg = true
             console.log("MSG-->", this.loaderMsg)
 
         }
@@ -932,6 +931,8 @@ export default {
         var footer = document.getElementById("footerApp")
         footer.style.display = "none"
         var f = document.getElementById("loadingScreen")
+        var x = document.getElementById("ex-sign")
+        x.style.display = "none";
         f.style.display = "block"
         this.forceRenderer();
       },
@@ -943,6 +944,7 @@ export default {
             minute: this.date.minute
         }
         this.loaderMsg = false
+        this.renderLoading()
         var t = document.getElementById("final-map-container")
         t.style.display = "none"
         var cal = document.getElementById("calendar-display-afterwards")
@@ -955,7 +957,7 @@ export default {
         .then((response) => {
           const data = response.data;
           console.log("UPDATED FLIGHT TIME: ",data);
-          this.forceRenderer();
+          this.forceRenderer(); //can this be called before axios??
           this.checkRadius()
         })
         .catch (function (error) {
@@ -976,8 +978,15 @@ export default {
             axios 
                 .post("/getFlightsWithinRadius", queryDate)
                 .then((response) => {
-                    var data =  response
+                    var data =  response.data
                     console.log("response from radius function--> ", data)
+                    var d = data.split(" ")
+                    var r =  document.getElementById("take-off-time")
+                    r.innerHTML = d[0]
+                    var a =  document.getElementById("take-off-altitude")
+                    a.innerHTML = d[1]
+                    var cal = document.getElementById("calendar-display-afterwards")
+                    cal.style.display = "none"
                     //var unavailableTimes = data
                 })
                 .catch (function (error) {
