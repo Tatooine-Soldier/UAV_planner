@@ -721,10 +721,6 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Printf("\n'%v' matching docs found\n", len(results))
-	if len(results) == 0 {
-		fmt.Fprintf(w, "ALL AVAILABLE")
-		return
-	}
 
 	var segs interface{} // for the dates
 	var times interface{}
@@ -778,6 +774,13 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	//THIS SECTION BELOW FOCUSES ON THE INTENDED FLIGHT DATA, GETS THE INTENDED FLIGHT
 	filterIntendedFlight := bson.D{{"id", bson.D{{"$eq", queryDate.ID}}}}
 	resultIntendedFlight, err := usersCollection.Find(ctx, filterIntendedFlight)
+	if resultIntendedFlight.Next(context.Background()) { // cursor is not empty
+		fmt.Println("CURSOR CHECK-->cursor not empty")
+	} else { // cursor is empty
+		fmt.Println("\n\n COULN'T FIND INTENDED FLIGHT \n\n")
+		return
+	}
+
 	var resultsIntendedFlight []bson.M
 	if err = resultIntendedFlight.All(context.TODO(), &resultsIntendedFlight); err != nil {
 		panic(err)
@@ -813,6 +816,10 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("\nIntended Object-->%v", intendedFlight)
 
 	}
+	if len(results) == 0 { //if no flights on this date
+		fmt.Fprintf(w, "%v %v", intendedFlight.Times[0], intendedFlight.SubGrid)
+		return
+	}
 
 	//##########################################################################################################################
 	//For each segmented coordinate of intended flight, check all other segmented flights coordinates to see if one is within 120m
@@ -827,87 +834,100 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	var unavailableTimes = schedule(intendedFlight, flightWatchList)
-	fmt.Printf("\nOriginal time check %v", unavailableTimes)
-	if len(unavailableTimes) > 0 { //if there is a collision at this time
-		//add 5 minutes onto each of these times and then rerun the schedule function
-		var fiveMinuteWaitSegments []string
-		for _, segTime := range intendedFlight.Times {
-			if len(segTime) < 5 {
-				segTime = segTime[0:3] + "0" + segTime[3:4]
-			}
-			timePlusFive, err := time.Parse("15:04", segTime)
-			if err != nil {
-				fmt.Printf("Error parsing %v as a time: %v", timePlusFive, err)
-				return
-			}
-			timePlusFive = timePlusFive.Add(5 * time.Minute)
-			timeStr := timePlusFive.String()
-			timeStr = timeStr[10:16]
-			fiveMinuteWaitSegments = append(fiveMinuteWaitSegments, timeStr)
-		}
-		fmt.Printf("New 5 min timestamps: %v", fiveMinuteWaitSegments)
-		tempTimes := intendedFlight.Times
-		intendedFlight.Times = fiveMinuteWaitSegments
-		unavailableTimes = schedule(intendedFlight, flightWatchList) //need to update time stored
-
+	fmt.Printf("\nOriginal time check %v  intended: %v", unavailableTimes, intendedFlight.Times)
+	if len(unavailableTimes) > 0 { //if there is a collision at this time check the grid first
 		//this code below is reached if there is a coord&time collision in the origianl grid and if there is no colllision after waiting 5 minutes in orginial hgrid
-		if len(unavailableTimes) > 0 { //if there is still a delay after waiting 5 mins, check if flight can be allocated to another sub grid
-			intendedFlight.Times = tempTimes //reset time back to original time
-			availableGrids, gridIsEmpty := checkOtherSubGridAvailability(intendedFlight.SubGrid)
-			fmt.Printf("received after function call Empty grids:%v %v", availableGrids, gridIsEmpty)
-			if gridIsEmpty { //if the grid is empty schedule in the grid closest to the flights speed
-				closestGrid := getClosestGridToCurrentSpeed(availableGrids, intendedFlight.Speed)
-				fmt.Printf("Closest empty grid %v", closestGrid)
-				intendedFlight.SubGrid = closestGrid
-				updateFlight(intendedFlight)
-				fmt.Printf("Scheduled flight at %v in sub grid %v ", intendedFlight.Times[0], intendedFlight.SubGrid)
+		//if there is still a delay after waiting 5 mins, check if flight can be allocated to another sub gri
+		availableGrids, gridIsEmpty := checkOtherSubGridAvailability(intendedFlight.SubGrid)
+		fmt.Printf("received after function call Empty grids:%v %v", availableGrids, gridIsEmpty)
+		if gridIsEmpty { //if the grid is empty schedule in the grid closest to the flights speed
+			closestGrid := getClosestGridToCurrentSpeed(availableGrids, intendedFlight.Speed)
+			fmt.Printf("Closest empty grid %v", closestGrid)
+			intendedFlight.SubGrid = closestGrid
+			updateFlight(intendedFlight)
+			fmt.Printf("Scheduled flight at %v in sub grid %v ", intendedFlight.Times[0], intendedFlight.SubGrid)
+			fmt.Fprintf(w, "%v %v", intendedFlight.Times[0], intendedFlight.SubGrid)
+		} else {
+			//add 5 minutes onto each of these times and then rerun the schedule function
+			var fiveMinuteWaitSegments []string
+			for _, segTime := range intendedFlight.Times {
+				if len(segTime) < 5 {
+					segTime = segTime[0:3] + "0" + segTime[3:4]
+				}
+				timePlusFive, err := time.Parse("15:04", segTime)
+				if err != nil {
+					fmt.Printf("Error parsing %v as a time: %v", timePlusFive, err)
+					return
+				}
+				timePlusFive = timePlusFive.Add(5 * time.Minute)
+				timeStr := timePlusFive.String()
+				timeStr = timeStr[10:16]
+				fiveMinuteWaitSegments = append(fiveMinuteWaitSegments, timeStr)
+			}
+			fmt.Printf("New 5 min timestamps: %v", fiveMinuteWaitSegments)
+			intendedFlight.Times = fiveMinuteWaitSegments
+			unavailableTimes = schedule(intendedFlight, flightWatchList) //need to update time stored
+
+			if len(unavailableTimes) == 0 {
+				fmt.Printf("Scheduled flight after 5mins %v:", intendedFlight.Times)
 				fmt.Fprintf(w, "%v %v", intendedFlight.Times[0], intendedFlight.SubGrid)
 			} else {
-				fmt.Printf("No times or grids available at this trajectory. Please change source or destination point")
 				fmt.Fprintf(w, "none")
 			}
-		} else {
-			fmt.Printf("Scheduled flight(5 mins) at %v in grid %v", intendedFlight.Times[0], intendedFlight.SubGrid)
-			fmt.Fprintf(w, "%v %v", intendedFlight.Times[0], intendedFlight.SubGrid)
 		}
+
 	} else {
+		fmt.Printf("intendedFlight.Times %v", intendedFlight.Times)
 		fmt.Printf("No collisions: Scheduled flight at %v in sub grid %v", intendedFlight.Times[0], intendedFlight.SubGrid)
 		fmt.Fprintf(w, "%v %v", intendedFlight.Times[0], intendedFlight.SubGrid)
 	}
-
-	// var unavailableTimes []string
-	// for i := 0; i < len(intendedFlight.Coordinates); i++ { //for segmented coord in intended flight path
-	// 	var collisionsOnThisDate string
-	// 	for _, val := range reservedFlightsOnThisDate { //for reserved flight on this date
-	// 		if intendedFlight.Id != val.Id {
-	// 			fmt.Println("\n\n#################################################below####\n")
-	// 			if checkSubGridLevel(intendedFlight.Id, val.Id) { //check that both flights are on the same grid level
-	// 				g := intendedFlight.Coordinates[i]
-	// 				ifCollisions := checkCoordinatesRadius(g, val) //index, times at which coordinate collisions should occur
-	// 				if ifCollisions != 0.0 {
-	// 					//old way using the intended dlights time only
-	// 					collisionTimeOfIntendedFlight := intendedFlight.Times[i]
-	// 					collisionTimeOfResrvedFlight := val.Times[ifCollisions]
-	// 					if checkTimeCollisions(collisionTimeOfIntendedFlight, collisionTimeOfResrvedFlight, intendedFlight.Date) {
-	// 						unavailableTimes = append(unavailableTimes, collisionTimeOfIntendedFlight)
-	// 						collisionsOnThisDate += collisionTimeOfIntendedFlight
-	// 						fmt.Fprintf(w, collisionTimeOfIntendedFlight+",")
-	// 						fmt.Printf("POSSIBLE COLLISION AT THIS TIME IN THIS GRID %v", intendedFlight.Times[ifCollisions])
-	// 						//check when this coordinate will next be free, predict new starting time to accomodate this, append that time to a list
-	// 						//check other subgrid for a start time that occurs before the start times contained in the list above
-	// 						//add to queue to enter new subgrid
-	// 					} else {
-	// 						fmt.Printf("Coordinate collision but no time collison")
-	// 					}
-	// 				} else {
-	// 					fmt.Printf("\nNO Coordinate COLLISIONS PREDICTED")
-	// 				}
-	// 			}
+	// if len(unavailableTimes) > 0 { //if there is a collision at this time
+	// 	//add 5 minutes onto each of these times and then rerun the schedule function
+	// 	var fiveMinuteWaitSegments []string
+	// 	for _, segTime := range intendedFlight.Times {
+	// 		if len(segTime) < 5 {
+	// 			segTime = segTime[0:3] + "0" + segTime[3:4]
 	// 		}
+	// 		timePlusFive, err := time.Parse("15:04", segTime)
+	// 		if err != nil {
+	// 			fmt.Printf("Error parsing %v as a time: %v", timePlusFive, err)
+	// 			return
+	// 		}
+	// 		timePlusFive = timePlusFive.Add(5 * time.Minute)
+	// 		timeStr := timePlusFive.String()
+	// 		timeStr = timeStr[10:16]
+	// 		fiveMinuteWaitSegments = append(fiveMinuteWaitSegments, timeStr)
 	// 	}
-	// 	fmt.Printf("\nAny Collisions for (%v %v) --> %v\n", intendedFlight.Coordinates[i].Latitude, intendedFlight.Coordinates[i].Longitude, collisionsOnThisDate)
+	// 	fmt.Printf("New 5 min timestamps: %v", fiveMinuteWaitSegments)
+	// 	tempTimes := intendedFlight.Times
+	// 	intendedFlight.Times = fiveMinuteWaitSegments
+	// 	unavailableTimes = schedule(intendedFlight, flightWatchList) //need to update time stored
+
+	// 	//this code below is reached if there is a coord&time collision in the origianl grid and if there is no colllision after waiting 5 minutes in orginial hgrid
+	// 	if len(unavailableTimes) > 0 { //if there is still a delay after waiting 5 mins, check if flight can be allocated to another sub grid
+	// 		intendedFlight.Times = tempTimes //reset time back to original time
+	// 		availableGrids, gridIsEmpty := checkOtherSubGridAvailability(intendedFlight.SubGrid)
+	// 		fmt.Printf("received after function call Empty grids:%v %v", availableGrids, gridIsEmpty)
+	// 		if gridIsEmpty { //if the grid is empty schedule in the grid closest to the flights speed
+	// 			closestGrid := getClosestGridToCurrentSpeed(availableGrids, intendedFlight.Speed)
+	// 			fmt.Printf("Closest empty grid %v", closestGrid)
+	// 			intendedFlight.SubGrid = closestGrid
+	// 			updateFlight(intendedFlight)
+	// 			fmt.Printf("Scheduled flight at %v in sub grid %v ", intendedFlight.Times[0], intendedFlight.SubGrid)
+	// 			fmt.Fprintf(w, "%v %v", intendedFlight.Times[0], intendedFlight.SubGrid)
+	// 		} else {
+	// 			fmt.Printf("No times or grids available at this trajectory. Please change source or destination point")
+	// 			fmt.Fprintf(w, "none none")
+	// 		}
+	// 	} else {
+	// 		fmt.Printf("Scheduled flight(5 mins) at %v in grid %v", intendedFlight.Times[0], intendedFlight.SubGrid)
+	// 		fmt.Fprintf(w, "%v %v", intendedFlight.Times[0], intendedFlight.SubGrid)
+	// 	}
+	// } else {
+	// 	fmt.Printf("intendedFlight.Times %v", intendedFlight.Times)
+	// 	fmt.Printf("No collisions: Scheduled flight at %v in sub grid %v", intendedFlight.Times[0], intendedFlight.SubGrid)
+	// 	fmt.Fprintf(w, "%v %v", intendedFlight.Times[0], intendedFlight.SubGrid)
 	// }
-	//fmt.Printf("Collision times--> %v", unavailableTimes)
 
 }
 
