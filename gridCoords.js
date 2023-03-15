@@ -2,6 +2,7 @@
 import {ref} from 'vue'
 import axios from 'axios'
 import { Graph, Node } from './graph'
+import { checkRedAreas } from './withinAirspace';
 
 const getCoordinates = require('./graph.js');
 const LAYER_ONE = "60" //altitude of sub grids in metres
@@ -34,22 +35,32 @@ export class Grid {
                     var nlat = centerList[center][j].lat + this.gap 
                     var nlng = centerList[center][j].lng
                     var nnext = {lat: nlat, lng: nlng}
-                    this.nlist.push(nnext)
-
+                    if (checkRedAreas(nnext)) {
+                        this.nlist.push(nnext)
+                    }
+                    
                     var elat = centerList[center][j].lat 
                     var elng = centerList[center][j].lng + this.gap 
                     var enext = {lat: elat, lng: elng}
-                    this.elist.push(enext)
+                    if (checkRedAreas(enext)) {
+                        this.elist.push(enext)
+                    }
+                    
 
                     var slat = centerList[center][j].lat - this.gap
                     var slng = centerList[center][j].lng 
                     var snext = {lat: slat, lng: slng}
-                    this.slist.push(snext)
+                    if (checkRedAreas(snext)) {
+                        this.elist.push(snext)
+                    }
+                    
 
                     var wlat = centerList[center][j].lat
                     var wlng = centerList[center][j].lng - this.gap
                     var wnext = {lat: wlat, lng: wlng}
-                    this.wlist.push(wnext)
+                    if (checkRedAreas(wnext)) {
+                        this.elist.push(wnext)
+                    }
                 }
             }
             this.gap = this.gap + .05
@@ -63,12 +74,16 @@ export class Grid {
                 wlat = this.nlist[point].lat
                 wlng = this.nlist[point].lng - this.gap
                 wnext = {lat: wlat, lng: wlng}
-                this.wlist.push(wnext)
+                if (checkRedAreas(wnext)) {
+                    this.elist.push(wnext)
+                }
 
                 elat = this.nlist[point].lat
                 elng = this.nlist[point].lng + this.gap
                 enext = {lat: elat, lng: elng}
-                this.elist.push(enext)
+                if (checkRedAreas(enext)) {
+                    this.elist.push(enext)
+                }
             }
 
             for (point in this.slist) { //north rows for west columns and east columns
@@ -76,12 +91,16 @@ export class Grid {
                 wlat = this.slist[point].lat
                 wlng = this.slist[point].lng - this.gap
                 wnext = {lat: wlat, lng: wlng}
-                this.wlist.push(wnext)
+                if (checkRedAreas(wnext)) {
+                    this.elist.push(wnext)
+                }
 
                 elat = this.slist[point].lat
                 elng = this.slist[point].lng + this.gap
                 enext = {lat: elat, lng: elng}
-                this.elist.push(enext)
+                if (checkRedAreas(enext)) {
+                    this.elist.push(enext)
+                }
             }
             this.gap = this.gap + .05
         }
@@ -95,7 +114,7 @@ export class Grid {
         }
         var c = 1
         var coordsList = []
-       // console.log("centerList", centerList)
+        console.log("centerList", centerList)
         coordsList.push( //add the center point of the grid
             {
                 lat: String(centerList[0][0].lat),
@@ -159,7 +178,7 @@ export class Grid {
             setTimeout(() => {
                 resolve([this.returned, this.nearest])
                 console.log("Returned to map", this.returned, this.nearest)
-            }, 6200); //might need to make this bigger
+            }, 8000); //might need to make this bigger
           })
         //add a function that drops the grid collection first  so then this can be left commented in
  
