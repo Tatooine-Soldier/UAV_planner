@@ -39,6 +39,8 @@ import axios from 'axios'
         var graph; 
         var destNode;
         var sourceNode;
+        var timestamps = []
+       
 
         var anchors = {startLat: parseFloat(props.propcoords.sourcelatitude) , startLng: parseFloat(props.propcoords.sourcelongitude), endLat: parseFloat(props.propcoords.destlatitude), endLng: parseFloat(props.propcoords.destlongitude)}
 
@@ -184,11 +186,12 @@ import axios from 'axios'
         var segments = [] //used to capture segments(grid points) in the flight path
         var cpos = {lat: anchors.startLat, lng: anchors.startLng}
         var opos = {lat: anchors.endLat, lng: anchors.endLng}
-        var grid  = new Grid(3); //pass currPos and otherLoc down to grid, get nearest nodes in graph for both and then use those nodes in Dijkstra
-        var psos = grid.generateCoords([[{lat: 53.531386134765576, lng: -7.925040162129355}]], true, anchors).then(data => { 
+        var grid  = new Grid(4); //pass currPos and otherLoc down to grid, get nearest nodes in graph for both and then use those nodes in Dijkstra
+        var psos = grid.generateCoords([[{lat: 51.8964507, lng: -8.4908813}]], true, anchors).then((data) => { 
         console.log("Received In FINAL map coords--->", data); 
         var totalDist = 0
         var l = data[0].path
+        console.log("l: ", l[0])
         console.log("propcoords===>", props.propcoords) //need to add start and end points to segments
         segments.push({lat: props.propcoords.destlatitude, lng: props.propcoords.destlongitude})
         segments.push({lat: l[0].value.coordinate.lat, lng: l[0].value.coordinate.lng})
@@ -218,8 +221,8 @@ import axios from 'axios'
         segments.push({lat: props.propcoords.sourcelatitude, lng: props.propcoords.sourcelongitude})
         totalDist = 6.46*(l.length-1)
         console.log("total distance-->", totalDist)
-        var domDist = document.getElementById("dist")
-        domDist.innerHTML = totalDist.toString()
+        // var domDist = document.getElementById("dist")
+        // domDist.innerHTML = totalDist.toString()
         const gridEntryCircle = new google.maps.Circle({
                   strokeColor: "#FF1122",
                   strokeOpacity: 0.8,
@@ -279,19 +282,19 @@ import axios from 'axios'
           dateObj.setMinutes(props.propdate.minute)
           var j = 1
           while(j < l.length+1) {
-            var t = (segmentedTime*60) 
+            var tl = (segmentedTime*60) 
             //convert t to an actual time(add it to start time )
             //t = t * 60
             
-            if (t < 60) {
-              console.log("adding ", t, " minutes")
-              dateObj.setMinutes(dateObj.getMinutes() + t);
+            if (tl < 60) {
+              console.log("adding ", tl, " minutes")
+              dateObj.setMinutes(dateObj.getMinutes() + tl);
             } else {
               dateObj.setHours(dateObj.getHours() + 1);
-              var r = t % 60
+              var r = tl % 60
               dateObj.setMinutes(dateObj.getMinutes() + r);
             }
-            console.log("dateObj", dateObj, "\nt", t) 
+            console.log("dateObj", dateObj, "\nt", tl) 
             if (dateObj.getHours().toString().length < 2) {
               segmentedTimeList.push({hour: "0"+dateObj.getHours().toString(), minute: dateObj.getMinutes().toString()})
             } else {
@@ -302,12 +305,14 @@ import axios from 'axios'
           var e = props.propEndTime.toString()
           segmentedTimeList.push({hour:  e.slice(12, 14), minute:e.slice(15, 17)})
           console.log("segmentedTimeList", segmentedTimeList)
+          displayTimestamps(segmentedTimeList, segments, timestamps)
       
           var segementedFlight =  { //need to store the times with segment each too
             date: props.propdate.day, 
             segmentList: segments,
             segmentTimes: segmentedTimeList,
             subGrid: props.propSubgrid, 
+            speed: props.propspeed,
             id: props.propID
           }
           //STORE SEGMENTS LIST AS A SINGLE RECORD IN SEGMENTS COLLECTION WITH THE ID OF THE FLIGHT
@@ -335,13 +340,26 @@ import axios from 'axios'
 
         // NEED TO SEGMENT THE FLIGHT BY GETTING THE COORDINATES AT CERTAIN POINTS AND TIME IN THE FLIGHT(PERHAPS JUST GET THE COORDINATES OF EACH GRUD POINT IN THE PATH)
         //THEN CHECK IF THE INTENDED FLIGHT FALLS WITHIN RADIUS OF THESE POINTS AT A THAT INTENDED TIME
-      })
+      }).catch((error) => {
+        console.log("Error with l", error)
+      }) 
 
 
 
         console.log("psos: ", psos)
-        return { currPos, otherLoc, distance, mapDivHere, calculatedTime }
+        return { currPos, otherLoc, distance, mapDivHere, calculatedTime, timestamps}
       }
+    }
+    function displayTimestamps(segmentedTimeList, segments, timestamps) {
+      console.log("segments==>", segments)
+      var timestampDisplay =  document.getElementById("timestamps")
+      timestampDisplay.innerHTML = "<ul>"
+      for (var i=0; i<segmentedTimeList.length;i++) {
+        console.log("pushing segmentedTimeList[i] and segments[i]", segmentedTimeList[i], segments[i])
+        timestampDisplay.innerHTML += "<li>" + segmentedTimeList[i].hour+":"+segmentedTimeList[i].minute +"\t   " + segments[i].lat + " " + segments[i].lng + "</li><hr>"
+        timestamps.push({time: segmentedTimeList[i], coord: segments[i]})
+      }
+      timestampDisplay.innerHTML += "</ul>"
     }
 
 
@@ -351,13 +369,20 @@ import axios from 'axios'
   <div id="big-container">
     <div class="final-distance-caption-container">
       <div>
-        <br>Take-off Time:: {{ propdate.day }}, {{ propdate.hour }}:{{ propdate.minute }}:00
+        <br><div>
+          Take-off time: <b id="take-off-time"></b>
+        </div>
+        <div>
+          Altitude: <b id="take-off-altitude"></b>
+        </div>
+        <!-- <br>Take-off Time:: {{ propdate.day }}, {{ propdate.hour }}:{{ propdate.minute }}:00 -->
         <br>ETA: {{ propEndTime }}
         </div>
-      <div>Corridor: {{ propspeed.description }} <br>Distance of path(km): <div id="dist">{{ distance }}</div><br>Flight Duration: {{ calculatedTime }} </div>
+      <!-- <div>Corridor: {{ propspeed.description }} <br>Distance of path(km): <div id="dist">{{ distance }}</div><br>Flight Duration: {{ calculatedTime }} </div> -->
       <div class="detailz">
             Starting Point:  <i id="plat">{{ propcoords.sourcelatitude }}</i> <i id="plng">{{ propcoords.sourcelongitude }}<br></i>
             Destination Point:  <i id="plat">{{ propcoords.destlatitude }}</i> <i id="plng">{{ propcoords.destlongitude }}<br></i>
+            Flight Log: <div id="timestamps"> </div>
       </div>
     </div>
     <div ref="mapDivHere" style="width:100%; height:80vh;"/>
@@ -371,7 +396,7 @@ import axios from 'axios'
     background-color: white;
     padding: 5px;
     display: grid;
-    grid-template-columns: 35% 35% 30%;
+    grid-template-columns: 50% 50%;
   }
 
   .detailsz {
