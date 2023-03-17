@@ -2,7 +2,7 @@
     <section class="timeslots-container">
         <div><h2>Bookings</h2></div>
         <section class="cards" v-for="timeslot in timesList" :key="timeslot.time" @click="handleTimePick(timeslot.time)">
-            <div v-if="timeslot.status" class="disabled-click">
+            <div v-if="timeslot.status" class="disabled-click" id="disabled-click">
                 <div class="inner-card">
                     <div>Time :</div> <div id="time-div">{{ timeslot.time }}</div>
                 </div>
@@ -17,7 +17,7 @@
             </div>
             <div v-else>
                 <div class="inner-card">
-                    <div>Time :</div> <div id="time-div">{{ timeslot.time }}</div>
+                    <div>Timeslot :</div> <div id="time-div">{{ timeslot.time }}</div>
                 </div>
                 <div>
                     <div v-if="timeslot.status" class="inner-card" >
@@ -35,14 +35,6 @@
 </template>
 
 <style>
-    .disabled-click {
-        pointer-events: none;
-        background-color: rgb(241, 240, 240);
-    }
-
-    .disabled-click:hover {
-        cursor:auto;
-    }
 
     .timeslots-container {
         z-index: 1;
@@ -52,7 +44,7 @@
         width: 58%;
         left: 20%;
         top: 20%;
-        height: 60%;
+        height: 300px;
         overflow: scroll;
         border: solid 3px grey;
     }
@@ -67,6 +59,15 @@
     .cards:hover {
         background-color: rgb(241, 240, 240);
         cursor: pointer;
+    }
+
+    .disabled-click {
+        pointer-events: none;
+        background-color: rgb(241, 240, 240);
+    }
+
+    #disabled-click {
+        cursor: context-menu;
     }
 
     .inner-card {
