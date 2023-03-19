@@ -79,8 +79,9 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                     <MyCalendarComponent @selectedTimeEvent="logTime" :propdates="bookedDates" :propID="flightID"></MyCalendarComponent>
                 </section>
                 <section>
-                    <!-- <input type="button" @click="showFinalMap(true)" value="Confirm"/> -->
-                    <input type="button" @click="updateDate()" value="Confirm"/>
+                   
+                    <!-- <input type="button" @click="updateDate()" value="Confirm"/> -->
+                     <input type="button" value="Confirm" @click="showFinalMap(true)"/>
                 </section>
             </section>
 
@@ -910,6 +911,18 @@ export default {
         .then((response) => {
           const data = response.data;
           console.log("STORED FLIGHT SUCCESSFUL: ",data);
+          var c = document.getElementById("splitContainer")
+            c.style.display = "none"
+            var m = document.getElementById("flight-details-container")
+            m.style.display = "none"
+            var footer = document.getElementById("footerApp")
+            footer.style.display = "none"
+            var f = document.getElementById("loadingScreen")
+            var x = document.getElementById("ex-sign")
+            x.style.display = "none";
+            f.style.display = "block"
+            this.forceRenderer();
+            this.updateDate();
         })
         .catch (function (error) {
             console.log("ERROR:", error);    
@@ -924,17 +937,7 @@ export default {
         // con.style.display = "block"
         // var details = document.getElementById('flight-details');
         // details.style.display = 'None';
-        var c = document.getElementById("splitContainer")
-        c.style.display = "none"
-        var m = document.getElementById("flight-details-container")
-        m.style.display = "none"
-        var footer = document.getElementById("footerApp")
-        footer.style.display = "none"
-        var f = document.getElementById("loadingScreen")
-        var x = document.getElementById("ex-sign")
-        x.style.display = "none";
-        f.style.display = "block"
-        this.forceRenderer();
+       
       },
       updateDate() {
         const flightData = {
@@ -958,7 +961,8 @@ export default {
           const data = response.data;
           console.log("UPDATED FLIGHT TIME: ",data);
           this.forceRenderer(); //can this be called before axios??
-          this.checkRadius()
+        }).then(() => {
+            this.checkRadius()
         })
         .catch (function (error) {
             console.log("ERROR:", error);    
@@ -978,21 +982,30 @@ export default {
             axios 
                 .post("/getFlightsWithinRadius", queryDate)
                 .then((response) => {
+                    var cal = document.getElementById("calendar-display-afterwards")
+                    cal.style.display = "none"
+                    
                     var data =  response.data
                     console.log("response from radius function--> ", data)
                     var d = data.split(" ")
-                    var r =  document.getElementById("take-off-time")
-                    r.innerHTML = d[0]
-                    var a =  document.getElementById("take-off-altitude")
-                    a.innerHTML = d[1]
-                    var cal = document.getElementById("calendar-display-afterwards")
-                    cal.style.display = "none"
+                    console.log("d-->", d)
+                    if (d[0] === "none") {
+                        alert("Change Take-Off time")
+                        var hideMap = document.getElementById("final-map-container")
+                        hideMap.style.display = "none"
+                    } else {
+                        var r =  document.getElementById("take-off-time")
+                        r.innerHTML = d[0]
+                        var a =  document.getElementById("take-off-altitude")
+                        a.innerHTML = d[1]
+                    }
+                    
                     //var unavailableTimes = data
                 })
                 .catch (function (error) {
                     console.log("ERROR:", error);    
                 })
-        }, 7000);
+        }, 8800);
       },
       lowInfo() {
         var c = document.getElementById('lowc');
