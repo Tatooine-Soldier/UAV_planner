@@ -996,8 +996,10 @@ export default {
                     } else {
                         var r =  document.getElementById("take-off-time")
                         r.innerHTML = d[0]
+                        var f = document.getElementById("eta-final")
+                        f.innerHTML += " "+"<b>"+d[1]+"</b>"
                         var a =  document.getElementById("take-off-altitude")
-                        a.innerHTML = d[1]
+                        a.innerHTML = d[2]
                     }
                     
                     //var unavailableTimes = data

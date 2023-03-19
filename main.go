@@ -799,7 +799,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 		intendedFlight.SubGrid = d["subGrid"].(string)
 		intendedFlight.Speed = d["speed"].(string)
 		intendedFlight.Coordinates = intendedCoordsList
-		intendedFlight.Times = intendedTimesList
+		intendedFlight.Times = reverseTimes(intendedTimesList)
 		fmt.Printf("\nIntended Object-->%v", intendedFlight)
 
 	}
@@ -833,7 +833,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 			intendedFlight.SubGrid = closestGrid
 			updateFlight(intendedFlight)
 			fmt.Printf("Scheduled flight at %v in sub grid %v ", intendedFlight.Times[0], intendedFlight.SubGrid)
-			fmt.Fprintf(w, "%v %v", intendedFlight.Times[0], intendedFlight.SubGrid)
+			fmt.Fprintf(w, "%v %v %v", intendedFlight.Times[0], intendedFlight.Times[len(intendedFlight.Times)-1], intendedFlight.SubGrid)
 		} else {
 			addToQueue(intendedFlight.Id, intendedFlight.SubGrid)
 			//add 5 minutes onto each of these times and then rerun the schedule function in  the currect sub grid
@@ -858,7 +858,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 
 			if len(unavailableTimes) == 0 {
 				fmt.Printf("Scheduled flight after 5mins %v:", intendedFlight.Times)
-				fmt.Fprintf(w, "%v %v", intendedFlight.Times[0], intendedFlight.SubGrid)
+				fmt.Fprintf(w, "%v %v %v", intendedFlight.Times[0], intendedFlight.Times[len(intendedFlight.Times)-1], intendedFlight.SubGrid)
 			} else {
 				fmt.Fprintf(w, "none")
 			}
@@ -867,7 +867,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	} else { //if no collisions int he intended grid, it good
 		fmt.Printf("intendedFlight.Times %v", intendedFlight.Times)
 		fmt.Printf("No collisions: Scheduled flight at %v in sub grid %v", intendedFlight.Times[0], intendedFlight.SubGrid)
-		fmt.Fprintf(w, "%v %v", intendedFlight.Times[0], intendedFlight.SubGrid)
+		fmt.Fprintf(w, "%v %v %v", intendedFlight.Times[0], intendedFlight.Times[len(intendedFlight.Times)-1], intendedFlight.SubGrid)
 	}
 	// if len(unavailableTimes) > 0 { //if there is a collision at this time
 	// 	//add 5 minutes onto each of these times and then rerun the schedule function
@@ -1243,6 +1243,13 @@ func dateTimeCheck(hour string, minute string) {
 }
 
 func reverseSegments(s []Coordinate) []Coordinate {
+	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+		s[i], s[j] = s[j], s[i]
+	}
+	return s
+}
+
+func reverseTimes(s []string) []string {
 	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
 		s[i], s[j] = s[j], s[i]
 	}
