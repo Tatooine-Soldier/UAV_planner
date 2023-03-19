@@ -560,11 +560,11 @@ func storeSegmentedFlight(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	log.Println("BODY:", string(body))
+	//log.Println("BODY:", string(body))
 
 	var d SegmentedFlightData
 	err = json.Unmarshal(body, &d)
-	fmt.Printf("UNMARSHAL--->%v", d)
+	//fmt.Printf("UNMARSHAL--->%v", d)
 
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
@@ -604,6 +604,7 @@ func storeSegmentedFlight(w http.ResponseWriter, r *http.Request) {
 	}
 	slist = reverseSegments(slist)
 
+	fmt.Printf("\nSegmenting flight: %v", d.ID)
 	timesList := []TimeRecord{}
 	for _, val := range d.SegmentedTimes {
 		t := val.(map[string]interface{})
@@ -645,7 +646,7 @@ func updateFlightTime(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	log.Println("BODY:", string(body))
+	//log.Println("BODY:", string(body))
 
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
@@ -683,7 +684,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	log.Println("BODY:", string(body))
+	//log.Println("BODY:", string(body))
 
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
@@ -692,20 +693,6 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 
 	var queryDate QueryDate
 	err = json.Unmarshal(body, &queryDate)
-	fmt.Printf("UNMARSHAL--->%v", queryDate)
-	//####################################################
-	//reset the segments list after time has been selected
-	if queryDate.Reset {
-		//var myA primitive.A = primitive.A{}
-
-		collection := client.Database("fyp_test").Collection("segmentedFlight")
-		filter := bson.M{"id": queryDate.ID}
-		result, err := collection.DeleteOne(context.Background(), filter)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Printf("Deleted %v documents.\n", result.DeletedCount)
-	}
 
 	//Query data and id are passed into the function, query date is used to find all other flights(segmented) that occur on this date
 	//#############################################################################################################################
@@ -732,7 +719,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	for _, doc := range results {
 		var timesStringList []string
 		var coordStringList []Coordinate
-		fmt.Printf("\ndoc:===:=== %v", doc)
+		//fmt.Printf("\ndoc:===:=== %v", doc)
 		times = doc["times"]
 		for _, x := range times.(primitive.A) {
 			f := x.(primitive.M)
@@ -848,7 +835,8 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 			fmt.Printf("Scheduled flight at %v in sub grid %v ", intendedFlight.Times[0], intendedFlight.SubGrid)
 			fmt.Fprintf(w, "%v %v", intendedFlight.Times[0], intendedFlight.SubGrid)
 		} else {
-			//add 5 minutes onto each of these times and then rerun the schedule function
+			addToQueue(intendedFlight.Id, intendedFlight.SubGrid)
+			//add 5 minutes onto each of these times and then rerun the schedule function in  the currect sub grid
 			var fiveMinuteWaitSegments []string
 			for _, segTime := range intendedFlight.Times {
 				if len(segTime) < 5 {
@@ -876,7 +864,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-	} else {
+	} else { //if no collisions int he intended grid, it good
 		fmt.Printf("intendedFlight.Times %v", intendedFlight.Times)
 		fmt.Printf("No collisions: Scheduled flight at %v in sub grid %v", intendedFlight.Times[0], intendedFlight.SubGrid)
 		fmt.Fprintf(w, "%v %v", intendedFlight.Times[0], intendedFlight.SubGrid)
@@ -929,6 +917,47 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	// 	fmt.Fprintf(w, "%v %v", intendedFlight.Times[0], intendedFlight.SubGrid)
 	// }
 
+}
+
+func getShortestWaitGrid(gridLevel string) {
+
+}
+
+func createQueue(gridID string) {
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		panic(err)
+	}
+
+	collection := client.Database("mydatabase").Collection("queue")
+	fmt.Printf("Created collection --> %v", collection.Name())
+
+	queueDoc := bson.D{{"id", gridID}, {"altitude", LAYER_ONE}, {"flights", []string{}}}
+	err = insertDB(context.TODO(), client, queueDoc, "queue")
+	if err != nil {
+		fmt.Printf("error storing creating the queue %f", LAYER_ONE)
+	}
+	queueDoc = bson.D{{"id", gridID}, {"altitude", LAYER_TWO}, {"flights", []string{}}}
+	err = insertDB(context.TODO(), client, queueDoc, "queue")
+	if err != nil {
+		fmt.Printf("error storing creating the queue %f", LAYER_TWO)
+	}
+	queueDoc = bson.D{{"id", gridID}, {"altitude", LAYER_THREE}, {"flights", []string{}}}
+	err = insertDB(context.TODO(), client, queueDoc, "queue")
+	if err != nil {
+		fmt.Printf("error storing creating the queue %f", LAYER_THREE)
+	}
+
+}
+
+func addToQueue(flightID string, subGrid string) {
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		panic(err)
+	}
+
+	gridDoc := bson.D{{"flightID", flightID}, {"subGrid", subGrid}}
+	err = insertDB(context.TODO(), client, gridDoc, "queue")
 }
 
 func updateFlight(flight FlightSegmented) { //if an emtpy grid is found, update the original flight subgrid value
@@ -1248,7 +1277,7 @@ func fetchGridCoordinates(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	log.Println("BODY:", string(body))
+	log.Println("BODY fetch:", string(body))
 
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
@@ -1308,16 +1337,19 @@ func storeGridCoordinates(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	log.Println("BODY:", string(body))
+	log.Println("BODY grid storeGridCoords:", string(body))
 
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
 		panic(err)
 	}
 
-	filter := bson.D{}
 	usersCollection := client.Database("fyp_test").Collection("grid")
-	usersCollection.DeleteMany(context.TODO(), filter)
+	filter := bson.M{}
+	_, err = usersCollection.DeleteMany(context.TODO(), filter)
+	if err != nil {
+		fmt.Println("Error deleting grid coords")
+	}
 
 	var grid GridofCoordinates
 	err = json.Unmarshal(body, &grid)
