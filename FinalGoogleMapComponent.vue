@@ -13,11 +13,26 @@ import axios from 'axios'
     export default {
       name: 'App',
       props: ['propcoords', 'propspeed', 'propdate', 'propway', 'propEndTime', 'propSubgrid', 'propDuration', 'propID'],
-      data: function() {
-        var myData = {
-            myProp: this.propcoords
+      data() {
+        return {
+          counter: 0
         }
-        return myData
+        
+      },
+      methods: {
+        showLog() {
+          var t = document.getElementById("timestamps")
+          var f = document.getElementById("flightlogbutton")
+          if (this.counter % 2 == 0) {
+            t.style.display = "block"
+            f.value = "Hide LOG"
+          } else {
+            t.style.display = "none"
+            f.value = "Show LOG"
+          }
+          this.counter += 1
+        }
+
       },
       setup(props) {
         watch(() => props.propcoords, () => {
@@ -265,8 +280,7 @@ import axios from 'axios'
               map: map.value,
               strokeColor: "#1133FF"
             })
-
-          console.log("segments", segments, "\nlen(segments): ", l.length, "\nduration: ", props.propDuration)
+          
           
           var startTime = props.propdate.hour + props.propdate.minute
           var endTime = props.propEndTime
@@ -274,7 +288,7 @@ import axios from 'axios'
           var duration = props.propDuration
 
           var segmentedTime =  duration.toFixed(2) / l.length
-          console.log("SEGMENTED TIME", segmentedTime)
+          console.log("SEGMENTED TIME & DURATION", segmentedTime, duration.toFixed(2))
           var segmentedTimeList = []
           segmentedTimeList.push({hour: props.propdate.hour, minute: props.propdate.minute})
           const dateObj = new Date();
@@ -285,7 +299,7 @@ import axios from 'axios'
             var tl = (segmentedTime*60) 
             //convert t to an actual time(add it to start time )
             //t = t * 60
-            
+         
             if (tl < 60) {
               console.log("adding ", tl, " minutes")
               dateObj.setMinutes(dateObj.getMinutes() + tl);
@@ -305,7 +319,107 @@ import axios from 'axios'
           var e = props.propEndTime.toString()
           segmentedTimeList.push({hour:  e.slice(12, 14), minute:e.slice(15, 17)})
           console.log("segmentedTimeList", segmentedTimeList)
+          segmentedTimeList = segmentedTimeList.reverse()
           displayTimestamps(segmentedTimeList, segments, timestamps)
+
+
+          //code to adjust the timing segments to include No Man's Land
+          console.log("** HAVERSINE between first two segments --> **", haversineDistance(segments[segments.length-1], segments[segments.length-2]), segments[segments.length-1], segments[segments.length-2])
+          var cdistance =  haversineDistance(segments[segments.length-1], segments[segments.length-2])
+          var ctime =  (cdistance*1000) / ((speed*1000)/3600)
+          console.log("ctime raw: ", ctime, cdistance*1000)
+          function convertToMinutes(time) {
+            var t = Math.ceil(time)
+            var minutes =  t/60
+            return minutes
+          } 
+          ctime = convertToMinutes(ctime)
+          ctime = Math.ceil(ctime)
+          console.log("ctime---> ", ctime) //minutes to be added on to each segmented time 
+          function addMinutes(time, minutesToAdd) { //
+            console.log("Adding ",minutesToAdd, " to ",  time )
+            var hours = parseInt(time.hour);
+            var minutes = parseInt(time.minute);
+
+            var newMinutes = minutes + minutesToAdd;
+            console.log(minutes, minutesToAdd)
+            var newHours = hours
+            if (newMinutes >= 60) {
+              newMinutes = newMinutes % 60;
+              newHours = hours + 1
+            } 
+            newMinutes =  Math.ceil(newMinutes) //round up
+            var formattedTime = {hour: newHours.toString(), minute: newMinutes.toString()}
+            return formattedTime
+          }
+          var newTime = addMinutes(segmentedTimeList[segmentedTimeList.length - 1], ctime)
+          console.log(newTime)
+
+          const dateOb = new Date();
+          dateOb.setHours(newTime.hour)
+          dateOb.setMinutes(newTime.minute)
+          
+         
+          console.log("SEGMENTEDTIMELIST before reverse: ", segmentedTimeList)
+          segmentedTimeList[segmentedTimeList.length-1] = segmentedTimeList[segmentedTimeList.length-2]
+          segmentedTimeList[segmentedTimeList.length-2] = newTime
+          for (j=2;j<segmentedTimeList.length; j++) {
+            console.log("List item time-->", segmentedTimeList[j])
+            tl = (segmentedTime*60) 
+            if (tl < 60) {
+              dateOb.setMinutes(dateOb.getMinutes() + tl);
+            } else {
+              dateOb.setHours(dateOb.getHours() + 1);
+              r = tl % 60
+              dateOb.setMinutes(dateOb.getMinutes() + r);
+            }
+            if (dateOb.getHours().toString().length < 2) {
+              segmentedTimeList[j] = {hour: "0"+dateOb.getHours().toString(), minute: dateOb.getMinutes().toString()}
+            } else {
+              segmentedTimeList[j] = {hour: dateOb.getHours().toString(), minute: dateOb.getMinutes().toString()}
+            }
+          }
+          segmentedTimeList = segmentedTimeList.reverse()
+          
+          console.log("SEGMENTEDTIMELIST after reverse: ", segmentedTimeList)
+          //**** RETURN HERE THE SEGMENTS//
+
+
+          //Timestamp Display the circle objects with info objects for each node timestamp
+          console.log("segments", segments, "\nlen(segments): ", l.length, "\nduration: ", props.propDuration)
+
+          for (var s in segments) {
+            var lngSeg = parseFloat(segments[s].lng)
+            var latSeg = parseFloat(segments[s].lat)
+            const segCircle = new google.maps.Circle({
+                  strokeColor: "#FF1122",
+                  strokeOpacity: 0.8,
+                  strokeWeight: 1,
+                  fillColor: "#FF1122",
+                  fillOpacity: 1,
+                  map: map.value,
+                  center: {lat: latSeg, lng: lngSeg},
+                  radius: 400
+              })
+            var timeD = segmentedTimeList[s].hour.toString() + ":" + segmentedTimeList[s].minute.toString()
+            
+            const infowindow = new google.maps.InfoWindow({
+              content: timeD,
+              ariaLabel: "Time_At_Coordinate",
+            });
+            segCircle.addListener("click", () => {
+              if (segmentedTimeList[s].minute.length < 2 ) {
+                segmentedTimeList[s].minute = "0"+segmentedTimeList[s].minute.toString()
+              }
+              console.log("clicked circle", segmentedTimeList[s].hour.toString(), segmentedTimeList[s].minute.toString(), s)
+              infowindow.setPosition(segCircle.center)
+              infowindow.open({
+                anchor: segCircle,
+                map,
+              });
+              
+            })
+          }
       
           var segementedFlight =  { //need to store the times with segment each too
             date: props.propdate.day, 
@@ -356,11 +470,15 @@ import axios from 'axios'
       timestampDisplay.innerHTML = "<ul>"
       for (var i=0; i<segmentedTimeList.length;i++) {
         console.log("pushing segmentedTimeList[i] and segments[i]", segmentedTimeList[i], segments[i])
-        timestampDisplay.innerHTML += "<li>" + segmentedTimeList[i].hour+":"+segmentedTimeList[i].minute +"\t   " + segments[i].lat + " " + segments[i].lng + "</li><hr>"
+        if (segmentedTimeList[i].minute.length === 1) {
+          segmentedTimeList[i].minute = "0"+segmentedTimeList[i].minute
+        }
+        timestampDisplay.innerHTML += "<li>" + segmentedTimeList[i].hour+":"+segmentedTimeList[i].minute +" ---- <i>" + segments[i].lat + " " + segments[i].lng + "</i></li><hr>"
         timestamps.push({time: segmentedTimeList[i], coord: segments[i]})
       }
       timestampDisplay.innerHTML += "</ul>"
     }
+    
 
 
 </script>
@@ -369,20 +487,24 @@ import axios from 'axios'
   <div id="big-container">
     <div class="final-distance-caption-container">
       <div>
-        <br><div>
+        <div>
           Take-off time: <b id="take-off-time"></b>
         </div>
         <div>
-          Altitude: <b id="take-off-altitude"></b>
+          Altitude: <b id="take-off-altitude"></b>m
+        </div>
+        <div>
+          Speed: <b id="speed-final"></b>km/h
         </div>
         <!-- <br>Take-off Time:: {{ propdate.day }}, {{ propdate.hour }}:{{ propdate.minute }}:00 -->
-        <br>ETA: {{ propEndTime }}
+        <br><div id="eta-final">ETA: </div>
         </div>
       <!-- <div>Corridor: {{ propspeed.description }} <br>Distance of path(km): <div id="dist">{{ distance }}</div><br>Flight Duration: {{ calculatedTime }} </div> -->
       <div class="detailz">
-            Starting Point:  <i id="plat">{{ propcoords.sourcelatitude }}</i> <i id="plng">{{ propcoords.sourcelongitude }}<br></i>
-            Destination Point:  <i id="plat">{{ propcoords.destlatitude }}</i> <i id="plng">{{ propcoords.destlongitude }}<br></i>
-            Flight Log: <div id="timestamps"> </div>
+            Starting Point:  <b id="plat">{{ propcoords.sourcelatitude }}</b> <b id="plng">{{ propcoords.sourcelongitude }}<br></b>
+            Destination Point:  <b id="plat">{{ propcoords.destlatitude }}</b> <b id="plng">{{ propcoords.destlongitude }}<br></b>
+            <!-- displayed as none for now -->
+            Flight Log: <input type="button" value="Show LOG" @click="showLog()" id="flightlogbutton"> <div id="timestamps"> </div> 
       </div>
     </div>
     <div ref="mapDivHere" style="width:100%; height:80vh;"/>
@@ -414,5 +536,15 @@ import axios from 'axios'
 
   #plat {
     font-size: 8px;
+  }
+
+  #timestamps {
+    display: none;
+    position:absolute;
+    z-index: 1;
+    background-color: white;
+    border: .5px solid rgb(80, 79, 79);
+    border-top: none;
+    padding: 5px;
   }
 </style>
