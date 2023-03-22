@@ -4,6 +4,8 @@ type Queue struct {
 	list            []QueueItem
 	GridID          string
 	SubGridAltitude string
+	Node            string
+	WaitingTime     string
 }
 
 type QueueItem struct {
@@ -22,3 +24,9 @@ func (q *Queue) Dequeue() interface{} {
 	q.list = q.list[1:]
 	return item
 }
+
+// func start() {
+// 	q := Queue{}
+// 	var wait sync.WaitGroup
+// 	go func()
+// }
