@@ -9,6 +9,11 @@ const LAYER_ONE = "60" //altitude of sub grids in metres
 const LAYER_TWO = "90"
 const LAYER_THREE = "120"
 
+let MIN_LAT = ""
+let MAX_LAT = ""
+let MIN_LNG = ""
+let MAX_LNG = ""
+
 export class Grid {
     constructor(size) {
         this.counter = ref(0)
@@ -21,6 +26,7 @@ export class Grid {
         this.al = []
         this.returned = []
         this.nearest = {}
+        this.borderNodes = []
     }
 
     //generate the coordinates then store them in a database collection "grids"
@@ -28,10 +34,12 @@ export class Grid {
     //centerList param is the coordinate which will be the centerpoint of the grid
     // formula for number of nodes in the grid is ((n*2)+1)^2 where n is the size passed into the grid
     generateCoords(centerList, full, anchors={} ) {  
+        var center;
+        var j;
         for (var i = 0; i < this.size; i++) { //creates a "crucifix" pattern, n e s w
 
-            for (var center in centerList) {
-                for (var j in centerList[center]) {
+            for (center in centerList) {
+                for (j in centerList[center]) {
                     var nlat = centerList[center][j].lat + this.gap 
                     var nlng = centerList[center][j].lng
                     var nnext = {lat: nlat, lng: nlng}
@@ -61,9 +69,18 @@ export class Grid {
                     if (checkRedAreas(wnext)) {
                         this.elist.push(wnext)
                     }
+                 
                 }
             }
             this.gap = this.gap + .05
+            if (i === this.size-1 ) { //get all the the min and max latitude and longitude values of the grid (nodes along the border so can add a queue at each of them)
+                MAX_LAT = centerList[center][j].lat + this.gap 
+                MIN_LAT = centerList[center][j].lat - this.gap
+                MAX_LNG = centerList[center][j].lng + this.gap
+                MIN_LNG = centerList[center][j].lng - this.gap
+                console.log("pushing ", MAX_LAT, MIN_LAT, MIN_LNG, MAX_LNG)
+                this.borderNodes.push(MAX_LAT, MIN_LAT, MIN_LNG, MAX_LNG) 
+            }
         }
         this.gap = 0.05
         
@@ -134,9 +151,9 @@ export class Grid {
             }
         }
 
-        
+        console.log("borderNodes--->", this.borderNodes)
         var layers = [LAYER_ONE, LAYER_TWO, LAYER_THREE] //sub grids
-        var coordMsg = {coordinates: coordsList, layers: layers}
+        var coordMsg = {coordinates: coordsList, layers: layers, borderCoordinates: this.borderNodes} //SEND BORDER NODES OVER HERE *******
         this.nearest =  this.getNearestCoord(coordsList, anchors) // return this with this.returned???
        // console.log("this.nearest", this.nearest)
         
@@ -178,7 +195,7 @@ export class Grid {
             setTimeout(() => {
                 resolve([this.returned, this.nearest])
                 console.log("Returned to map", this.returned, this.nearest)
-            }, 8000); //might need to make this bigger
+            }, 9000); //might need to make this bigger
           })
         //add a function that drops the grid collection first  so then this can be left commented in
  
