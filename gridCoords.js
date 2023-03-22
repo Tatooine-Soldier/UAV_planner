@@ -73,17 +73,19 @@ export class Grid {
                 }
             }
             this.gap = this.gap + .05
-            if (i === this.size-1 ) { //get all the the min and max latitude and longitude values of the grid (nodes along the border so can add a queue at each of them)
-                MAX_LAT = centerList[center][j].lat + this.gap 
-                MIN_LAT = centerList[center][j].lat - this.gap
-                MAX_LNG = centerList[center][j].lng + this.gap
-                MIN_LNG = centerList[center][j].lng - this.gap
-                console.log("pushing ", MAX_LAT, MIN_LAT, MIN_LNG, MAX_LNG)
-                this.borderNodes.push(MAX_LAT, MIN_LAT, MIN_LNG, MAX_LNG) 
-            }
+    
         }
-        this.gap = 0.05
         
+        
+        this.gap = 0.05
+        const max_vals = this.gap * this.size //constant used to calculate min and max lat and lng values 
+        MAX_LAT = centerList[center][j].lat + max_vals
+        MIN_LAT = centerList[center][j].lat - max_vals
+        MAX_LNG = centerList[center][j].lng + max_vals
+        MIN_LNG = centerList[center][j].lng - max_vals
+        this.borderNodes.push(String(MAX_LAT), String(MIN_LAT), String(MIN_LNG), String(MAX_LNG)) 
+        console.log("centerList[center][j].lat  ==>", centerList[center][j].lat + max_vals, centerList[center][j].lat - max_vals, centerList[center][j].lng + max_vals, centerList[center][j].lng - max_vals )
+
 
         for (i = 0; i < this.size; i++) { // now get the coordinates of each column
             for (var point in this.nlist) { //north rows for west columns and east columns

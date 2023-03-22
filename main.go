@@ -92,8 +92,9 @@ type TimeUpdate struct {
 }
 
 type GridofCoordinates struct {
-	Coordinates []interface{} `json:"coordinates"`
-	Layers      []string      `json:"layers"` //layers are confined to only 3 due to height restrictions imposed by the IAA at 120metres maximum
+	Coordinates  []interface{} `json:"coordinates"`
+	Layers       []string      `json:"layers"` //layers are confined to only 3 due to height restrictions imposed by the IAA at 120metres maximum
+	BorderCoords []string      `json:"borderCoordinates"`
 }
 
 type MidCoord interface {
@@ -180,7 +181,7 @@ func connectDB() {
 
 //InsertDB(context.TODO(), client)
 func insertDB(ctx context.Context, client *mongo.Client, user primitive.D, collection string) (err error) {
-	fmt.Printf("\nINSERTING %v\n", user)
+	//fmt.Printf("\nINSERTING %v\n", user)
 	usersCollection := client.Database("fyp_test").Collection(collection)
 	result, err := usersCollection.InsertOne(ctx, user)
 	if err != nil {
@@ -764,7 +765,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	if resultIntendedFlight.Next(context.Background()) { // cursor is not empty
 		fmt.Println("CURSOR CHECK-->cursor not empty")
 	} else { // cursor is empty
-		fmt.Println("\n\n COULN'T FIND INTENDED FLIGHT \n\n")
+		fmt.Printf("\n\n COULN'T FIND INTENDED FLIGHT %v\n\n", queryDate.ID)
 		return
 	}
 
@@ -833,7 +834,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 			intendedFlight.SubGrid = closestGrid
 			updateFlight(intendedFlight)
 			fmt.Printf("Scheduled flight at %v in sub grid %v ", intendedFlight.Times[0], intendedFlight.SubGrid)
-			fmt.Fprintf(w, "%v %v %v", intendedFlight.Times[0], intendedFlight.Times[len(intendedFlight.Times)-1], intendedFlight.SubGrid)
+			fmt.Fprintf(w, "%v %v %v %v", intendedFlight.Times[0], intendedFlight.Times[len(intendedFlight.Times)-1], intendedFlight.SubGrid, intendedFlight.Speed)
 		} else {
 			addToQueue(intendedFlight.Id, intendedFlight.SubGrid)
 			//add 5 minutes onto each of these times and then rerun the schedule function in  the currect sub grid
@@ -858,7 +859,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 
 			if len(unavailableTimes) == 0 {
 				fmt.Printf("Scheduled flight after 5mins %v:", intendedFlight.Times)
-				fmt.Fprintf(w, "%v %v %v", intendedFlight.Times[0], intendedFlight.Times[len(intendedFlight.Times)-1], intendedFlight.SubGrid)
+				fmt.Fprintf(w, "%v %v %v %v", intendedFlight.Times[0], intendedFlight.Times[len(intendedFlight.Times)-1], intendedFlight.SubGrid, intendedFlight.Speed)
 			} else {
 				fmt.Fprintf(w, "none")
 			}
@@ -867,7 +868,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	} else { //if no collisions int he intended grid, it good
 		fmt.Printf("intendedFlight.Times %v", intendedFlight.Times)
 		fmt.Printf("No collisions: Scheduled flight at %v in sub grid %v", intendedFlight.Times[0], intendedFlight.SubGrid)
-		fmt.Fprintf(w, "%v %v %v", intendedFlight.Times[0], intendedFlight.Times[len(intendedFlight.Times)-1], intendedFlight.SubGrid)
+		fmt.Fprintf(w, "%v %v %v %v", intendedFlight.Times[0], intendedFlight.Times[len(intendedFlight.Times)-1], intendedFlight.SubGrid, intendedFlight.Speed)
 	}
 	// if len(unavailableTimes) > 0 { //if there is a collision at this time
 	// 	//add 5 minutes onto each of these times and then rerun the schedule function
@@ -1353,13 +1354,14 @@ func storeGridCoordinates(w http.ResponseWriter, r *http.Request) {
 
 	usersCollection := client.Database("fyp_test").Collection("grid")
 	filter := bson.M{}
-	_, err = usersCollection.DeleteMany(context.TODO(), filter)
+	_, err = usersCollection.DeleteMany(context.TODO(), filter) //delete grid coordinates used in older grids
 	if err != nil {
 		fmt.Println("Error deleting grid coords")
 	}
 
 	var grid GridofCoordinates
 	err = json.Unmarshal(body, &grid)
+	fmt.Printf("\nBorderCoords %v\n", grid.BorderCoords)
 	fmt.Printf("COORDSLIST: %vFINISHED", grid.Coordinates)
 
 	GRID_INCREMENT++
@@ -1373,13 +1375,24 @@ func storeGridCoordinates(w http.ResponseWriter, r *http.Request) {
 			coord.Id = t["id"].(string)
 			coord.Latitude = t["lat"].(string)
 			coord.Longitude = t["lng"].(string)
-			fmt.Printf("coord: %v\t %v\t %v\n", coord.Id, coord.Latitude, coord.Longitude)
+			//fmt.Printf("coord: %v\t %v\t %v\n", coord.Id, coord.Latitude, coord.Longitude)
 
-			//build mongo record
+			//build mongo record to store all coordinates in the grid
 			gridCoord := bson.D{{"lat", coord.Latitude}, {"lng", coord.Longitude}}
 			gridDoc := bson.D{{"id", coord.Id}, {"coordinate", gridCoord}, {"layer", layer}, {"gridID", gridID}}
 			err = insertDB(context.TODO(), client, gridDoc, "grid")
-			fmt.Printf("\nERROR-->\n", err)
+			//fmt.Printf("\nERROR storing grid coordinates-->\n", err)
+
+			//if the coordinate is located on the border of the grid then it will have a queue allocated to it
+			//as it will become an entry point into the grid from No Man's Land
+			fmt.Printf("\nCOMPARING queue coords %v %v\n", coord, grid.BorderCoords)
+			if containsBorderNode(coord, grid.BorderCoords) {
+				//build record to store coordinates which will be allocated queues
+				gridCoord := bson.D{{"lat", coord.Latitude}, {"lng", coord.Longitude}}
+				gridDoc := bson.D{{"id", coord.Id}, {"coordinate", gridCoord}, {"layer", layer}, {"gridID", gridID}}
+				err = insertDB(context.TODO(), client, gridDoc, "queues")
+				fmt.Printf("\nERROR storing border coordinate in queue collection-->\n", err)
+			}
 
 		}
 	}
@@ -1387,6 +1400,19 @@ func storeGridCoordinates(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprint(w, "stored")
 
+}
+
+//return true if the coordinate passed in has the same lat or lng val as the max/min lng lat values for this grid
+func containsBorderNode(c Coordinate, slist []string) bool {
+	for _, val := range slist {
+		if c.Latitude == val {
+			return true
+		}
+		if c.Longitude == val {
+			return true
+		}
+	}
+	return false
 }
 
 func getDateFlight(w http.ResponseWriter, r *http.Request) {
