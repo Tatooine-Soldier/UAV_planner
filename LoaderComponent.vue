@@ -2,11 +2,12 @@
     <div class="wavy-container">
         <div class="wavy" v-if="msg">
             <!-- <span>L</span><span>o</span><span>a</span><span>d</span><span>i</span><span>n</span><span>g</span><span>.</span><span>.</span><span>.</span> -->
-            <span>Generating flight path...</span>
-        </div>
-        <div v-else>
             <span>Scheduling flight...</span>
         </div>
+        <div v-else class="wavy">
+            <span>Generating flight path...</span>
+        </div>
+        <div id="loader-msg"></div>
     </div>
 </template>
 

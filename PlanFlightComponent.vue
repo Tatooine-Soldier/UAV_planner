@@ -958,7 +958,7 @@ export default {
             hour: this.date.hour,
             minute: this.date.minute
         }
-        this.loaderMsg = false
+        this.loaderMsg = checkRadius
         this.renderLoading()
         var t = document.getElementById("final-map-container")
         t.style.display = "none"
