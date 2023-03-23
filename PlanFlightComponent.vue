@@ -230,21 +230,21 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                         <section class="fp-info-container">
                             
                             <section class="fp-sub-info">
-                                <p class="fp-subtitle">Select your desired UAV speed:</p>
+                                <p class="fp-subtitle">View your desired UAV speed:</p>
                                     <!-- <form action="/speed" method="post"> -->
                                     <section class="speed-container">
                                        
                                         <label for="speed">Speed(km/h): </label>
-                                        <input type="number" id="speed" name="speed" min="1" max="120" ref="myspeed" value="30">
+                                        <input type="number" id="speed" name="speed" min="1" max="120" ref="myspeed" value="1" disabled>
                                      
                                     </section>
                                     <hr>
                                     <section class="altitude-container">
-                                        <p class="fp-subtitle">Select your desired UAV altitude(metres):</p>
+                                        <p class="fp-subtitle">View your allocated UAV altitude(metres):</p>
                                         <section>
                                             
                                             <label for="altitude">Altitude: </label>
-                                            <input type="number" id="altitude" name="altitude" min="15" max="120" ref="myaltitude">
+                                            <input type="number" id="altitude" name="altitude" min="15" max="120" ref="myaltitude" disabled>
                                             <p><small><i>* EU Aviation Safety Authority states the maximum flight altitude is 120m.* <br>More information can be found <a href="https://www.easa.europa.eu/en/light/topics/drones" style="color:white;">https://www.easa.europa.eu/en/light/topics/drones</a></i></small></p>
                                         </section>
                                     </section>
@@ -1095,6 +1095,14 @@ export default {
         this.time = c
         var s = document.getElementById("speed")
         s.value = c
+        var alt = document.getElementById("altitude")
+        if (c < 20) {
+            alt.value = LAYER_ONE
+        } else if (c < 30 && c >= 20){
+            alt.value = LAYER_TWO
+        } else {
+            alt.value = LAYER_THREE
+        }
       },
       logTime(t) {
         console.log("Received fulltime: ", t, "len(fulltime)", t.length)
