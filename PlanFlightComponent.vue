@@ -57,6 +57,17 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                             <option value="10">10</option>
                             <option value="11">11</option>
                             <option value="12">12</option>
+                            <option value="13">13</option>
+                            <option value="14">14</option>
+                            <option value="15">15</option>
+                            <option value="16">16</option>
+                            <option value="17">17</option>
+                            <option value="18">18</option>
+                            <option value="19">19</option>
+                            <option value="20">20</option>
+                            <option value="21">21</option>
+                            <option value="22">22</option>
+                            <option value="23">23</option>
                         </select>
                     </div>
                     <div>
@@ -921,8 +932,9 @@ export default {
             var x = document.getElementById("ex-sign")
             x.style.display = "none";
             f.style.display = "block"
-            this.forceRenderer();
-            this.updateDate();
+            //this.forceRenderer();
+            console.log("done rendered map again")
+            this.updateDate(storeDate);
         })
         .catch (function (error) {
             console.log("ERROR:", error);    
@@ -939,7 +951,7 @@ export default {
         // details.style.display = 'None';
        
       },
-      updateDate() {
+      updateDate(checkRadius) {
         const flightData = {
             id: this.flightID,
             date: this.date.day,
@@ -954,6 +966,7 @@ export default {
         cal.style.display = "none"
         var l = document.getElementById("loadingScreen")
         l.style.display = "block"
+       
 
         axios
         .post("/updateFlightTime", flightData)
@@ -962,7 +975,9 @@ export default {
           console.log("UPDATED FLIGHT TIME: ",data);
           this.forceRenderer(); //can this be called before axios??
         }).then(() => {
-            this.checkRadius()
+            if (checkRadius) { //only schedule the flight once the time has been selected
+                this.checkRadius()
+            }
         })
         .catch (function (error) {
             console.log("ERROR:", error);    
@@ -1000,6 +1015,10 @@ export default {
                         f.innerHTML += " "+"<b>"+d[1]+"</b>"
                         var a =  document.getElementById("take-off-altitude")
                         a.innerHTML = d[2]
+                        var s = document.getElementById("speed-final")
+                        s.innerHTML = d[3]
+                        var b = document.getElementById("flightlogbutton")
+                        b.style.display = "block"
                     }
                     
                     //var unavailableTimes = data
@@ -1007,7 +1026,7 @@ export default {
                 .catch (function (error) {
                     console.log("ERROR:", error);    
                 })
-        }, 8800);
+        }, 12000);
       },
       lowInfo() {
         var c = document.getElementById('lowc');

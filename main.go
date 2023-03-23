@@ -76,6 +76,8 @@ type SegmentedFlightData struct {
 	Date           string        `json:"date"`
 	SubGrid        string        `json:"subGrid"`
 	Speed          string        `json:"speed"`
+	EntryPoint     Coordinate    `json:"entryPoint"`
+	ExitPoint      Coordinate    `json:"exitPoint"`
 	ID             string        `json:"id"`
 }
 
@@ -118,6 +120,8 @@ type FlightSegmented struct {
 	Id          string
 	Date        string
 	Coordinates []Coordinate
+	EntryPoint  Coordinate
+	ExitPoint   Coordinate
 	Times       []string
 	SubGrid     string
 	Speed       string
@@ -565,7 +569,7 @@ func storeSegmentedFlight(w http.ResponseWriter, r *http.Request) {
 
 	var d SegmentedFlightData
 	err = json.Unmarshal(body, &d)
-	//fmt.Printf("UNMARSHAL--->%v", d)
+	fmt.Printf("UNMARSHAL--->%v", d)
 
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
@@ -621,8 +625,13 @@ func storeSegmentedFlight(w http.ResponseWriter, r *http.Request) {
 		timesList = append(timesList, timeRecord)
 	}
 	fmt.Printf("TIMESLIST--->%v", timesList)
-
-	gridDoc := bson.D{{"id", d.ID}, {"date", d.Date}, {"subGrid", d.SubGrid}, {"speed", d.Speed}, {"segments", slist}, {"times", timesList}}
+	if len(d.Date) == 0 {
+		d.Date = "0"
+	}
+	fmt.Printf("\nStoring this object d--> %v | %v | %v\n", d.SubGrid, d.Date, d)
+	gridEntryPoint := bson.D{{"lat", d.EntryPoint.Latitude}, {"lng", d.EntryPoint.Longitude}}
+	gridExitPoint := bson.D{{"lat", d.ExitPoint.Latitude}, {"lng", d.ExitPoint.Longitude}}
+	gridDoc := bson.D{{"id", d.ID}, {"date", d.Date}, {"gridEntryPoint", gridEntryPoint}, {"gridExitPoint", gridExitPoint}, {"subGrid", d.SubGrid}, {"speed", d.Speed}, {"segments", slist}, {"times", timesList}}
 	err = insertDB(context.TODO(), client, gridDoc, "segmentedFlight")
 	fmt.Printf("\nERROR-->\n", err)
 
@@ -720,7 +729,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 	for _, doc := range results {
 		var timesStringList []string
 		var coordStringList []Coordinate
-		//fmt.Printf("\ndoc:===:=== %v", doc)
+		fmt.Printf("\nRESERVEDdoc:===:=== %v", doc)
 		times = doc["times"]
 		for _, x := range times.(primitive.A) {
 			f := x.(primitive.M)
@@ -741,6 +750,25 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 			// timesStringList = append(timesStringList, timeStr)
 		}
 		var c FlightSegmented
+		// entry := doc["gridEntryPoint"]
+		// exit := doc["gridExitPoint"]
+		// var coordEntry Coordinate
+		// var coordExit Coordinate
+		// if entry != nil && exit != nil {
+		// 	mEntry := entry.(primitive.M)
+		// 	mExit := exit.(primitive.M)
+
+		// 	coordEntry.Latitude = mEntry["lat"].(string)
+		// 	coordEntry.Longitude = mEntry["lng"].(string)
+		// 	coordEntry.Id = mEntry["id"].(string)
+
+		// 	coordExit.Latitude = mExit["lat"].(string)
+		// 	coordExit.Longitude = mExit["lng"].(string)
+		// 	coordExit.Id = mExit["id"].(string)
+		// 	c.EntryPoint = coordEntry
+		// 	c.ExitPoint = coordExit
+		// }
+
 		c.Id = doc["id"].(string)
 		c.Date = doc["date"].(string)
 		c.SubGrid = doc["subGrid"].(string)
@@ -835,7 +863,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 			updateFlight(intendedFlight)
 			fmt.Printf("Scheduled flight at %v in sub grid %v ", intendedFlight.Times[0], intendedFlight.SubGrid)
 			fmt.Fprintf(w, "%v %v %v %v", intendedFlight.Times[0], intendedFlight.Times[len(intendedFlight.Times)-1], intendedFlight.SubGrid, intendedFlight.Speed)
-		} else {
+		} else { //if other grids are not empty, 2 choices: wait for 5 minutes in current grid or join the queue to enter another grid. Which is shorter?
 			addToQueue(intendedFlight.Id, intendedFlight.SubGrid)
 			//add 5 minutes onto each of these times and then rerun the schedule function in  the currect sub grid
 			var fiveMinuteWaitSegments []string
@@ -1359,6 +1387,13 @@ func storeGridCoordinates(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Error deleting grid coords")
 	}
 
+	borderCollection := client.Database("fyp_test").Collection("queues")
+	filter = bson.M{}
+	_, err = borderCollection.DeleteMany(context.TODO(), filter) //delete grid coordinates used in older grids
+	if err != nil {
+		fmt.Println("Error deleting border nodes in queueing db")
+	}
+
 	var grid GridofCoordinates
 	err = json.Unmarshal(body, &grid)
 	fmt.Printf("\nBorderCoords %v\n", grid.BorderCoords)
@@ -1385,7 +1420,6 @@ func storeGridCoordinates(w http.ResponseWriter, r *http.Request) {
 
 			//if the coordinate is located on the border of the grid then it will have a queue allocated to it
 			//as it will become an entry point into the grid from No Man's Land
-			fmt.Printf("\nCOMPARING queue coords %v %v\n", coord, grid.BorderCoords)
 			if containsBorderNode(coord, grid.BorderCoords) {
 				//build record to store coordinates which will be allocated queues
 				gridCoord := bson.D{{"lat", coord.Latitude}, {"lng", coord.Longitude}}
@@ -1406,9 +1440,11 @@ func storeGridCoordinates(w http.ResponseWriter, r *http.Request) {
 func containsBorderNode(c Coordinate, slist []string) bool {
 	for _, val := range slist {
 		if c.Latitude == val {
+			fmt.Printf("\nSTORING border node %v %v\n\n", c, val)
 			return true
 		}
 		if c.Longitude == val {
+			fmt.Printf("\nSTORING border node %v %v\n\n", c, val)
 			return true
 		}
 	}
