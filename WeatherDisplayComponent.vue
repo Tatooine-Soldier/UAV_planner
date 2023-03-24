@@ -4,7 +4,13 @@
 <template>
     <section class="weather-container">
         <div class="weather-header"><h1>5 day forecast: </h1></div>
-        <div @click="getWind()">Click</div>
+        <div class="warning-descriptions">
+            <div v-for="(color, index) in definedColours" v-bind:key="index">
+                <span class="colour-signal-unavailable" :style="{ backgroundColor: color}"></span>
+                <span v-if="index === 0">DO NOT FLY</span>
+                <span v-if="index === definedColours.length-1">SAFE TO FLY</span>
+            </div>
+        </div>
         <div class="displayWindValues">
             <div class="weather-cols">
                 <div class="weather-heading">Date and time:</div>
@@ -95,11 +101,26 @@ h1 {
     font-size: 16pt;
     border: solid 1px white;
 }
+
+.warning-descriptions {
+    padding: 15px;
+    left: 80%;
+}
+
+.colour-signal-unavailable {
+    width: 15px;
+    height: 5px;
+    padding-left: 15px;
+    margin: 10px;
+    background-color: rgb(230, 36, 11);
+    border: solid .5px rgb(230, 36, 11);
+}
 </style>
 
 <script>
 import { useGeolocation } from '../useGeolocation'
 import { computed } from 'vue'
+//import { getWindSpeed } from '@/fetchWindSpeed';
 export default {
     data() {
       return {
@@ -107,40 +128,51 @@ export default {
         windValues: [],
         windDates: [],
         windDatesDay: [],
-        colorList: []
+        colorList: [],
+        definedColours: ["#c00000", "#f30606", "#ff5700", "#f79a35", "#ffd027", "#ffee37", "#83a7f9"],
+        counter: 0,
       }
     },
     name: "WeatherComponent",
+    mounted() {
+        this.getWind()
+    },
     methods: {
         async getWind() {
-            console.log("calling")
-            const { coords } = useGeolocation()
-            const initial = computed(() => ({
-            lat: coords.value.latitude.toString(),
-            lng: coords.value.longitude.toString()
-            }))
-            console.log("LAT--->", initial.value.lat)
-            var res = await fetch("https://api.open-meteo.com/v1/forecast?latitude="+initial.value.lat+"&longitude="+initial.value.lng+"&hourly=windspeed_80m")
-            var final = await res.json()
-            console.log("final", final)
-            this.windData = final
-            this.windValues = this.windData.hourly.windspeed_80m
-            var tempDates = this.windData.hourly.time
-            this.getColors()
+            if (this.counter === 0) { //prevent multiple calls
+                console.log("calling")
+                const { coords } = useGeolocation()
+                const initial = computed(() => ({
+                lat: coords.value.latitude.toString(),
+                lng: coords.value.longitude.toString()
+                }))
+                var lat = "51.892609777851305"
+                var lng = "-8.50142240524292"
+                console.log("LAT--->", initial.value.lat)
+                //var res = await fetch("https://api.open-meteo.com/v1/forecast?latitude="+initial.value.lat+"&longitude="+initial.value.lng+"&hourly=windspeed_80m")
+                var res = await fetch("https://api.open-meteo.com/v1/forecast?latitude="+lat+"&longitude="+lng+"&hourly=windspeed_80m")
+                var final = await res.json()
+                console.log("final", final)
+                this.windData = final
+                this.windValues = this.windData.hourly.windspeed_80m
+                var tempDates = this.windData.hourly.time
+                this.getColors()
 
-            var cursor;
-            for (var val in tempDates) {
-                this.windDates.push(tempDates[val].slice(11,16))
-                
-                if (cursor != tempDates[val].slice(0, 10)) {
-                    cursor =  tempDates[val].slice(0, 10)
-                    this.windDatesDay.push(cursor)
+                var cursor;
+                for (var val in tempDates) {
+                    this.windDates.push(tempDates[val].slice(11,16))
+                    
+                    if (cursor != tempDates[val].slice(0, 10)) {
+                        cursor =  tempDates[val].slice(0, 10)
+                        this.windDatesDay.push(cursor)
+                    }
+                    
+                    
                 }
-                
-                
+                console.log("len(index)", this.windDates.length)
+                console.log(this.windDatesDay)
+                this.counter++
             }
-            console.log("len(index)", this.windDates.length)
-            console.log(this.windDatesDay)
 
         },
         getColors() {
