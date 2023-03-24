@@ -1,7 +1,7 @@
 <script setup>
   import FinalGoogleMapComponent from "@/components/FinalGoogleMapComponent.vue"
 import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
-import MyCalendarComponent from "../components/MyCalendarComponent.vue";
+//import MyCalendarComponent from "../components/MyCalendarComponent.vue";
 import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
 import LoaderComponent from "@/components/LoaderComponent.vue";
 //import FinalGoogleMapComponentVue from "@/components/FinalGoogleMapComponent.vue";
@@ -18,10 +18,10 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                     <section class="flight-details-content">
                         <h1>Confirm Flight Details</h1>
                         <section class="flight-details-content-grid">
-                            <div>Date: {{ date.day }}</div>
-                            <div>Time: {{ date.hour }}:{{ date.minute }}</div>
-                            <div>Speed: {{ speed.description }} </div>
-                            <div>Calculated distance: {{ distance }} KM</div>
+                            <div>Take-Off from: <div class="coordsConfirm"><i class="latdisplay">{{ coords.sourcelatitude }}</i>   <i class="longdisplay">{{ coords.sourcelongitude }}</i></div></div>
+                            <div>Land at: <div class="coordsConfirm"><i class="latdisplay">{{ coords.destlatitude }}</i>   <i class="longdisplay">{{ coords.destlongitude }}</i></div></div>
+                            <div>Speed: <div class="coordsConfirm">{{speed.velocity}} KM/H</div></div>
+                            <div>Calculated distance: <div class="coordsConfirm">{{ distance }} KM</div></div>
                         </section>
                         <section class="flight-details-buttons">
                             <input id="cancel-but" name="but" type="button" value="Cancel" v-on:click="disappear()"/>
@@ -84,15 +84,16 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                         <input type="date" name="date" v-model="date.day" />
                     </div>
                 </section>
-                <section>
+                <!-- <section>
                     <div class="check-time-db" @click="getDates()">Check availablility</div>
-                    <!-- <button>Add</button> -->
+                 
                     <MyCalendarComponent @selectedTimeEvent="logTime" :propdates="bookedDates" :propID="flightID"></MyCalendarComponent>
-                </section>
+                </section> -->
                 <section>
                    
-                    <!-- <input type="button" @click="updateDate()" value="Confirm"/> -->
-                     <input type="button" value="Confirm" @click="showFinalMap(true)"/>
+                    
+                     <div id="submit-div-planflight" @click="showFinalMap(true)">Confirm Time</div>
+                     <!-- <input type="button" value="Confirm" @click="showFinalMap(true)"/> -->
                 </section>
             </section>
 
@@ -340,6 +341,28 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
         display: none;
     }
 
+    .longdisplay {
+        padding: 5px;
+    }
+
+    .latdisplay {
+        padding: 5px;
+    }
+
+    #submit-div-planflight {
+        background-color: white;
+        border: solid 1px grey;
+        text-align: center;
+        padding: 3px;
+        transition: 0.4s;
+    }
+
+    #submit-div-planflight:hover {
+        background-color: rgb(101, 100, 100);
+        color: white;
+        cursor: pointer;
+    }
+
     #lt {
         background-color: red;
         color: white;
@@ -466,6 +489,10 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
         position: relative;
     }
 
+    .coordsConfirm {
+        float: right;
+    }
+
     .waypoints-select {
         padding: 5px;
         display: grid;
@@ -550,6 +577,10 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
         grid-template-rows: 50% 50%;
         grid-template-rows: 25% 25% 25% 25%;
         margin: 0% 5%;
+    }
+
+    .flight-details-content-grid div {
+        padding: 5px;
     }
 
     .flight-details-buttons {
