@@ -25,7 +25,7 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                         </section>
                         <section class="flight-details-buttons">
                             <input id="cancel-but" name="but" type="button" value="Cancel" v-on:click="disappear()"/>
-                            <button id="confirm-but" v-on:click="showFinalMap(false)">Confirm</button>
+                            <button id="confirm-but" v-on:click="showFinalMap(true)">Confirm</button>
                         </section>
                     </section>
                 </section>
@@ -119,7 +119,7 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                 </section>
                 <section class="side-container">
                     <section class="four-rows">
-                        <!-- <section class="fp-info-container">
+                        <section class="fp-info-container">
                             <section class="fp-sub-info">
                                 
                                 <section class="border-decor">
@@ -142,6 +142,17 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                                                     <option value="10">10</option>
                                                     <option value="11">11</option>
                                                     <option value="12">12</option>
+                                                    <option value="13">13</option>
+                                                    <option value="14">14</option>
+                                                    <option value="15">15</option>
+                                                    <option value="16">16</option>
+                                                    <option value="17">17</option>
+                                                    <option value="18">18</option>
+                                                    <option value="19">19</option>
+                                                    <option value="20">20</option>
+                                                    <option value="21">21</option>
+                                                    <option value="22">22</option>
+                                                    <option value="23">23</option>
                                                 </select>
                                             </div>
                                             <div>
@@ -158,15 +169,11 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                                                 <input type="date" name="date" v-model="date.day"/>
                                             </div>
                                         </section>
-                                        <section>
-                                            <div class="check-time-db" @click="getDates()">Check availablility</div>
-                                            
-                                            <MyCalendarComponent @selectedTimeEvent="logTime" :propdates="bookedDates"></MyCalendarComponent>
-                                        </section>
+                                    
                                     
                                 </section>
                             </section>
-                        </section> -->
+                        </section>
                         <section class="fp-info-container">
                         
                             <section class="fp-sub-info">
@@ -323,8 +330,8 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
 
     .four-rows {
         display: grid;
-        grid-template-rows: 42% 42% 16%;
-
+        /*grid-template-rows: 42% 42% 16%;*/
+grid-template-rows: 30% 30% 20% 20%;
         color: white;
         
     }
@@ -438,9 +445,9 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
     }
 
     .fp-info-container:last-of-type {
-        margin-top: 140px;
-
+        margin-top: 100px;
     }
+   
 
     .fp-info-container h1 {
         margin: 0px;
@@ -450,6 +457,10 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
 
     .fp-sub-info {
         padding: 10px;
+    }
+
+    .fp-sub-info:first-of-type {
+        padding: 0px;
     }
 
     .time-selection {
@@ -677,6 +688,7 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
         padding: 3px;
         transition: 0.4s;
         color: black;
+        margin-top: 50%;
         bottom: 1%;
         
      
@@ -995,6 +1007,8 @@ export default {
         t.style.display = "none"
         var cal = document.getElementById("calendar-display-afterwards")
         cal.style.display = "none"
+        var lt = document.getElementById("lt")
+        lt.style.display = "none"
         var l = document.getElementById("loadingScreen")
         l.style.display = "block"
        
@@ -1006,6 +1020,7 @@ export default {
           console.log("UPDATED FLIGHT TIME: ",data);
           this.forceRenderer(); //can this be called before axios??
         }).then(() => {
+            console.log("checking radius after time select ", checkRadius)
             if (checkRadius) { //only schedule the flight once the time has been selected
                 this.checkRadius()
             }
@@ -1039,15 +1054,22 @@ export default {
                         alert("Change Take-Off time")
                         var hideMap = document.getElementById("final-map-container")
                         hideMap.style.display = "none"
-                    } else {
-                        var r =  document.getElementById("take-off-time")
-                        r.innerHTML = d[0]
-                        var f = document.getElementById("eta-final")
-                        f.innerHTML += " "+"<b>"+d[1]+"</b>"
-                        var a =  document.getElementById("take-off-altitude")
-                        a.innerHTML = d[2]
-                        var s = document.getElementById("speed-final")
-                        s.innerHTML = d[3]
+                    } 
+                    else {
+                        // var r =  document.getElementById("take-off-time")
+                        // r.innerHTML = d[0]
+                        // var f = document.getElementById("eta-final")
+                        // f.innerHTML += " "+"<b>"+d[1]+"</b>"
+                        // var a =  document.getElementById("take-off-altitude")
+                        // if (typeof d[2] === "undefined" || typeof d[2] === "") {
+                        //     a.innerHTML = "60"
+                        // }
+                        // else {
+                        //     a.innerHTML = d[2]
+                        // }
+                        
+                        // var s = document.getElementById("speed-final")
+                        // s.innerHTML = d[3]
                         var b = document.getElementById("flightlogbutton")
                         b.style.display = "block"
                     }
@@ -1057,7 +1079,7 @@ export default {
                 .catch (function (error) {
                     console.log("ERROR:", error);    
                 })
-        }, 12000);
+        }, 13000);
       },
       lowInfo() {
         var c = document.getElementById('lowc');

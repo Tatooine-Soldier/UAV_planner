@@ -205,7 +205,12 @@ import axios from 'axios'
         var psos = grid.generateCoords([[{lat: 51.8964507, lng: -8.4908813}]], true, anchors).then((data) => { 
         console.log("Received In FINAL map coords--->", data); 
         var totalDist = 0
-        var l = data[0].path
+        console.log("data[0].path ", data[0].path)
+        setTimeout(function() {
+          console.log("W", data[0].path);
+        }, 5000);
+        var l;
+        l = data[0].path
         console.log("l: ", l[0])
         console.log("propcoords===>", props.propcoords) //need to add start and end points to segments
         segments.push({lat: props.propcoords.destlatitude, lng: props.propcoords.destlongitude})
@@ -286,10 +291,12 @@ import axios from 'axios'
           var endTime = props.propEndTime
           var speed =  props.propspeed
           var duration = props.propDuration
+        
 
           var segmentedTime =  duration.toFixed(2) / l.length
           console.log("SEGMENTED TIME & DURATION", segmentedTime, duration.toFixed(2))
           var segmentedTimeList = []
+          console.log(" props.propdate.hour.  props.propdate.minute ",  props.propdate.hour,   props.propdate.minute)
           segmentedTimeList.push({hour: props.propdate.hour, minute: props.propdate.minute})
           const dateObj = new Date();
           dateObj.setHours(props.propdate.hour)
@@ -320,7 +327,7 @@ import axios from 'axios'
           segmentedTimeList.push({hour:  e.slice(12, 14), minute:e.slice(15, 17)})
           console.log("segmentedTimeList", segmentedTimeList)
           segmentedTimeList = segmentedTimeList.reverse()
-          displayTimestamps(segmentedTimeList, segments, timestamps)
+          
 
 
           //code to adjust the timing segments to include No Man's Land
@@ -348,23 +355,23 @@ import axios from 'axios'
               newMinutes = newMinutes % 60;
               newHours = hours + 1
             } 
-            newMinutes =  Math.ceil(newMinutes) //round up
+            newMinutes =  Math.ceil(newMinutes) 
             var formattedTime = {hour: newHours.toString(), minute: newMinutes.toString()}
             return formattedTime
           }
-          var newTime = addMinutes(segmentedTimeList[segmentedTimeList.length - 1], ctime)
-          console.log(newTime)
+       
+          var newTime = addMinutes( segmentedTimeList[segmentedTimeList.length-1],ctime)
+          console.log(newTime) //newTime is the time at the first grid coord(start location time + distance to closest grid coord)
 
           const dateOb = new Date();
           dateOb.setHours(newTime.hour)
           dateOb.setMinutes(newTime.minute)
           
-         
+          segmentedTimeList[1] = newTime
+          segmentedTimeList[0] = segmentedTimeList[segmentedTimeList.length-1]
           console.log("SEGMENTEDTIMELIST before reverse: ", segmentedTimeList)
-          segmentedTimeList[segmentedTimeList.length-1] = segmentedTimeList[segmentedTimeList.length-2]
-          segmentedTimeList[segmentedTimeList.length-2] = newTime
           for (j=2;j<segmentedTimeList.length; j++) {
-            console.log("List item time-->", segmentedTimeList[j])
+            console.log("List item time-->", segmentedTimeList[j], "time chunk ", segmentedTime*60)
             tl = (segmentedTime*60) 
             if (tl < 60) {
               dateOb.setMinutes(dateOb.getMinutes() + tl);
@@ -378,9 +385,12 @@ import axios from 'axios'
             } else {
               segmentedTimeList[j] = {hour: dateOb.getHours().toString(), minute: dateOb.getMinutes().toString()}
             }
+          
           }
           segmentedTimeList = segmentedTimeList.reverse()
-          
+          updateFlightTimes(segmentedTimeList[segmentedTimeList.length-1], segmentedTimeList[0], speed)
+          displayTimestamps(segmentedTimeList, segments, timestamps)
+
           console.log("SEGMENTEDTIMELIST after reverse: ", segmentedTimeList)
           //**** RETURN HERE THE SEGMENTS//
 
@@ -411,6 +421,9 @@ import axios from 'axios'
               if (segmentedTimeList[s].minute.length < 2 ) {
                 segmentedTimeList[s].minute = "0"+segmentedTimeList[s].minute.toString()
               }
+              if (segmentedTimeList[s].hour.length < 2 ) {
+                segmentedTimeList[s].hour = "0"+segmentedTimeList[s].hour.toString()
+              }
               console.log("clicked circle", segmentedTimeList[s].hour.toString(), segmentedTimeList[s].minute.toString(), s)
               infowindow.setPosition(segCircle.center)
               infowindow.open({
@@ -421,12 +434,42 @@ import axios from 'axios'
             })
           }
       
+          var day;
+          if (props.propdate.day === "") {
+            day = "0"
+          } else {
+            day = props.propdate.day
+          }
+
+          for (var z in segmentedTimeList) {
+            if (segmentedTimeList[z].hour.length !== 2) {
+              segmentedTimeList[z].hour = "0"+segmentedTimeList[z].hour
+            }
+            if (segmentedTimeList[z].minute.length !== 2) {
+              segmentedTimeList[z].minute = "0"+segmentedTimeList[z].minute
+            }
+            console.log("fixing time", segmentedTimeList[z].hour, segmentedTimeList[z].hour)
+          }
+
+          var entryPoint = {
+            id: props.propID,
+            lat: String(entry.lat),
+            lng: String(entry.lng)
+          }
+          var exitPoint = {
+            id: props.propID,
+            lat: String(exit.lat),
+            lng: String(exit.lng)
+          }
           var segementedFlight =  { //need to store the times with segment each too
-            date: props.propdate.day, 
+           
+            date: day, 
             segmentList: segments,
-            segmentTimes: segmentedTimeList,
+            segmentTimes: segmentedTimeList.reverse(),
             subGrid: props.propSubgrid, 
             speed: props.propspeed,
+            entryPoint: entryPoint, //entry point to the grid 
+            exitPoint: exitPoint, //exit point from the grid
             id: props.propID
           }
           //STORE SEGMENTS LIST AS A SINGLE RECORD IN SEGMENTS COLLECTION WITH THE ID OF THE FLIGHT
@@ -434,21 +477,19 @@ import axios from 'axios'
           .post("/storeSegmentedFlight", segementedFlight)
           .then((response) => {
             console.log("* stored Segmented flights!!! *")
+            //calendarContainer.style.display = "block"; //UNCOMMENT THIS
+          //  footer.style.display = "inline-block";
+          loadingScreen.style.display = "none"
+            var fmap = document.getElementById("final-map-container")
+            fmap.style.display = "block"
+            var con = document.getElementById("ex-sign")
+            con.style.display = "block"
+            var details = document.getElementById('flight-details');
+            details.style.display = 'None';
           })
           .catch(error => {
           console.error(error);
         }); 
-       calendarContainer.style.display = "block"; //UNCOMMENT THIS
-      //  footer.style.display = "inline-block";
-       loadingScreen.style.display = "none"
-        var fmap = document.getElementById("final-map-container")
-        fmap.style.display = "block"
-        var con = document.getElementById("ex-sign")
-        con.style.display = "block"
-        var details = document.getElementById('flight-details');
-        details.style.display = 'None';
-
-
 
         
 
@@ -477,6 +518,22 @@ import axios from 'axios'
         timestamps.push({time: segmentedTimeList[i], coord: segments[i]})
       }
       timestampDisplay.innerHTML += "</ul>"
+    }
+
+    function updateFlightTimes(start, eta, speed) {
+      var r =  document.getElementById("take-off-time")
+      r.innerHTML = start.hour + ":" + start.minute
+      var f = document.getElementById("eta-final")
+      f.innerHTML += " "+"<b>"+eta.hour +":"+eta.minute+"</b>"
+      var s = document.getElementById("speed-final")
+      s.innerHTML = speed
+      var a =  document.getElementById("take-off-altitude")
+      if (parseFloat(speed) < 20) {
+        a.innerHTML = "60"
+      } else {
+        a.innerHTML = "90"
+      }
+      
     }
     
 
