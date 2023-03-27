@@ -206,32 +206,11 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                                                 <input type="text" name="waypoint" size="16" ref="mywaylat" value="0.0"/>
                                                 <label for="waypoint">Waypoint Lng:</label>
                                                 <input type="text" name="waypoint" size="16" ref="mywaylng" value="0.0"/>
-                                                <!-- <label for="waypoints">How many Waypoints to visit?</label>
-                                                <div>
-                                                    <select id="waypoints" name="waypoints" v-model="waypoints">
-                                                        <option value="0" v-on:click="setWaypoint()">0</option>
-                                                        <option value="1" v-on:click="setWaypoint()">1</option>
-                                                        <option value="2" v-on:click="setWaypoint()">2</option>
-                                                        <option value="3" v-on:click="setWaypoint()">3</option>
-                                                        <option value="4" v-on:click="setWaypoint()">4</option>
-                                                        <option value="5" v-on:click="setWaypoint()">5</option>
-                                                        <option value="6" v-on:click="setWaypoint()">6</option>
-                                                        <option value="7" v-on:click="setWaypoint()">7</option>
-                                                        <option value="8" v-on:click="setWaypoint()">8</option>
-                                                        <option value="9" v-on:click="setWaypoint()">9</option>
-                                                        <option value="10" v-on:click="setWaypoint()">10</option>
-                                                    </select>
-                                                </div> -->
+                                         
                                             </div>
     
                                         </section>
                                     </section>
-                                    <!-- <input id="submit" name="submit" type="submit" value="Add"/> -->
-                                    <!-- </form> -->
-                                    <!-- <p><b id="or">OR</b></p> -->
-                                    <!-- <p>Select location on the map below</p> -->
-                                    <!-- <section></section> Display the map her-->
-                                    <!-- <input id="map-but" name="but" type="button" value="MAP" v-on:click="showMap()"/>   -->
                                 </section>
                             </section>
                         </section>
@@ -445,7 +424,7 @@ grid-template-rows: 30% 30% 20% 20%;
     }
 
     .fp-info-container:last-of-type {
-        margin-top: 100px;
+        margin-top: 75%;
     }
    
 
@@ -687,11 +666,8 @@ grid-template-rows: 30% 30% 20% 20%;
         text-align: center;
         padding: 3px;
         transition: 0.4s;
-        color: black;
-        margin-top: 50%;
-        bottom: 1%;
-        
-     
+        color: black;     
+        padding: 5px;
       }
     
       .check-time-db:hover {
@@ -1213,8 +1189,6 @@ export default {
           console.log("33-->",data,"<--33");
           const myArray = data.split(",");
           this.bookedDates = myArray;
-        //   const dateData = JSON.parse(data);
-        //   console.log(dateData.message)
         })
         .catch (function (error) {
             console.log("ERROR:", error);    
