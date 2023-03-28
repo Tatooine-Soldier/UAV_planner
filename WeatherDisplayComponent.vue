@@ -46,8 +46,20 @@
                 </div>
             </div>
             <div class="weather-cols">
-                <div class="weather-heading">Estimated wind speed(km/h):</div>
+                <div class="weather-heading"> Wind speed(km/h):</div>
                 <div v-for="(wind, index) in windValues" v-bind:key="index">
+                    <div v-if="index % 24 !== 0" :style="{backgroundColor: 'grey', border: 'solid 1px white', padding: '5px'}">
+                        {{ wind }}
+                    </div>
+                    <div v-else :style="{padding: '10px', paddingTop:'5px', borderLeft: 'solid 1px white'}">
+                        <div style="visibility: hidden;">WARN</div>
+                    </div>
+                </div>
+                
+            </div>
+            <div class="weather-cols">
+                <div class="weather-heading"> Wind direction:</div>
+                <div v-for="(wind, index) in windDirections" v-bind:key="index">
                     <div v-if="index % 24 !== 0" :style="{backgroundColor: 'grey', border: 'solid 1px white', padding: '5px'}">
                         {{ wind }}
                     </div>
@@ -75,7 +87,7 @@
 <style>
 .displayWindValues {
     display: grid;
-    grid-template-columns: 27% 27% 46%;
+    grid-template-columns: 20% 20% 20% 40%;
 }
 
 .weather-container {
@@ -132,6 +144,7 @@ export default {
         windData: 0,
         windValues: [],
         windDates: [],
+        windDirections: [],
         windDatesDay: [],
         colorList: [],
         definedColours: ["#c00000", "#f30606", "#ff5700", "#f79a35", "#ffd027", "#ffee37", "#83a7f9"],
@@ -155,12 +168,15 @@ export default {
                 var lng = "-8.50142240524292"
                 console.log("LAT--->", initial.value.lat)
                 //var res = await fetch("https://api.open-meteo.com/v1/forecast?latitude="+initial.value.lat+"&longitude="+initial.value.lng+"&hourly=windspeed_80m")
-                var res = await fetch("https://api.open-meteo.com/v1/forecast?latitude="+lat+"&longitude="+lng+"&hourly=windspeed_80m")
+                var res = await fetch("https://api.open-meteo.com/v1/forecast?latitude="+lat+"&longitude="+lng+"&hourly=windspeed_80m,winddirection_80m")
                 var final = await res.json()
                 console.log("final", final)
                 this.windData = final
                 this.windValues = this.windData.hourly.windspeed_80m
                 var tempDates = this.windData.hourly.time
+                this.windDirections = this.windData.hourly.winddirection_80m
+                this.windDirections = this.convertDegreesToDirection(this.windDirections)
+
                 this.getColors()
 
                 var cursor;
@@ -201,6 +217,86 @@ export default {
                 }
             }
             console.log("colours", this.colorList)
+        },
+        convertDegreesToDirection(degreeList) {
+            var listOfDirections = []
+            for (var i in degreeList) {
+                var degree = degreeList[i]
+                if (degree <= 180) {
+                    if (degree <= 90) {
+                        if (degree <= 22.5) {
+                            listOfDirections.push("North-NorthEast")
+                            console.log("degreeList[i]", degreeList[i])
+                        }
+                        if (22.5 < degree && degree <= 45) {
+                            listOfDirections.push("NorthEast")
+                            console.log("degreeList[i]", degreeList[i])
+                        }
+                        if (45 < degree && degree <= 67.5) {
+                            listOfDirections.push("East-NorthEast")
+                            console.log("degreeList[i]", degreeList[i])
+                        }
+                        if (67.5 < degree && degree <= 90) {
+                            listOfDirections.push("East")
+                            console.log("degreeList[i]", degreeList[i])
+                        }
+                    }
+                    else {
+                        if (90 < degree && degree <= 112.5) {
+                            listOfDirections.push("East-SouthEast")
+                            console.log("degreeList[i] ESE", degreeList[i])
+                        }
+                        if (112.5 < degree && degree <= 135) {
+                            listOfDirections.push("SouthEast")
+                            console.log("degreeList[i] S", degreeList[i])
+                        }
+                        if (135 < degree && degree <= 157.5) {
+                            listOfDirections.push("South-SouthEast")
+                            console.log("degreeList[i] SS", degreeList[i])
+                        }
+                        if (157.5 < degree && degree <= 180) {
+                            listOfDirections.push("South")
+                            console.log("degreeList[i] S", degreeList[i])
+                        }
+                    }
+                } 
+                else {
+                    if (degree <= 270) {
+                        if (180 < degree && degree <= 202.5) {
+                            listOfDirections.push("South-SouthWest")
+                            console.log("degreeList[i] SWS", degreeList[i])
+                        }
+                        if (202.5 < degree && degree <= 225) {
+                            listOfDirections.push("SouthWest")
+                            console.log("degreeList[i] SW", degreeList[i])
+                        }
+                        if (225 < degree && degree <= 247.5) {
+                            listOfDirections.push("West-SouthWest")
+                            console.log("degreeList[i] WSW", degreeList[i])
+                        }
+                        if (247.5 < degree && degree <= 270) {
+                            listOfDirections.push("West")
+                        }
+                    }
+                    else {
+                        if (270 < degree && degree <= 292.5) {
+                            listOfDirections.push("West-NorthWest")
+                        }
+                        if (292.5 < degree && degree <= 315) {
+                            listOfDirections.push("NorthWest")
+                        }
+                        if (315 < degree && degree <= 337.5) {
+                            listOfDirections.push("North-NorthWest")
+                        }
+                        if (337.5 < degree && degree <= 360)  {
+                            listOfDirections.push("North")
+                        }
+                    }
+                }
+            }
+            console.log(listOfDirections.length)
+            return listOfDirections
+            
         }
     }
 }
