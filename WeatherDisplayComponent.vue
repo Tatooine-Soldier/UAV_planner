@@ -103,8 +103,11 @@ h1 {
 }
 
 .warning-descriptions {
-    padding: 15px;
-    left: 80%;
+    padding: 17px;
+    left: 87.5%;
+    position:fixed;
+    background-color: rgb(80, 79,79);
+    font-size: .9em;;
 }
 
 .colour-signal-unavailable {
@@ -115,6 +118,8 @@ h1 {
     background-color: rgb(230, 36, 11);
     border: solid .5px rgb(230, 36, 11);
 }
+
+
 </style>
 
 <script>
@@ -179,17 +184,17 @@ export default {
             for (var val in this.windValues) {
                 var intWindVal = parseInt(this.windValues[val])
                 console.log(intWindVal)
-                if (intWindVal >= 40) {      
+                if (intWindVal >= 55) {      
                     this.colorList.push("#c00000")
-                } else if (intWindVal < 40 && intWindVal >= 35) {
+                } else if (intWindVal < 55 && intWindVal >= 51) {
                     this.colorList.push("#f30606")
-                } else if (intWindVal < 35 && intWindVal >= 29) {
+                } else if (intWindVal < 51 && intWindVal >= 45) {
                     this.colorList.push("#ff5700")
-                } else if (intWindVal < 29 && intWindVal >= 25) {
+                } else if (intWindVal < 45 && intWindVal >= 41) {
                     this.colorList.push("#f79a35")
-                } else if (intWindVal < 25 && intWindVal >= 19) {
+                } else if (intWindVal < 41 && intWindVal >= 35) {
                     this.colorList.push("#ffd027")
-                } else if (intWindVal < 19 && intWindVal >= 14) {
+                } else if (intWindVal < 35 && intWindVal >= 31) {
                     this.colorList.push("#ffee37")
                 } else {
                     this.colorList.push("#83a7f9")
