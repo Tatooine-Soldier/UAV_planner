@@ -544,6 +544,7 @@ import axios from 'axios'
   <div id="big-container">
     <div class="final-distance-caption-container">
       <div>
+        <div>Flight Number: #<b>{{ propID }}</b></div>
         <div>
           Take-off time: <b id="take-off-time"></b>
         </div>
@@ -555,7 +556,7 @@ import axios from 'axios'
         </div>
         <!-- <br>Take-off Time:: {{ propdate.day }}, {{ propdate.hour }}:{{ propdate.minute }}:00 -->
         <br><div id="eta-final">ETA: </div>
-        </div>
+      </div>
       <!-- <div>Corridor: {{ propspeed.description }} <br>Distance of path(km): <div id="dist">{{ distance }}</div><br>Flight Duration: {{ calculatedTime }} </div> -->
       <div class="detailz">
             Starting Point:  <b id="plat">{{ propcoords.sourcelatitude }}</b> <b id="plng">{{ propcoords.sourcelongitude }}<br></b>
