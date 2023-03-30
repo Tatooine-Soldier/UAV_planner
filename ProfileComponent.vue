@@ -3,6 +3,10 @@
         <section class="profile-main">
             <p>Profile Page</p>
             <h2>Welcome {{ user }}</h2>
+            <div>
+                <p>Past Flights: </p>
+                <p>{{ flightData }}</p>
+            </div>
         </section>
     </section>
 </template>
@@ -13,7 +17,8 @@ import axios from 'axios';
 export default {
     data() {
         return {
-            user: ""
+            user: "",
+            flightData: []
         }
     },
     async created() {
@@ -22,7 +27,10 @@ export default {
         .then((response) => {
           const data = response.data;
           console.log("data: ", data)
-          this.user = data
+          var dataArray = data.split("|")
+          console.log("dataArray--> ", dataArray)
+          this.user = dataArray[0]
+          this.flightData = dataArray[1]
         })
         .catch(function (error) {
             console.log("ERROR:", error); 
