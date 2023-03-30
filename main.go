@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -12,6 +13,7 @@ import (
 	"text/template"
 	"time"
 
+	"crypto/rand"
 	"crypto/sha256"
 
 	"github.com/EpicStep/go-simple-geo/geo"
@@ -37,9 +39,10 @@ type HTML struct {
 }
 
 type LoginSuccessObj struct {
-	Name   string `json:"name"`
-	Result bool   `json:"result"`
-	Id     string `json:"id"`
+	Name      string `json:"name"`
+	Result    bool   `json:"result"`
+	Id        string `json:"id"`
+	SessionID string `json:"session_id"`
 }
 
 type Flight struct {
@@ -152,6 +155,13 @@ type UserSignobj struct {
 	Password string `json:"password"`
 }
 
+type QueueStorage struct {
+	id         string
+	coordinate Coordinate
+	layer      string
+	flights    []string
+}
+
 var GRID_INCREMENT int
 var LAYER_ONE = "60"
 var LAYER_TWO = "90"
@@ -188,6 +198,18 @@ func insertDB(ctx context.Context, client *mongo.Client, user primitive.D, colle
 	//fmt.Printf("\nINSERTING %v\n", user)
 	usersCollection := client.Database("fyp_test").Collection(collection)
 	result, err := usersCollection.InsertOne(ctx, user)
+	if err != nil {
+		fmt.Printf("%v", err)
+		panic(err)
+	}
+	fmt.Printf("%v", result)
+	return err
+}
+
+func insertManyDB(ctx context.Context, client *mongo.Client, user []interface{}, collection string) (err error) {
+	//fmt.Printf("\nINSERTING %v\n", user)
+	usersCollection := client.Database("fyp_test").Collection(collection)
+	result, err := usersCollection.InsertMany(ctx, user)
 	if err != nil {
 		fmt.Printf("%v", err)
 		panic(err)
@@ -309,17 +331,159 @@ func returnLoginSucces(w http.ResponseWriter, r *http.Request, user Userobj, suc
 		}
 		uid := getID(context.TODO(), client, user)
 
-		l := &LoginSuccessObj{Name: user.Name, Result: success, Id: uid}
+		//CREATE A SESSION /////////////////////////////////////////
+		session, err := store.Get(r, "session-name")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Generate session ID
+		sessionID := make([]byte, 32)
+		_, err = rand.Read(sessionID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		sessionIDStr := base64.URLEncoding.EncodeToString(sessionID)
+
+		session.Values["user_id"] = uid
+		err = session.Save(r, w)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		session.Values["session_id"] = sessionIDStr
+		session.Options.MaxAge = 86400 // Set session expiration to 1 day
+		err = session.Save(r, w)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		////////////////////////////////////////////////////////////////
+
+		l := &LoginSuccessObj{Name: user.Name, Result: success, Id: uid, SessionID: sessionIDStr}
 		b, err := json.Marshal(l)
 		if err != nil {
 			return
 		}
+
 		fmt.Fprintf(w, string(b))
 		return
 	} else {
 		fmt.Fprintf(w, "", success)
 	}
 
+}
+
+func userProfileHandler(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("session_id")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	sessionID := cookie.Value
+	fmt.Print("Received cookie", sessionID)
+
+	// Get the user ID from the session
+	session, err := store.Get(r, "session-name")
+	if err != nil {
+		http.Error(w, "Unauthorized name", http.StatusUnauthorized)
+		return
+	}
+
+	userID, ok := session.Values["user_id"].(string)
+	fmt.Printf("user_id %v", userID)
+	if !ok {
+		http.Error(w, "Unauthorized user id", http.StatusUnauthorized)
+		return
+	}
+
+	userIDstring := userID
+	//Retrieve the user's data from the database
+	user, err := getUserByID(userIDstring)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+	fmt.Print("Returning User-->", user["fullName"])
+
+	userFlights, err := getUserFlightDetails(userIDstring)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	jsonBytes, err := json.Marshal(userFlights)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	userIDstring = user["fullName"].(string)
+
+	//add username
+
+	fmt.Print("Returning User flights-->", jsonBytes)
+	// send the JSON byte array as the response
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, "%s|%s", userIDstring, jsonBytes)
+
+}
+
+func getUserByID(userid string) (primitive.M, error) {
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		panic(err)
+	}
+	usersCollection := client.Database("fyp_test").Collection("users")
+	filter := bson.D{{"id", bson.D{{"$eq", userid}}}}
+
+	var result bson.M
+	err = usersCollection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		panic("ERROR retriveing user")
+	}
+	fmt.Printf("\nresult-->%v", result["fullName"])
+
+	return result, err
+}
+
+func getUserFlightDetails(userid string) ([]primitive.M, error) {
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		panic(err)
+	}
+	usersCollection := client.Database("fyp_test").Collection("flights")
+	filter := bson.D{{"userID", bson.D{{"$eq", userid}}}}
+
+	cursor, err := usersCollection.Find(context.Background(), filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.Background())
+
+	var results []primitive.M
+	err = cursor.All(context.Background(), &results)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("\nresult-->%v", results)
+	return results, nil
+
+}
+
+func bsonToUser(bsonObj bson.M) (User, error) {
+	var user User
+	bsonBytes, err := bson.Marshal(bsonObj)
+	if err != nil {
+		return user, err
+	}
+	err = bson.Unmarshal(bsonBytes, &user)
+	if err != nil {
+		return user, err
+	}
+	return user, nil
 }
 
 // encode the string array into byte array
@@ -499,7 +663,7 @@ func totalRequest(w http.ResponseWriter, r *http.Request) {
 	getData(w, r, distance)
 	// http.ServeFile(w, r, fmt.Sprintf("../../../src/views/PlanFlightComponent.vue"))
 	// handle(w, r, "planner")
-	http.Redirect(w, r, "/#/plannernjrgklnjkl", 307)
+	http.Redirect(w, r, "/#/planner", 307)
 }
 
 func getData(w http.ResponseWriter, r *http.Request, d float64) {
@@ -521,6 +685,21 @@ func loginSubmitted(w http.ResponseWriter, r *http.Request) {
 	session.Values["username"] = username
 	session.Save(r, w)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func userHandler(w http.ResponseWriter, r *http.Request) {
+	// session, err := store.Get(r, "session-name")
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
+
+	// // Get the user ID from the session
+	// userID, ok := session.Values["userID"].(primitive.ObjectID)
+	// if !ok {
+	// 	http.Error(w, "Invalid session data", http.StatusBadRequest)
+	// 	return
+	// }
 }
 
 var store = sessions.NewCookieStore([]byte("super-secret"))
@@ -547,6 +726,8 @@ func main() {
 	http.HandleFunc("/storeSegmentedFlight", storeSegmentedFlight)
 	http.HandleFunc("/getFlightsWithinRadius", getFlightsWithinRadius)
 	http.HandleFunc("/updateFlightTime", updateFlightTime)
+	http.HandleFunc("/userProfile", userProfileHandler)
+	http.HandleFunc("/user", userHandler)
 
 	// dist := calculateDistance(3.44, 3.44)
 	listenerErr := http.ListenAndServe(":3333", nil)
@@ -750,24 +931,23 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 			// timesStringList = append(timesStringList, timeStr)
 		}
 		var c FlightSegmented
-		// entry := doc["gridEntryPoint"]
-		// exit := doc["gridExitPoint"]
-		// var coordEntry Coordinate
-		// var coordExit Coordinate
-		// if entry != nil && exit != nil {
-		// 	mEntry := entry.(primitive.M)
-		// 	mExit := exit.(primitive.M)
+		entry := doc["gridEntryPoint"]
+		exit := doc["gridExitPoint"]
+		var coordEntry Coordinate
+		var coordExit Coordinate
+		if entry != nil && exit != nil {
+			mEntry := entry.(primitive.M)
+			mExit := exit.(primitive.M)
 
-		// 	coordEntry.Latitude = mEntry["lat"].(string)
-		// 	coordEntry.Longitude = mEntry["lng"].(string)
-		// 	coordEntry.Id = mEntry["id"].(string)
+			coordEntry.Latitude = mEntry["lat"].(string)
+			coordEntry.Longitude = mEntry["lng"].(string)
 
-		// 	coordExit.Latitude = mExit["lat"].(string)
-		// 	coordExit.Longitude = mExit["lng"].(string)
-		// 	coordExit.Id = mExit["id"].(string)
-		// 	c.EntryPoint = coordEntry
-		// 	c.ExitPoint = coordExit
-		// }
+			coordExit.Latitude = mExit["lat"].(string)
+			coordExit.Longitude = mExit["lng"].(string)
+
+			c.EntryPoint = coordEntry
+			c.ExitPoint = coordExit
+		}
 
 		c.Id = doc["id"].(string)
 		c.Date = doc["date"].(string)
@@ -788,6 +968,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 
 	//################################################################################################################################
 	//THIS SECTION BELOW FOCUSES ON THE INTENDED FLIGHT DATA, GETS THE INTENDED FLIGHT
+	time.Sleep(1 * time.Second)
 	filterIntendedFlight := bson.D{{"id", bson.D{{"$eq", queryDate.ID}}}}
 	resultIntendedFlight, err := usersCollection.Find(ctx, filterIntendedFlight)
 	if resultIntendedFlight.Next(context.Background()) { // cursor is not empty
@@ -865,6 +1046,7 @@ func getFlightsWithinRadius(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "%v %v %v %v", intendedFlight.Times[0], intendedFlight.Times[len(intendedFlight.Times)-1], intendedFlight.SubGrid, intendedFlight.Speed)
 		} else { //if other grids are not empty, 2 choices: wait for 5 minutes in current grid or join the queue to enter another grid. Which is shorter?
 			addToQueue(intendedFlight.Id, intendedFlight.SubGrid)
+			// checkQueueWaitingTime(queue)
 			//add 5 minutes onto each of these times and then rerun the schedule function in  the currect sub grid
 			var fiveMinuteWaitSegments []string
 			for _, segTime := range intendedFlight.Times {
@@ -952,30 +1134,33 @@ func getShortestWaitGrid(gridLevel string) {
 
 }
 
-func createQueue(gridID string) {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
-	if err != nil {
-		panic(err)
-	}
+func createQueue(coordinate Coordinate, gridID string) []interface{} {
+	// client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	collection := client.Database("mydatabase").Collection("queue")
-	fmt.Printf("Created collection --> %v", collection.Name())
-
-	queueDoc := bson.D{{"id", gridID}, {"altitude", LAYER_ONE}, {"flights", []string{}}}
-	err = insertDB(context.TODO(), client, queueDoc, "queue")
-	if err != nil {
-		fmt.Printf("error storing creating the queue %f", LAYER_ONE)
+	//queueDoc := bson.D{{"id", gridID}, {"coordinate", coordinate}, {"layer", LAYER_ONE}, {"flights", []string{}}}
+	//err = insertDB(context.TODO(), client, queueDoc, "queues")
+	// if err != nil {
+	// 	fmt.Printf("error storing creating the queue %f", LAYER_ONE)
+	// }
+	//queueDoc = bson.D{{"id", gridID}, {"coordinate", coordinate}, {"layer", LAYER_TWO}, {"flights", []string{}}}
+	//err = insertDB(context.TODO(), client, queueDoc, "queues")
+	// if err != nil {
+	// 	fmt.Printf("error storing creating the queue %f", LAYER_TWO)
+	// }
+	//queueDoc = bson.D{{"id", gridID}, {"coordinate", coordinate}, {"layer", LAYER_THREE}, {"flights", []string{}}}
+	//err = insertDB(context.TODO(), client, queueDoc, "queues")
+	// if err != nil {
+	// 	fmt.Printf("error storing creating the queue %f", LAYER_THREE)
+	// }
+	queues := []interface{}{
+		QueueStorage{id: gridID, coordinate: coordinate, layer: LAYER_ONE, flights: []string{}},
+		QueueStorage{id: gridID, coordinate: coordinate, layer: LAYER_TWO, flights: []string{}},
+		QueueStorage{id: gridID, coordinate: coordinate, layer: LAYER_THREE, flights: []string{}},
 	}
-	queueDoc = bson.D{{"id", gridID}, {"altitude", LAYER_TWO}, {"flights", []string{}}}
-	err = insertDB(context.TODO(), client, queueDoc, "queue")
-	if err != nil {
-		fmt.Printf("error storing creating the queue %f", LAYER_TWO)
-	}
-	queueDoc = bson.D{{"id", gridID}, {"altitude", LAYER_THREE}, {"flights", []string{}}}
-	err = insertDB(context.TODO(), client, queueDoc, "queue")
-	if err != nil {
-		fmt.Printf("error storing creating the queue %f", LAYER_THREE)
-	}
+	return queues
 
 }
 
@@ -1146,11 +1331,15 @@ func calculateCoordDistance(lat1 float64, lng1 float64, lat2 float64, lng2 float
 //need to convert the string times into actual time objects and see if theres a collision 5 minutes on either side(before and after)
 func checkTimeCollisions(intendedTime string, reservedTime string, date string) bool {
 	//need to add "0" before time with only one minute digit
+	fmt.Printf("both times", reservedTime, intendedTime)
 	if len(intendedTime) < 5 {
 		intendedTime = intendedTime[0:3] + "0" + intendedTime[3:4]
 	}
-	if len(reservedTime) < 5 {
+	if len(reservedTime) < 5 && len(reservedTime) > 3 {
 		reservedTime = reservedTime[0:3] + "0" + reservedTime[3:4]
+	}
+	if len(reservedTime) <= 3 {
+		panic("TIME IS TOO SHORT")
 	}
 
 	fullIntended := date + " " + intendedTime + ":00"
@@ -1172,7 +1361,7 @@ func checkTimeCollisions(intendedTime string, reservedTime string, date string) 
 
 	fmt.Printf("Checking %v %v", fullIntended, fullReserved)
 
-	//check if UAV passes through this coordinate five five minutes befor or after the intended flight, this ensures no collision if there is an unexpected delay
+	//check if UAV passes through this coordinate five five minutes(60*5=300) befor or after the intended flight, this ensures no collision if there is an unexpected delay
 	if math.Abs(float64(reservedEpochTime-intendedEpochTime)) <= 300 {
 		fmt.Printf("Gap ahead of 5 minutes %v %v %v\n", reservedTime, intendedTime, math.Abs(float64(reservedEpochTime-intendedEpochTime)))
 		return true
@@ -1402,6 +1591,7 @@ func storeGridCoordinates(w http.ResponseWriter, r *http.Request) {
 	GRID_INCREMENT++
 	var gridID = fmt.Sprintf("%d", GRID_INCREMENT)
 
+	//var q []interface{}
 	for _, layer := range grid.Layers {
 		var coord Coordinate
 		for _, val := range grid.Coordinates {
@@ -1420,16 +1610,14 @@ func storeGridCoordinates(w http.ResponseWriter, r *http.Request) {
 
 			//if the coordinate is located on the border of the grid then it will have a queue allocated to it
 			//as it will become an entry point into the grid from No Man's Land
-			if containsBorderNode(coord, grid.BorderCoords) {
-				//build record to store coordinates which will be allocated queues
-				gridCoord := bson.D{{"lat", coord.Latitude}, {"lng", coord.Longitude}}
-				gridDoc := bson.D{{"id", coord.Id}, {"coordinate", gridCoord}, {"layer", layer}, {"gridID", gridID}}
-				err = insertDB(context.TODO(), client, gridDoc, "queues")
-				fmt.Printf("\nERROR storing border coordinate in queue collection-->\n", err)
-			}
+			// if containsBorderNode(coord, grid.BorderCoords) {
+			// 	//create a queue at each coordinate(3 levels) and store queues together
+			// 	q = append(q, createQueue(coord, gridID))
+			// }
 
 		}
 	}
+	//err = insertManyDB(context.TODO(), client, q, "queues")
 	fmt.Print("done")
 
 	fmt.Fprint(w, "stored")
@@ -1440,11 +1628,9 @@ func storeGridCoordinates(w http.ResponseWriter, r *http.Request) {
 func containsBorderNode(c Coordinate, slist []string) bool {
 	for _, val := range slist {
 		if c.Latitude == val {
-			fmt.Printf("\nSTORING border node %v %v\n\n", c, val)
 			return true
 		}
 		if c.Longitude == val {
-			fmt.Printf("\nSTORING border node %v %v\n\n", c, val)
 			return true
 		}
 	}
@@ -1547,10 +1733,35 @@ func storeFlight(w http.ResponseWriter, r *http.Request) {
 
 	parseEndTime(flight)
 
+	////////////  get user details   ///////////////////
+
+	session, err := store.Get(r, "session-name")
+	if err != nil {
+		http.Error(w, "Unauthorized name", http.StatusUnauthorized)
+		return
+	}
+
+	userID, ok := session.Values["user_id"].(string)
+	fmt.Printf("user_id %v", userID)
+	if !ok {
+		http.Error(w, "Unauthorized user id", http.StatusUnauthorized)
+		return
+	}
+
+	userIDstring := userID
+	// Retrieve the user's data from the database
+	_, err = getUserByID(userIDstring)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	////////////////////////////////////////////////////
+
 	ftime := flight.Hour + ":" + flight.Minute
 	startCoord := bson.D{{"lat", flight.Srclat}, {"lng", flight.Srclng}}
 	destCoord := bson.D{{"lat", flight.Destlat}, {"lng", flight.Destlng}}
-	flightDoc := bson.D{{"id", flight.ID}, {"date", flight.Date}, {"time", ftime}, {"startCoord", startCoord}, {"destCoord", destCoord}, {"endTime", flight.EndTime}, {"speed", flight.Speed}, {"corridor", flight.Corridor}, {"subGridLayer", flight.Subgrid}, {"altitude", flight.Altitude}, {"orientation", flight.Orientation}, {"drone", flight.Drone.Name}}
+	flightDoc := bson.D{{"id", flight.ID}, {"userID", userIDstring}, {"date", flight.Date}, {"time", ftime}, {"startCoord", startCoord}, {"destCoord", destCoord}, {"endTime", flight.EndTime}, {"speed", flight.Speed}, {"corridor", flight.Corridor}, {"subGridLayer", flight.Subgrid}, {"altitude", flight.Altitude}, {"orientation", flight.Orientation}, {"drone", flight.Drone.Name}}
 	err = insertDB(context.TODO(), client, flightDoc, "flights")
 
 	droneDoc := bson.D{{"name", flight.Drone.Name}, {"model", flight.Drone.Model}, {"weight", flight.Drone.Weight}}
