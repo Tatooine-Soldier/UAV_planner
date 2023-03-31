@@ -1,12 +1,40 @@
 <template>
     <section class="profile-page">
+        <section id="expanded-flight">
+            Expanded Flight:
+            <p class="flight-details-records">
+                <b>ID:</b> {{ flightIDs[cursor] }}
+            </p>
+            <p class="flight-details-records">
+                <b>Date:</b> {{ flightDates[cursor] }}
+            </p>
+            <p class="flight-details-records">
+                <b>Take-Off Time:</b> {{ flightStartTimes[cursor] }}
+            </p>
+            <p class="flight-details-records">
+                <b>ETA:</b> {{ flightEndTimes[cursor] }}
+            </p>
+            <p class="flight-details-records">
+                <b>Altitude:</b> {{ flightAltitudes[cursor] }}
+            </p>
+            <p class="flight-details-records">
+                <b>Drone:</b> {{ flightDrones[cursor] }}
+            </p>
+            <p class="flight-details-records">
+                <b>Starting point:</b>{{ flightSourceCoords[cursor] }}
+            </p>
+            <p class="flight-details-records">
+                <b>Destination Point</b>{{ flightDestCoords[cursor] }}
+            </p> 
+        </section>
+        <img src="../assets/ex-sign.png" id="profile-ex" @click="hideFlight()"/>
         <section class="profile-main">
             <header>
                 <p>Profile Page</p>
-                <h2>Welcome {{ user }}</h2>
+                <h2>Welcome <i>{{ user }}</i></h2>
             </header>
-            <div>
-                <p>Past Flights: </p>
+            <div class="past-flight-display">
+                <p id="past-flights-heading">Your past flights: </p>
                 <!-- <p v-for="(flight, index) in flightData" v-bind:key="index">
                     {{ flight }}
                 </p> -->
@@ -18,7 +46,7 @@
                     <b>End Time</b>
                     <b>Altitude</b>
                 </div>
-                <div class="displayFlightDetails" v-for="(i, index) in flightData" v-bind:key="index">
+                <div class="displayFlightDetails" v-for="(i, index) in flightData" v-bind:key="index" @click="showFlight(index)">
                         <p class="flight-details-records">
                             {{ flightIDs[index] }}
                         </p>
@@ -34,6 +62,12 @@
                         <p class="flight-details-records">
                             {{ flightAltitudes[index] }}
                         </p>
+                </div>
+                <div>
+                    Your Saved Drones:
+                    <div v-for="(i, index) in flightData" v-bind:key="index">
+                        <p>{{ flightDrones[i] }}</p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -53,7 +87,11 @@ export default {
             flightStartTimes: [],
             flightEndTimes: [],
             flightAltitudes: [],
-            pastCoordinates: []
+            flightDrones: [],
+            flightSourceCoords: [],
+            flightDestCoords: [],
+            pastCoordinates: [],
+            cursor: 0
         }
     },
     async created() {
@@ -88,7 +126,25 @@ export default {
                 this.flightStartTimes.push(this.flightData[flight].time)
                 this.flightEndTimes.push(this.flightData[flight].endTime)
                 this.flightAltitudes.push(this.flightData[flight].altitude)
+                if (this.flightData[flight].drone !== "") {
+                    this.flightDrones.push(this.flightData[flight].drone)
+                }
+                this.flightSourceCoords.push(this.flightData[flight].startCoord)
+                this.flightDestCoords.push(this.flightData[flight].destCoord)
             }
+        },
+        showFlight(i) {
+            this.cursor = i
+            var e = document.getElementById("expanded-flight")
+            e.style.display = 'block'
+            var x = document.getElementById("profile-ex")
+            x.style.display = 'block'
+        },
+        hideFlight() {
+            var e = document.getElementById("expanded-flight")
+            e.style.display = 'none'
+            var x = document.getElementById("profile-ex")
+            x.style.display = 'none'
         }
     }
 }
@@ -97,6 +153,11 @@ export default {
 <style>
 .profile-main {
     color: white;
+    padding-bottom: 20%;
+}
+
+#past-flights-heading {
+    font-size: 1.1em;
 }
 
 header {
@@ -105,6 +166,27 @@ header {
     width: 60%;
     left: 20%;
     right: 20%;
+}
+
+#expanded-flight {
+    display: none;
+    width: 60%;
+    left: 20%;
+    top: 20%;
+    background-color: rgb(50, 50, 50);
+    color: white;
+    z-index: 1;
+    position: fixed;
+    border: solid 2px rgb(120, 255, 36);
+    padding: 3px;
+}
+
+#profile-ex {
+    display: none;
+    right: 19%;
+    top: 20%;
+    z-index: 1;
+    position: fixed;
 }
 
 .flight-details-records {
@@ -128,5 +210,9 @@ header {
     display: grid;
     grid-template-columns: 20% 20% 20% 20% 20%;
     text-align: center;
+}
+
+.past-flight-display {
+    padding: 10px;
 }
 </style>
