@@ -4,6 +4,7 @@ import MyGoogleMapComponent from "../components/MyGoogleMapComponent.vue"
 //import MyCalendarComponent from "../components/MyCalendarComponent.vue";
 import SpeedSelectorComponent from "@/components/SpeedSelectorComponent.vue";
 import LoaderComponent from "@/components/LoaderComponent.vue";
+import ForecastDisplayComponent from "@/components/ForecastDisplayComponent.vue";
 //import FinalGoogleMapComponentVue from "@/components/FinalGoogleMapComponent.vue";
 //   const props = defineProps(['title'])
 </script>
@@ -21,6 +22,7 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                             <div>Take-Off from: <div class="coordsConfirm"><i class="latdisplay">{{ coords.sourcelatitude }}</i>   <i class="longdisplay">{{ coords.sourcelongitude }}</i></div></div>
                             <div>Land at: <div class="coordsConfirm"><i class="latdisplay">{{ coords.destlatitude }}</i>   <i class="longdisplay">{{ coords.destlongitude }}</i></div></div>
                             <div>Speed: <div class="coordsConfirm">{{speed.velocity}} KM/H</div></div>
+                            <div>Altitude(Default): <div class="coordsConfirm">{{altitude}} m</div></div>
                             <div>Calculated distance: <div class="coordsConfirm">{{ distance }} KM</div></div>
                         </section>
                         <section class="flight-details-buttons">
@@ -30,6 +32,7 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                     </section>
                 </section>
             </section>
+            <img src="../assets/ex-sign.png" id="ex-sign-wind" v-on:click="disappearWindEx()"/>
 
             <section id="details-map-container">
                 <!-- <MyGoogleMapComponent @someEvent="logme" :propspeed="time"></MyGoogleMapComponent> -->
@@ -37,6 +40,9 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
             </section>
             <section id="final-map-container">
                 <FinalGoogleMapComponent @loadedMap="logLoaded" :propcoords="coords" :propspeed="speed.velocity" :propdate="date" :propway="waypoints" :propSubgrid="subGrid" :propEndTime="endTime" :propDuration="duration" :propID="flightID" :key="componentKey"></FinalGoogleMapComponent>
+            </section>
+            <section id="weather-display-planner">
+                <ForecastDisplayComponent :key="windKey"></ForecastDisplayComponent>
             </section>
             
             <section id="calendar-display-afterwards" >
@@ -81,8 +87,10 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                     </div>
                     <div id="last-div">
                         <label for="day">Select day: </label>
-                        <input type="date" name="date" v-model="date.day" />
+                        <input type="date" name="date" id="day" v-model="date.day" />
                     </div>
+
+                    
                 </section>
                 <!-- <section>
                     <div class="check-time-db" @click="getDates()">Check availablility</div>
@@ -96,7 +104,7 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                      <!-- <input type="button" value="Confirm" @click="showFinalMap(true)"/> -->
                 </section>
             </section>
-
+            
             <section class="waypoint-submit-container" id="waypoint-container">
                 Enter desired waypoints:
                 <section>
@@ -168,7 +176,12 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                                                 <label for="day">Select day: </label>
                                                 <input type="date" name="date" v-model="date.day"/>
                                             </div>
+                                            
+                                            
                                         </section>
+                                        <div id="weather-div-planner">
+                                            <input type="button" name="windData" id="fetchWindButton" value="Wind Forecast" @click="fetchWind()"/>
+                                        </div>
                                     
                                     
                                 </section>
@@ -227,7 +240,7 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                                     </section>
                                     <hr>
                                     <section class="altitude-container">
-                                        <p class="fp-subtitle">View your allocated UAV altitude(metres):</p>
+                                        <p class="fp-subtitle">View your default UAV altitude(metres):</p>
                                         <section>
                                             
                                             <label for="altitude">Altitude: </label>
@@ -241,14 +254,14 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                                         <section>
                                             <label for="orientation">Select orientation: </label>
                                             <select id="orientation" name="orientation" ref="myorientation">
-                                                <option value="N">N</option>
-                                                <option value="NE">NE</option>
-                                                <option value="E">E</option>
-                                                <option value="SE">SE</option>
-                                                <option value="S">S</option>
-                                                <option value="SW">SW</option>
-                                                <option value="W">W</option>
-                                                <option value="NW">NW</option>
+                                                <option value="N">North</option>
+                                                <option value="NE">NorthEast</option>
+                                                <option value="E">East</option>
+                                                <option value="SE">SouthEast</option>
+                                                <option value="S">South</option>
+                                                <option value="SW">SouthWest</option>
+                                                <option value="W">West</option>
+                                                <option value="NW">NorthWest</option>
                                             </select>
                                         </section>
                                     </section>
@@ -258,12 +271,22 @@ import LoaderComponent from "@/components/LoaderComponent.vue";
                                             <p>Aircraft details:</p>
                                             <section class="drone-spec">
                                                 <section class="spec-inputs">
-                                                    <label for="drone-name">UAV name: </label>
-                                                    <input type="text" name="drone-name" size="16" ref="mydronename"/>
-                                                    <label for="drone-model">UAV model: </label>
-                                                    <input type="text" name="drone-model" size="16" ref="mydronemodel">
-                                                    <label for="drone-weight">UAV weight: </label>
-                                                    <input type="text" name="drone-weight" size="16" ref="mydroneweight">
+                                                    <label for="droneDropdown">Select saved drone: </label>
+                                                    <select id="orientation" name="drone-name" ref="mydronename">
+                                                        <option v-for="(drone, index) in dronesList" v-bind:key="index">{{drone}}</option>
+                                                    </select>
+                                                    <br>
+                                                    OR 
+                                                    Input new drone data:
+                                                    <div>
+                                                        <label for="drone-name">UAV name: </label>
+                                                        <input type="text" name="drone-name" size="16" ref="mydronename"/>
+                                                        <label for="drone-model">UAV model: </label>
+                                                        <input type="text" name="drone-model" size="16" ref="mydronemodel">
+                                                        <label for="drone-weight">UAV weight: </label>
+                                                        <input type="text" name="drone-weight" size="16" ref="mydroneweight">
+                                                    </div>
+                                                    
                                                 </section>
                                             </section>
                                         </section>
@@ -335,6 +358,11 @@ grid-template-rows: 30% 30% 20% 20%;
         padding: 5px;
     }
 
+    #weather-div-planner {
+        display: flex;
+        align-items: center;
+    }
+
     #submit-div-planflight {
         background-color: white;
         border: solid 1px grey;
@@ -347,6 +375,26 @@ grid-template-rows: 30% 30% 20% 20%;
         background-color: rgb(101, 100, 100);
         color: white;
         cursor: pointer;
+    }
+
+    #fetchWindButton {
+        width: 100%;
+        margin-top: 5%;
+        margin-left: 5%;
+        margin-right: 5%;
+        padding: 5px;
+    }
+
+    #fetchWindButton:hover {
+        cursor: pointer;
+    }
+
+    #ex-sign-wind {
+        top: 20%;
+        right: 15.5%;
+        position: fixed;
+        display: none;
+        z-index: 1;
     }
 
     #lt {
@@ -445,7 +493,7 @@ grid-template-rows: 30% 30% 20% 20%;
     .time-selection {
         display:grid;
         grid-template-columns: 50% 50%;
-        grid-template-rows: 50% 50%;
+        grid-template-rows: 50% 40% 10%;
     }
 
     .time-selection div{
@@ -565,7 +613,7 @@ grid-template-rows: 30% 30% 20% 20%;
     .flight-details-content-grid {
         display: grid;
         grid-template-rows: 50% 50%;
-        grid-template-rows: 25% 25% 25% 25%;
+        grid-template-rows: 20% 20% 20% 20% 20%;
         margin: 0% 5%;
     }
 
@@ -694,6 +742,19 @@ grid-template-rows: 30% 30% 20% 20%;
         padding-top: 10%;
         margin-top: 1%;
     }
+
+    #weather-display-planner {
+        display: None;
+        width: 60%;
+        color: white;
+        position: fixed;
+        z-index: 1;
+        top: 20%;
+        background-color: rgb(77, 76, 76);
+        padding: 25px;
+        left: 18.5%;
+
+    }
   
 
 </style>
@@ -702,7 +763,10 @@ grid-template-rows: 30% 30% 20% 20%;
 <script>
  // import * as geolib from 'geolib';
 import axios from 'axios';
-import { getWindSpeed } from "@/fetchWindSpeed";
+//import { getWindSpeed } from "@/fetchWindSpeed";
+import { convertDegreesToDirection } from "@/degreesToCompassDirections";
+import { windSpeedToColour } from "@/displayWindWarningColours"
+//import router from "@/router";
 //import { response } from "express"; NOT SURE IF I NEED THIS
 const LAYER_ONE = "60"
 const LAYER_TWO = "90"
@@ -738,6 +802,7 @@ export default {
             weight: ''
         },
         componentKey: 0,
+        windKey: 0,
         bookedDates: null,
         altitude: 0,
         subGrid: "",
@@ -750,13 +815,17 @@ export default {
         loadedFMap: false,
         loaderMsg: true,
         loaderRefresh: 0,
+        windData: [],
+        windDataHour: "",
+        dronesList: []
       }
     },
     props: ['propsettings'],
     components: {
-        MyGoogleMapComponent,
-        FinalGoogleMapComponent
-    },
+    MyGoogleMapComponent,
+    FinalGoogleMapComponent,
+    ForecastDisplayComponent
+},
     setup(props) {
         console.log("Props--->", props.propsettings)
     },
@@ -771,10 +840,11 @@ export default {
         this.waypoints.lng =  this.$refs.mywaylng.value;
         this.altitude =  this.$refs.myaltitude.value;
         this.orientation = this.$refs.myorientation.value;
+        console.log("this.$refs.myspeed.value--> ", this.$refs.myspeed.value)
         this.speed.velocity = this.$refs.myspeed.value;
         this.droneSpec.name = this.$refs.mydronename.value;
-        this.droneSpec.model = this.$refs.mydronemodel.value;
-        this.droneSpec.weight = this.$refs.mydroneweight.value;
+        // this.droneSpec.model = this.$refs.mydronemodel.value;
+        // this.droneSpec.weight = this.$refs.mydroneweight.value;
         // this.date.day = this.$refs.date.value;
         // this.date.hour = this.$refs.hour.value;
         // this.date.minute = this.$refs.minute.value;
@@ -1028,34 +1098,158 @@ export default {
                     console.log("d-->", d)
                     if (d[0] === "none") {
                         alert("Change Take-Off time")
-                        var hideMap = document.getElementById("final-map-container")
-                        hideMap.style.display = "none"
+                        this.$router.push('planner')
                     } 
                     else {
-                        // var r =  document.getElementById("take-off-time")
-                        // r.innerHTML = d[0]
-                        // var f = document.getElementById("eta-final")
-                        // f.innerHTML += " "+"<b>"+d[1]+"</b>"
-                        // var a =  document.getElementById("take-off-altitude")
-                        // if (typeof d[2] === "undefined" || typeof d[2] === "") {
-                        //     a.innerHTML = "60"
-                        // }
-                        // else {
-                        //     a.innerHTML = d[2]
-                        // }
-                        
-                        // var s = document.getElementById("speed-final")
-                        // s.innerHTML = d[3]
                         var b = document.getElementById("flightlogbutton")
                         b.style.display = "block"
+                        var r =  document.getElementById("take-off-time")
+                        r.innerHTML = d[1]
+                        var f = document.getElementById("eta-final")
+                        f.innerHTML = d[0]
+                        var a =  document.getElementById("take-off-altitude")
+                        a.innerHTML = d[2]
                     }
-                    
-                    //var unavailableTimes = data
                 })
                 .catch (function (error) {
                     console.log("ERROR:", error);    
                 })
         }, 13000);
+      },
+      async fetchWind() {
+        var lat = parseFloat(this.$refs.mysourcelat.value);
+        var lng = parseFloat(this.$refs.mysourcelong.value);
+
+        if (lat === "" || lng === "") {
+            console.log("Please select a location")
+        }
+
+        lat = lat.toFixed(2)
+        lng = lng.toFixed(2)
+
+        var hour = document.getElementById("hour").value
+        var minute = document.getElementById("minute").value
+        var date = document.getElementById("day").value
+        
+        this.windDataHour = hour
+        console.log(hour, minute, date)
+
+        console.log("lng, lat", lng, lat)
+        var res = await fetch("https://api.open-meteo.com/v1/forecast?latitude="+lat+"&longitude="+lng+"&hourly=windspeed_80m,winddirection_80m&start_date="+date+"&end_date="+date)
+        var final = await res.json()
+        console.log("final", final)
+
+        var x = document.getElementById("ex-sign-wind")
+        x.style.display = "block"
+
+        this.windData = final
+        this.windKey += 1
+
+        var dt =document.getElementById("date-wind")
+
+        var endHour = this.calculateETA(hour)
+        var doc = document.getElementById("weather-display-planner")
+        doc.style.display = "block"
+        for (var time in final.hourly.time) {
+            var val = final.hourly.time[time].slice(11,13)
+            console.log("val", val)
+            if (val === hour) {
+              var direction = convertDegreesToDirection([final.hourly.winddirection_80m[time]])
+              direction = direction[0]
+              var windspeed =  final.hourly.windspeed_80m[time]
+              var windColour = windSpeedToColour([final.hourly.windspeed_80m[time]])
+              console.log("WindColour:", windColour)
+              this.colour = windColour[0]
+              
+                var s =document.getElementById("speed-wind-source")
+                var d =document.getElementById("direction-wind-source")
+                var t =document.getElementById("time-wind")
+                var w =document.getElementById("warning-wind-source")
+                s.innerHTML = windspeed
+                d.innerHTML = direction
+                t.innerHTML = hour + ":" + minute
+                dt.innerHTML = this.date.day 
+                w.style.backgroundColor = this.colour
+            }
+        }
+
+
+        //DEST////////////////////////////////////////////////////////
+
+        lat = parseFloat(this.$refs.mydestlat.value);
+        lng = parseFloat(this.$refs.mydestlong.value);
+
+        if (lat === "" || lng === "") {
+            console.log("Please select a location")
+        }
+
+        lat = lat.toFixed(2)
+        lng = lng.toFixed(2)
+
+        hour = document.getElementById("hour").value
+        minute = document.getElementById("minute").value
+        date = document.getElementById("day").value
+        
+        this.windDataHour = hour
+        console.log(hour, minute, date)
+
+        console.log("lng, lat", lng, lat)
+        res = await fetch("https://api.open-meteo.com/v1/forecast?latitude="+lat+"&longitude="+lng+"&hourly=windspeed_80m,winddirection_80m&start_date="+date+"&end_date="+date)
+        final = await res.json()
+        console.log("final", final)
+
+        x = document.getElementById("ex-sign-wind")
+        x.style.display = "block"
+
+        this.windData = final
+        this.windKey += 1
+
+        dt =document.getElementById("date-wind")
+        w =document.getElementById("warning-wind-source")
+
+        endHour = this.calculateETA(hour)
+        doc = document.getElementById("weather-display-planner")
+        doc.style.display = "block"
+        for ( time in final.hourly.time) {
+            val = final.hourly.time[time].slice(11,13)
+            console.log("val and endHour", val, endHour)
+            if (val === endHour) {
+              direction = convertDegreesToDirection([final.hourly.winddirection_80m[time]])
+              direction = direction[0]
+              windspeed =  final.hourly.windspeed_80m[time]
+              windColour = windSpeedToColour([final.hourly.windspeed_80m[time]])
+              console.log("WindColour:", windColour)
+              this.colour = windColour[0]
+
+              var sdest =document.getElementById("speed-wind-dest")
+                var ddest =document.getElementById("direction-wind-dest")
+                var tdest =document.getElementById("time-wind")
+                var wdest =document.getElementById("warning-wind-dest")
+                sdest.innerHTML = windspeed
+                ddest.innerHTML = direction
+                tdest.innerHTML = hour + ":" + minute
+                dt.innerHTML = this.date.day 
+                wdest.style.backgroundColor = this.colour
+                console.log("FOUND-->", windspeed, direction)
+            }
+        }
+        
+        
+      },
+      calculateETA(hour) {
+        var durationHour = document.getElementById("distanceTime").innerHTML
+        durationHour = durationHour.slice(0,2)
+        hour = parseInt(hour)
+        durationHour = parseInt(durationHour)
+        var endHour = hour+durationHour
+        console.log("Added ", durationHour, " and ", hour, "=", endHour)
+        var endHourStr = endHour.toString() 
+        if (endHourStr.length === 1) {
+            endHourStr = "0"+endHourStr
+        } 
+        return endHourStr
+        //maybe get the hours between
+    
       },
       lowInfo() {
         var c = document.getElementById('lowc');
@@ -1077,7 +1271,7 @@ export default {
             i ++;
         }
       }, 
-      logme({c, d, distance, w, t, r}) { // data received from map component 
+      async logme({c, d, distance, w, t, r}) { // data received from map component 
         console.log("RECEIVED IN PARENT",c.lat, c.lng, d.lat, d.lng, t);
         this.$refs.mysourcelat.value = c.lat.toString();
         this.$refs.mysourcelong.value = c.lng.toString();
@@ -1115,6 +1309,11 @@ export default {
         map.style.display = "none"
         var con = document.getElementById("ex-sign")
         con.style.display = "none"
+
+        // var lng = c.lng.toString()
+        // var lat = c.lat.toString()
+
+
       },
       logLoaded() {
         this.loadedFMap = true
@@ -1159,6 +1358,14 @@ export default {
 
         //console.log("hour + minute", hour, minute)
       },
+
+      disappearWindEx() {
+        var d = document.getElementById("ex-sign-wind")
+        d.style.display = "none"
+        var wl = document.getElementById("weather-display-planner")
+        wl.style.display = "none"
+      }, 
+
       setWaypoint() {
         var w = document.getElementById("waypoint-container")
         w.style.display = "block";
@@ -1194,14 +1401,32 @@ export default {
             console.log("ERROR:", error);    
         })
       },
+      getDrones(arr) {
+        for (var flight in arr) {
+            if (arr[flight].drone !== "") {
+                if (!this.dronesList.includes(arr[flight].drone)) {
+                    this.dronesList.push(arr[flight].drone)
+                }
+            }
+            
+        }
+        console.log("DRONESLIST-->", this.dronesList)
+      }
 
     }, 
     mounted() {
-        var l = getWindSpeed()
-        l.then((response) => {
-            const data = response.data
-            console.log("Result of getWind-->, ",data)
+        axios
+        .post("/userProfile")
+        .then((response) =>{
+            const data = response.data;
+            console.log("data: ", data)
+            var dataArray = data.split("|")
+            console.log("dataArray--> ", dataArray)
 
+            var flights = dataArray[1]
+            const jsonArray = JSON.parse(flights);
+            console.log("jsonArray-->", jsonArray)
+            this.getDrones(jsonArray);
         })
     }
 

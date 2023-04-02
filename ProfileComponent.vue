@@ -33,42 +33,47 @@
                 <p>Profile Page</p>
                 <h2>Welcome <i>{{ user }}</i></h2>
             </header>
-            <div class="past-flight-display">
-                <p id="past-flights-heading">Your past flights: </p>
-                <!-- <p v-for="(flight, index) in flightData" v-bind:key="index">
-                    {{ flight }}
-                </p> -->
+            <section class="profile-data-container">
+                <div class="past-flight-display">
+                    <p id="past-flights-heading">Your past flights: </p>
+                    <!-- <p v-for="(flight, index) in flightData" v-bind:key="index">
+                        {{ flight }}
+                    </p> -->
 
-                <div class="flight-details-headings">
-                    <b>Flight ID</b>
-                    <b>Date</b>
-                    <b>Start Time</b>
-                    <b>End Time</b>
-                    <b>Altitude</b>
-                </div>
-                <div class="displayFlightDetails" v-for="(i, index) in flightData" v-bind:key="index" @click="showFlight(index)">
-                        <p class="flight-details-records">
-                            {{ flightIDs[index] }}
-                        </p>
-                        <p class="flight-details-records">
-                            {{ flightDates[index] }}
-                        </p>
-                        <p class="flight-details-records">
-                            {{ flightStartTimes[index] }}
-                        </p>
-                        <p class="flight-details-records">
-                            {{ flightEndTimes[index] }}
-                        </p>
-                        <p class="flight-details-records">
-                            {{ flightAltitudes[index] }}
-                        </p>
+                    <div class="flight-details-headings">
+                        <b>Flight ID</b>
+                        <b>Date</b>
+                        <b>Start Time</b>
+                        <b>End Time</b>
+                        <b>Altitude</b>
+                    </div>
+                    <div class="displayFlightDetails" v-for="(i, index) in flightData" v-bind:key="index" @click="showFlight(index)">
+                            <p class="flight-details-records">
+                                {{ flightIDs[index] }}
+                            </p>
+                            <p class="flight-details-records">
+                                {{ flightDates[index] }}
+                            </p>
+                            <p class="flight-details-records">
+                                {{ flightStartTimes[index] }}
+                            </p>
+                            <p class="flight-details-records">
+                                {{ flightEndTimes[index] }}
+                            </p>
+                            <p class="flight-details-records">
+                                {{ flightAltitudes[index] }}
+                            </p>
+                    </div>  
                 </div>
                 <div>
                     Your Saved Drones:
-                    <div v-for="(i, index) in flightData" v-bind:key="index">
-                        <p>{{ flightDrones[i] }}</p>
+                    <div v-for="(i, index) in flightDrones" v-bind:key="index" class="drones-container">
+                        <p class="drones-records">{{ flightDrones[index] }}</p>
                     </div>
                 </div>
+            </section>
+            <div>
+                <router-link to="/"><button class="but">Logout</button></router-link>
             </div>
         </section>
     </section>
@@ -120,13 +125,13 @@ export default {
         },
         arrangeDetails() {
             for (var flight in this.flightData) {
-                console.log(this.flightData[flight].time)
                 this.flightIDs.push(this.flightData[flight].id)
                 this.flightDates.push(this.flightData[flight].date)
                 this.flightStartTimes.push(this.flightData[flight].time)
                 this.flightEndTimes.push(this.flightData[flight].endTime)
                 this.flightAltitudes.push(this.flightData[flight].altitude)
                 if (this.flightData[flight].drone !== "") {
+                    console.log("this.flightData[flight].drone-->", this.flightData[flight].drone)
                     this.flightDrones.push(this.flightData[flight].drone)
                 }
                 this.flightSourceCoords.push(this.flightData[flight].startCoord)
@@ -145,6 +150,12 @@ export default {
             e.style.display = 'none'
             var x = document.getElementById("profile-ex")
             x.style.display = 'none'
+        },
+        logout() {
+            var loginIcon = document.getElementById("login-icon")
+            loginIcon.style.display = "none"
+            var np = document.getElementById("nav-planner")
+              np.style.visibility = "hidden"
         }
     }
 }
@@ -154,6 +165,12 @@ export default {
 .profile-main {
     color: white;
     padding-bottom: 20%;
+}
+
+.profile-data-container{
+    display: grid;
+    grid-template-columns: 70% 30%;
+    column-gap: 4%;
 }
 
 #past-flights-heading {
@@ -173,7 +190,7 @@ header {
     width: 60%;
     left: 20%;
     top: 20%;
-    background-color: rgb(50, 50, 50);
+    background-color: rgb(79, 80, 80);
     color: white;
     z-index: 1;
     position: fixed;
@@ -187,6 +204,10 @@ header {
     top: 20%;
     z-index: 1;
     position: fixed;
+}
+
+#profile-ex:hover {
+    cursor: pointer;
 }
 
 .flight-details-records {
@@ -214,5 +235,34 @@ header {
 
 .past-flight-display {
     padding: 10px;
+}
+
+.drones-records {
+    text-align: center;
+    border: solid grey 1px;
+}
+
+.drones-container {
+    width: 50%;
+    background-color: rgb(50, 50, 50);
+    border: solid grey 3px;
+    margin-left: 3%;
+}
+
+.but {
+    margin: 1%;
+    font-size: 15pt;
+    padding: 10px 15px;
+    color: white;
+    font-weight: bolder;
+    background-color: rgb(101, 100, 100);
+    border: rgb(120, 255, 36) 2px solid;
+    border-radius: 7px;
+    width: 10%;
+}
+
+.but:hover {
+    background-color: rgb(130, 127, 127);
+    cursor:pointer;
 }
 </style>
