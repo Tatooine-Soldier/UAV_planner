@@ -9,7 +9,8 @@ import axios from 'axios'
     import { Grid } from '../gridCoords'
     //import { useGeolocation } from '../useGeolocation'
     // import haversineDistance from './calculateDistance'
-    const GOOGLE_MAPS_API_KEY = 'AIzaSyDTNOMjJP2zMMEHcGy2wMNae1JnHkGVvn0'
+    //const GOOGLE_MAPS_API_KEY = 'AIzaSyDTNOMjJP2zMMEHcGy2wMNae1JnHkGVvn0' //real key
+    const GOOGLE_MAPS_API_KEY = 'AIzaSyBkU3LEkHvrO8_kpSWGqobpFob-sESKlA8'
     export default {
       name: 'App',
       props: ['propcoords', 'propspeed', 'propdate', 'propway', 'propEndTime', 'propSubgrid', 'propDuration', 'propID'],
@@ -83,6 +84,7 @@ import axios from 'axios'
 
           map.value = new google.maps.Map(mapDivHere.value, {
                 center: currPos.value,
+                mapId: 'b6fdfcadbdc5d7a0', 
                 zoom: 9 
             })
           sourceMarker.value = new google.maps.Marker({
@@ -527,13 +529,6 @@ import axios from 'axios'
       f.innerHTML += " "+"<b>"+eta.hour +":"+eta.minute+"</b>"
       var s = document.getElementById("speed-final")
       s.innerHTML = speed
-      var a =  document.getElementById("take-off-altitude")
-      if (parseFloat(speed) < 20) {
-        a.innerHTML = "60"
-      } else {
-        a.innerHTML = "90"
-      }
-      
     }
     
 
@@ -555,7 +550,7 @@ import axios from 'axios'
           Speed: <b id="speed-final"></b>km/h
         </div>
         <!-- <br>Take-off Time:: {{ propdate.day }}, {{ propdate.hour }}:{{ propdate.minute }}:00 -->
-        <br><div id="eta-final">ETA: </div>
+        <br>ETA: <b><span id="eta-final"> </span></b>
       </div>
       <!-- <div>Corridor: {{ propspeed.description }} <br>Distance of path(km): <div id="dist">{{ distance }}</div><br>Flight Duration: {{ calculatedTime }} </div> -->
       <div class="detailz">

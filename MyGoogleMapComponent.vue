@@ -33,7 +33,12 @@
       </div>
     </div>
     <!-- <button id="coords-confirm-button" @click="$emit('someEvent', {c:currPos, d:otherLoc} )">Confirm</button> -->
-    <div class="submit-div" @click="$emit('someEvent', {c:currPos, d:otherLoc, distance:distance, w:waypointLoc, t:calculatedTime} )">CONFIRM</div>
+    
+    <div class="submit-div" 
+      @click="$emit('someEvent', {c:currPos, d:otherLoc, distance:distance, w:waypointLoc, t:calculatedTime, r:rawTime} )">
+        CONFIRM
+    </div>
+    
     <div ref="mapDivHere" style="width:100%; height:80vh;"/>
     <div id="airportClicked"></div>
     <div id="addWaypoint">Add Waypoint</div>
@@ -58,8 +63,8 @@
     border-radius: 5px;
     box-shadow: 0px 1px 3px #576481;
     position: absolute;
-    top: 42%;
-    margin-left: 1.2%;
+    top: 48%;
+    margin-left: .8%;
     width: 18.5%;
     padding: 7px;
   }
@@ -161,7 +166,7 @@
     color: black;
     width: 19%;
     position: absolute;
-    top: 66.5%;
+    top: 75.5%;
     margin-left: 1.2%;
     text-align: center;
     padding: 5px;
@@ -191,12 +196,16 @@ import { Loader } from '@googlemaps/js-api-loader'
     import {PQ, Node} from '../graph';
     
     // import haversineDistance from './calculateDistance'
-    const GOOGLE_MAPS_API_KEY = 'AIzaSyDTNOMjJP2zMMEHcGy2wMNae1JnHkGVvn0'
+    //const GOOGLE_MAPS_API_KEY = 'AIzaSyDTNOMjJP2zMMEHcGy2wMNae1JnHkGVvn0'
+    const GOOGLE_MAPS_API_KEY = 'AIzaSyBkU3LEkHvrO8_kpSWGqobpFob-sESKlA8'
     export default {
       name: 'App',
       props: ['propspeed'],
       data() {
-        return {speed: 1}
+        return {
+          speed: 1,
+          path: []
+        }
       },
       setup(props) {
         const { coords } = useGeolocation()
@@ -280,6 +289,7 @@ import { Loader } from '@googlemaps/js-api-loader'
 
           map.value = new google.maps.Map(mapDivHere.value, {
             center: currPos.value,
+            mapId: '3bf85d4d49160123',
             zoom: 9
           })
           clickListener = map.value.addListener(
@@ -310,7 +320,6 @@ import { Loader } from '@googlemaps/js-api-loader'
                   circle = function() {
                     var airportsList =  getAirports();
                     for (var airspace=0; airspace<airportsList.length; airspace++) { //for circle on map
-                        console.log("marker lat", otherLoc.value)
                         var distnace = haversineDistance(airportsList[airspace].center, otherLoc.value)
                         distnace = distnace*1000;     //convert to metres
                         if (distnace < (airportsList[airspace].rad)) {  // the radius was not accurately represented on the map so I multiplied by .6 to be more accuarte?????
@@ -341,25 +350,20 @@ import { Loader } from '@googlemaps/js-api-loader'
           )
 
           
-          var grid  = new Grid(3);
-
-          // grid.generateCoords().then(data => {
-          //   console.log("Received In Map--->", data); 
-          //   this.returned = data
-          //   return this.getReturned()
-          // })
-          // .catch(error => {
-          //   console.error(error);
-          // });
-          
-          var psos = grid.generateCoords([[{lat: 53.531386134765576, lng: -7.925040162129355}]]).then(data => {
+          var grid  = new Grid(4);
+          console.log("Calling in MyGoogle map component")
+          var psos = grid.generateCoords([[{lat: 51.8964507, lng: -8.4908813}]], false).then(data => { 
             console.log("Received In map coords--->", data); 
+            // need to check where data is being sent to Final Map component, do i just pass path as a Prop up to planner like all the other data?
           })
           .catch(error => {
             console.error(error);
           }); //centerPoint for Ireland grid
           console.log("psos: ", psos)
           
+
+
+
           // while (typeof psos === "undefined") {
           //   var pl = grid.getAl()
           //   if (typeof pl !== "undefined") {
@@ -433,7 +437,6 @@ import { Loader } from '@googlemaps/js-api-loader'
                 circle = function() {
                   var airportsList =  getAirports();
                   for (var airspace=0; airspace<airportsList.length; airspace++) { //for circle on map
-                        console.log("marker lat", waypointLoc.value)
                         var distnace = haversineDistance(airportsList[airspace].center, waypointLoc.value)
                         distnace = distnace*1000;     //convert to metres
                         if (distnace < (airportsList[airspace].rad)) {  // the radius was not accurately represented on the map so I multiplied by .6 to be more accuarte?????
@@ -527,7 +530,7 @@ import { Loader } from '@googlemaps/js-api-loader'
               circle = function() {
                   var airportsList =  getAirports();
                   for (var airspace=0; airspace<airportsList.length; airspace++) { //for circle on map
-                        console.log("marker lat", currPos.value)
+                       
                         var distnace = haversineDistance(airportsList[airspace].center, currPos.value)
                         distnace = distnace*1000;     //convert to metres
                         if (distnace < (airportsList[airspace].rad)) {  // the radius was not accurately represented on the map so I multiplied by .6 to be more accuarte?????
@@ -611,7 +614,7 @@ import { Loader } from '@googlemaps/js-api-loader'
             circle = function() {
                   var airportsList =  getAirports();
                   for (var airspace=0; airspace<airportsList.length; airspace++) { //for circle on map
-                        console.log("marker lat", currPos.value)
+                        
                         for (var p in lineSegmentsList) {
                           var distnace = haversineDistance(airportsList[airspace].center, lineSegmentsList[p])
                           distnace = distnace*1000;     //convert to metres
@@ -757,12 +760,26 @@ import { Loader } from '@googlemaps/js-api-loader'
           : waypointsLength()
         )
 
+        const rawT = (distance, speed) => {
+          if (speed === 0) {
+            speed = 1
+          }
+          console.log("distance, speed", distance, speed)
+          return distance/speed
+        }
+
+        var rawTime = computed(() =>
+          rawT(distance.value, props.propspeed)
+        )
+
+
         const t = (distance, speed) => {
           console.log("speed in t", speed, "distance in t", distance)
           if (speed === 0) {
             speed = 1
           }
           const tme = distance/speed
+          rawTime =  tme
           const remainder = tme%1
           console.log("REMAINDER",remainder)
           const minutes = parseInt(60*remainder)
@@ -775,25 +792,22 @@ import { Loader } from '@googlemaps/js-api-loader'
           }
           const time = hours.toFixed(0).toString() + " hours  " + minutes.toString()+" minutes  " 
           
-          return time
+          return time 
         }
         
-        // window.addEventListener('DOMContentLoaded', (event) => {
-        //   speedref.value = parseFloat(document.getElementById("sspeed").value)
-        //   console.log("Listener:",parseFloat(document.getElementById("sspeed").value))
-        // })
-
+   
         var calculatedTime = computed(() =>
             distance.value === null 
               ? 0
               : t(distance.value, props.propspeed)
               //parseFloat(document.getElementById("sspeed").value)
         )
+
       
         console.log("(calculatedTime):", calculatedTime)
 
         
-        return { currPos, otherLoc, distance, mapDivHere, calculatedTime, waypointsDistance,  waypointLoc}
+        return { currPos, otherLoc, distance, mapDivHere, calculatedTime, waypointsDistance,  waypointLoc, rawTime}
       },
       methods: {
         addWaypoint() {
