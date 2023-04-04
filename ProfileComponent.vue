@@ -73,7 +73,7 @@
                 </div>
             </section>
             <div>
-                <router-link to="/"><button class="but">Logout</button></router-link>
+                <router-link to="/"><button class="but" @click="logout()">Logout</button></router-link>
             </div>
         </section>
     </section>
