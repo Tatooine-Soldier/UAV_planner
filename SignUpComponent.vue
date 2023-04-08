@@ -20,6 +20,7 @@
                     <section class="submit-container">
                         <input id="submit" name="submit" type="reset" value="Submit" @click="handleSubmit()"/>
                     </section>
+                    <div id="signup-message">{{ message }}</div>
                 </form>
             </section>
         </section>
@@ -38,7 +39,7 @@
     }
     .login-input-container p {font-size: 22px;}
     .login-page {padding: 10px; display: flex; justify-content: center; color: rgb(57, 56, 56); background-image: url("../assets/output-onlinepngtools.png"); background-repeat: repeat;}
-    .form-container {display: grid; grid-template-rows: 30% 30% 30% 10%;}
+    .form-container {display: grid; grid-template-rows: 27% 27% 27% 10% 9%;}
     .form-elements{padding: 10px; display: grid; grid-template-columns: 50% 50%; margin: 0% 20%;}
     .back-link a {color: white; font-size: 20px; font-weight: 600;}
 
@@ -59,6 +60,10 @@
         width: 100%;
     }
 
+    #signup-message {
+        color: red
+    }
+
 </style>
 
 <script>
@@ -70,7 +75,8 @@ export default {
           name: '',
           password: '',
           email: ''
-        }
+        },
+        message: "",
       }
     },
   
@@ -84,6 +90,7 @@ export default {
           const data = response.data;
           console.log("Signup outcome: ",data); //NEED TO REDIRECT
           if (data.result) {
+             //this.$emit(entryEvent, this.data.result)
               this.$router.push('planner')
           } else {
             this.message = "Incorrect Username or Password"

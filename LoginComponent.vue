@@ -87,8 +87,16 @@ export default {
         .post("/login", this.user)
         .then((response) => {
           const data = response.data;
+          this.$globalUser = data.id
+          console.log("this.$globalUser", this.$globalUser)
           console.log("Login outcome: ",data); //NEED TO REDIRECT
           if (data.result) {
+            //   this.$emit('entryEvent', {n: this.data.name} )
+              document.cookie = `session_id=${response.data.session_id}`;
+              var np = document.getElementById("nav-planner")
+              np.style.visibility = "visible"
+              var loginIcon = document.getElementById("login-icon")
+              loginIcon.style.display = "inline"
               this.$router.push('planner')
           } else {
             this.message = "Incorrect Username or Password"
@@ -98,7 +106,6 @@ export default {
         .catch (function (error) {
             console.log("ERROR:", error);    
         })
-        console.log(this.user.name)
         //console.log("href-->", location.href)
         // location.href = "https://localhost:3333/planner"
       }
